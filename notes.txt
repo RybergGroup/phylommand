@@ -1,0 +1,2 @@
+g++ -o anconstruction anconstruction.cpp tree.cpp simpleML.cpp string_tree.cpp marth/marth.cpp -lnlopt -lm
+

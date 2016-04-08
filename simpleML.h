@@ -1,0 +1,73 @@
+#include "tree.h"
+#include <cmath>
+#include "marth/marth.h"
+#include <map>
+#include <vector>
+
+using namespace std;
+
+class simpleML : public tree {
+    public:
+	~simpleML(){
+	    un_init_nodes (root);
+	}
+	void init(unsigned int states) {
+	    un_init_nodes (root);
+	    n_states = states;
+	    Q_matrix.reset(n_states);
+	    init_nodes(root);
+	};
+	void reset(const unsigned int states) { init(states); };
+	void set_char( const string taxon, const double* state ) {
+	    node* leaf = find_taxon_tip(root, nodelabels.find_string(taxon));
+	    if (leaf != 0)
+		for (unsigned int i=0; i < n_states; ++i) likelihoods[leaf][i] = state[i];
+	};
+	double calculate_log_likelihood() {
+	    if (!check_nodes ( root )) return 0.0;
+	    calculate_likelihood( root );
+	    double likelihood=0;
+	    for (unsigned int i=0; i < n_states; ++i) likelihood += likelihoods[root][i];
+	    return log(likelihood);
+	};
+	void set_Q_matrix ( const unsigned int* parameters, const double* values );
+	void set_Q_matrix ( const double* values );
+	double calculate_log_likelihood( const unsigned int* parameters, const double* values ) {
+	    set_Q_matrix(parameters,values);
+	    return calculate_log_likelihood();
+	};
+	double calculate_log_likelihood( const double* values ) {
+	    set_Q_matrix(values);
+	    return calculate_log_likelihood();
+	}
+	double calculate_likelihood_rate_change_in_time(const double cut_off, const double rate) {
+	    if (!check_nodes ( root )) return 0.0;
+	    calculate_likelihood_rate_change_in_time( root, 0.0, cut_off, rate );
+	    double likelihood=0;
+            for (unsigned int i=0; i < n_states; ++i) likelihood += likelihoods[root][i];
+            return log(likelihood);
+	}
+	double calculate_likelihood_rate_change_in_time(const unsigned int* parameters, const double* values, const double cut_off, const double rate ) {
+	    set_Q_matrix(parameters,values);
+	    return calculate_likelihood_rate_change_in_time(cut_off, rate);
+	}
+	double calculate_likelihood_rate_change_in_time( const double* values, const double cut_off, const double rate ) {
+	    set_Q_matrix(values);
+	    return calculate_likelihood_rate_change_in_time(cut_off, rate);
+        }
+	void print_Q_matrix () { Q_matrix.print(); };
+	void draw_normalized_likelihood_on_nodes() { draw_normalized_likelihood_on_nodes( root ); };
+    private:
+	// variables
+	map<node*,vector<double> > likelihoods;
+	unsigned int n_states;
+	marth::square_matrix Q_matrix;
+	// functions
+	void init_nodes ( node* leaf );
+	void un_init_nodes ( node* leaf );
+	bool check_nodes ( const node* leaf );
+	void calculate_likelihood ( const node* leaf );
+	void calculate_likelihood_rate_change_in_time(const node* leaf, const double dist_from_root, const double cut_off, const double rate);
+	void draw_normalized_likelihood_on_nodes( node* leaf );
+	void branch_likelihood ( map<node*,vector<double> >::iterator LHbins, map<node*,vector<double> >::iterator startLHs, double branch_length, bool multiply);
+};
