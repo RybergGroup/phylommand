@@ -43,12 +43,14 @@ struct tree_modelspec_struct {
 };
 
 int main (int argc, char *argv []) {
+    #if DEBUG
+    cerr << "Debugging version!!!" << endl;
+    #endif //DEBUG
+    ///// variables /////
     char method = 'o';
     char print_tree = 'x';
-    //char tree_source = 's';
     unsigned int n_states = 0;
     unsigned int n_parameters = 0;
-    //int n_states
     vector<double> model_parameters;
     set<int> fixed_parameters;
     double rate_mod = 1.0;
@@ -238,6 +240,9 @@ int main (int argc, char *argv []) {
 	simpleML tree;
 	// Get tree
 	tree.tree_file_parser( *input_stream );
+	#if DEBUG
+	cerr << "Number of tips in tree: " << tree.n_tips() << endl;
+	#endif //DEBUG
 	if (tree.n_tips() < 2) break;
         tree.init(n_states);
 	for (map<string,int>::iterator i= characters.begin(); i!=characters.end();++i) {
@@ -346,6 +351,7 @@ void help () {
     std::cout << "Arguments:" << endl;
     std::cout << "--char_file/-c [file name]                                 give file name of character file, e.g. -c character.file." << endl;
     std::cout << "--file/-f [file name]                                      give name of tree file, e.g. -f file.tree." << endl;
+    std::cout << "--fixed/-x [parameter name]                                give name of parameter to fix. This argument can be repeated." << endl;
     std::cout << "--help / -h                                                print this help." << endl;
     std::cout << "--method/-e [name of method]                               set which method to use. The method name should be next argument, e.g. -e const. Default: const." << endl;
     std::cout << "    const                                                      maximize likelihood for parameters with constant rate through the tree." << endl;

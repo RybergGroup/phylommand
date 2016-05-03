@@ -714,6 +714,41 @@ void tree::multiply_br_length_subtree ( node *leaf, const float multiplier ) {
         if (leaf->right != 0) multiply_br_length_subtree ( leaf->right, multiplier );
     }
 }
+void tree::multiply_br_length_cut_off_subtree (node *leaf, const float cut_off, const float multiplier ) {
+    if (leaf == 0) return;
+    else {
+	//cerr << cut_off << ' ' << leaf->branchlength << ' ';
+	float next_cut_off = cut_off - leaf->branchlength;
+	if (leaf->branchlength < cut_off) leaf->branchlength *= multiplier;
+	else if ( cut_off > 0.0 ) leaf->branchlength = cut_off * multiplier + leaf->branchlength - cut_off;
+	//cerr << leaf->branchlength << endl;
+	if (leaf->left != 0) multiply_br_length_cut_off_subtree (leaf->left, next_cut_off, multiplier);
+	if (leaf->right != 0) multiply_br_length_cut_off_subtree (leaf->right, next_cut_off, multiplier);
+    }
+}
+void tree::multiply_br_length_clades ( const vector<string> &clades, const float multiplier ) {
+    set<node*> nodes;
+    cerr << "Starting" << endl;
+    for (vector<string>::const_iterator i = clades.begin(); i != clades.end(); ++i) {
+	nodes.insert(most_recent_common_ancestor(*i));
+	cerr << *i << endl;
+    }
+    set<node*> delete_nodes;
+    for (set<node*>::iterator i = nodes.begin(); i != nodes.end(); ++i) {
+	for (set<node*>::iterator j = i; j != nodes.end(); ++j) {
+	    if (i == j) continue;
+	    if (is_nested_in(*i,*j)) delete_nodes.insert(*j);
+	    else if (is_nested_in(*j,*i)) delete_nodes.insert(*i);
+	}
+    }
+    for (set<node*>::iterator i = delete_nodes.begin(); i != delete_nodes.end(); ++i) {
+	nodes.erase(*i);
+    }
+    delete_nodes.clear();
+    for (set<node*>::iterator i = nodes.begin(); i != nodes.end(); ++i) {
+	multiply_br_length_subtree ( *i,multiplier );
+    }
+};
 void tree::set_br_length_subtree ( node *leaf, const float value ) {
     if (leaf == 0) return;
     else {
@@ -1357,6 +1392,16 @@ char tree::is_monophyletic_unrooted (node* leaf, set<string*>& taxa) {
     else if ((left == 'C' && right == 'T') ||  (left == 'T' && right == 'C')) return 'D';
     else if ((left == 'C' && right == 'F') ||  (left == 'F' && right == 'C')) return 'E';
     return 'X';
+}
+
+bool tree::is_nested_in ( const node* ancestor, const node* descendent) {
+    if (ancestor == 0 || descendent == 0) return false;
+    if (ancestor == descendent) return true;
+    bool answerLeft(false);
+    bool answerRight(false);
+    if (ancestor->left != 0) answerLeft = is_nested_in( ancestor->left, descendent);
+    if (ancestor->right != 0) answerRight = is_nested_in( ancestor->right, descendent);
+    return answerLeft || answerRight;
 }
 
 char tree::get_conflict_nodes (node* leaf, set<string*>& taxa, set<string*>& ignor_taxa, set<node*>& conflict_nodes) {

@@ -161,6 +161,10 @@ class tree {
         void multiply_br_length ( const float multiplier ) {
             multiply_br_length_subtree ( root, multiplier );
         };
+	void multiply_br_length_cut_off ( const float cut_off, const float multiplier ) {
+	    multiply_br_length_cut_off_subtree (root, cut_off, multiplier);
+	};
+	void multiply_br_length_clades ( const vector<string> &clades, const float multiplier );
         void set_br_length (const float value) {
             set_br_length_subtree ( root, value );
         };
@@ -315,6 +319,7 @@ class tree {
         bool is_monophyletic ( node* leaf, string& taxa );
 	char is_monophyletic_unrooted (node* leaf, set<string*>& taxa, set<string*>& ignor_taxa);
 	char is_monophyletic_unrooted (node* leaf, set<string*>& taxa);
+	bool is_nested_in ( const node* ancestor, const node* descendent);
         node* find_midpoint_node ( node* leaf );
         void turn_nodes ( node *leaf, bool clockwise );
         inline void turn_node_clockwise ( node *leaf );
@@ -348,12 +353,12 @@ class tree {
         bool taxon_present( node *leaf, const string taxon );
         void change_tip_name( node *leaf, const string tip_name, const string new_tip_name);
         void multiply_br_length_subtree ( node *leaf, const float multiplier );
+	void multiply_br_length_cut_off_subtree (node *leaf, const float cut_off, const float multiplier );
         void set_br_length_subtree ( node *leaf, const float value );
         double sum_br_length( node *leaf );
         double two_taxa_distance ( const string* taxon1, const string* taxon2 );
         node* most_recent_common_ancestor ( const string* taxon1, const string* taxon2 );
         node* most_recent_common_ancestor ( const string taxa ); // comma separated list of taxa
-        //node* most_recent_common_ancestor ( const node_array* nodes );
 	node* most_recent_common_ancestor ( set<string*> taxa );
 	node* most_recent_common_ancestor ( vector<node*>& nodes );
         node* find_taxon_tip ( node *leaf, string taxon );
@@ -365,23 +370,13 @@ class tree {
         void split_at_longest_branch ( node* leaf, tree* tree );
         void split_at_longest_branch_unrooted ( node* leaf, tree* tree );
         void split_at_midpoint ( node* leaf, tree* tree );
-        //float highest_support_on_path ( node* leaf, const string* tip_name );
-        //void tips_not_present_in_list (node* leaf, const string* taxa, string* output); // put the tips that are not in taxa in output (both comma separated)
 	void tips_not_present_in_set (node* leaf, set<string*>& taxa, set<string*>& output); // -"-
 	unsigned int tips_present_in_set (node* leaf, set<string*>& taxa);
-        //void tips_in_list_present (node* leaf, const string* taxa, string* output); // put the tips that are present in the taxa in output (both comma separated)
-	//void tips_in_set_present (node* leaf, set<string*> taxa, set<string*> output); // -"-
-        //string find_conflict( node* leaf, const string* taxa, const float supp, const string* ignor_taxa );
-        //void find_conflict( node* leaf, set<string*>& taxa, set<string*>& ignor_taxa, const float supp, set<string*>& conf_taxa );
         string supported_not_monophyletic ( set<string*>& taxa, const float supp, set<string*>& ignor_taxa ); // returns the taxa that are in conflict with the monophyly of the given taxa with given support
         void print_conflict_clades ( node* leaf, tree* tree, const float supp, set<string*>& not_in_tree, set<string*>& not_in_comp_tree, bool svg );
-        //float support_non_mono ( node* leaf, const string* taxa, const string* ignor_taxa ); // Taxa should be a string with taxa. Returns -1.0 if only taxa in string found, -0.5 if only taxa not in string found, else highest support value up till the point where both taxa in and not in string found
-        //float support_non_mono ( node* leaf, set<string*>& taxa, set<string*>& ignor_taxa ); // Taxa should be a string with taxa. Returns -1.0 if only taxa in string found, -0.5 if only taxa not in string found, else highest support value up till the point where both taxa in and not in string found
 	char get_conflict_nodes (node* leaf, set<string*>& taxa, set<string*>& ignor_taxa, set<node*>& conflict_nodes);
-	//node_double_char non_mono(node* leaf, set<string*>& taxa, set<string*>& ignor_taxa, bool node_lab);
 	void get_internal_node_values(node* leaf, const string& type, vector<double>& values);
 	void add_value_from_label_to_vector (const string& label, const string& param, vector<double>& values);
-	//int splits_not_in_B(node* leaf, tree* B, set<string*>& not_in_A, set<string*>& not_in_B );
 	unsigned int splits_not_in_B(node* leaf, tree* B, set<string*>& split, const unsigned int n_shared_taxa, set<string*>& not_in_A, set<string*>& not_in_B);
 	void code_clades_in_matrix(node* leaf, map<string,vector<char> >& matrix, set<string>& absent_taxa);
 	void add_taxa_to_matrix(node* leaf, map<string,vector<char> >& matrix, unsigned int length);

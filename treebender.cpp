@@ -43,6 +43,7 @@ int main (int argc, char *argv []) {
     unsigned int tree_interval_start = 0;
     unsigned int tree_interval_end = UINT_MAX;
     string taxastring;
+    vector<string> taxon_vector;
     string separator(",");
     string separator2(" ");
     string tip_colors;
@@ -53,6 +54,7 @@ int main (int argc, char *argv []) {
     bool right_ladderize(true);
     bool read_phylomand_block = false;
     float value(1.0);
+    float cut_off(0.0);
     int n_taxa(0);
     unsigned int n_rand_trees(1);
     unsigned int branch_no(0);
@@ -121,6 +123,48 @@ int main (int argc, char *argv []) {
                 method = 'u';
                 if ( i < argc-1 && argv[i+1][0] != '-') value = atof(argv[++i]);
             }
+	    else if (!strcmp(argv[i],"-U") || !strcmp(argv[i],"--multiply_branch_lengths_until")) {
+		method = 'U';
+		if ( i < argc-1 && argv[i+1][0] != '-') {
+		    ++i;
+		    string temp;
+		    for (unsigned int j=0; argv[i][j] != '\0'; ++j) {
+			if (argv[i][j] == ',') {
+			    cut_off = atof(temp.c_str());
+			    temp.clear();
+			}
+			else temp += argv[i][j];
+		    }
+		    value = atof(temp.c_str());
+		}
+		//cerr << cut_off << ' ' << value << endl;
+	    }
+	    else if (!strcmp(argv[i],"-V") || !strcmp(argv[i],"--multiply_branch_lengths_clade")) {
+                method = 'V';
+                if ( i < argc-1 && argv[i+1][0] != '-') {
+		    ++i;
+		    string temp;
+		    char mode='s';
+		    for (unsigned int j=0; argv[i][j] != '\0'; ++j) {
+			if (mode == 's' && (argv[i][j] == ':' || argv[i][j] == ';')) { 
+			    value = atof(temp.c_str());
+			    mode = 't';
+			    temp.clear();
+			}
+			else if (mode == 't' && (argv[i][j] == ':' || argv[i][j] == ';')) {
+			    taxon_vector.push_back(temp);
+			    temp.clear();
+			}
+			else temp += argv[i][j];
+		    }
+		    if (mode == 't' && !temp.empty()) taxon_vector.push_back(temp);
+		    else if (mode == 's' && !temp.empty()) value = atof(temp.c_str());
+		    else {
+			cerr << "Parsing error reading argument to --multiply_branch_lengths_clade / -V." << endl;
+			return 1;
+		    }
+		}
+	    }
             else if (!strcmp(argv[i],"-t") || !strcmp(argv[i],"--get_tip_names")) {
                 method = 't';
                 if ( i < argc-1 && argv[i+1][0] != '-') separator = argv[++i];
@@ -415,6 +459,8 @@ int main (int argc, char *argv []) {
 	    print_tree = false;
 	}
 	else if (method == 'u') in_tree.back().multiply_br_length( value );
+	else if (method == 'U') in_tree.back().multiply_br_length_cut_off( cut_off, value );
+	else if (method == 'V') in_tree.back().multiply_br_length_clades( taxon_vector, value );
 	else if (method == 'b') in_tree.back().set_br_length( value );
 	else if (method == 'a') {
 	    in_tree.back().print_branch_lengths ( separator, flag );
@@ -553,6 +599,9 @@ void help () {
     std::cout << "                                                               parsimony." << endl;
     std::cout << "--mid_point_root / -m                                      root the tree at the mid point." << endl;
     std::cout << "--multiply_branch_lengths / -u [value]                     multiply each branch in the tree with the given value, e.g. 3.5 (default 1.0)." << endl;
+    std::cout << "--multiply_branch_lengths_clade / -V [value,taxon_string]  multiply branches in clades defined by the most recent common ancestor of comma separated taxa. Separate clades" << endl;
+    std::cout << "                                                               with ':' or ';'. E.g. 3:Taxon_1,Taxon_2:Taxon_3,Taxon_4." << endl;
+    std::cout << "--multiply_branch_lengths_until / -U [cut off,value]       multiply branches in tree up until cut off value distance from root with given value, e.g. 40,2 (default 0.0,1.0)." << endl;
     std::cout << "--n_supported [value]                                      get the number of nodes with higher support than given value. Should be followed by value, e.g. --n_supported 70.0" << endl;
     std::cout << "--newick / -w                                              output tree in newick format (default)." << endl;
     std::cout << "--nexus / -x                                               output tree in nexus format." << endl;
