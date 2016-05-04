@@ -5,7 +5,7 @@ PP=g++
 CC=gcc
 #CFLAGS
 EXTRAS=
-PHYLOMMAND = treebender clustertree alignmentgroups pairalign treespliter superstat conftree treeator anconstruction
+PHYLOMMAND = treebender clustertree alignmentgroups pairalign treespliter superstat conftree treeator # anconstruction
 TREE = tree.cpp
 ALIGN = align_group.cpp
 CLUST = clustertree.cpp
@@ -22,7 +22,7 @@ TREESPLIT = treespliter.cpp
 SUPER = superstat.cpp
 CONFTREE = conftree.cpp
 TREEATOR = treeator.cpp
-ANCON = anconstruction.cpp
+#ANCON = anconstruction.cpp
 STRINGTREE = string_tree.cpp
 NJTREE = nj_tree.cpp
 SIMPLEML = simpleML.cpp
@@ -37,10 +37,10 @@ OPAIRALIGN = seqpair.o pairalign.o
 OSPLIT = tree.o treespliter.o string_tree.o # support_functions.o
 OSUPER = superstat.o tree.o decisiveness.o string_tree.o # support_functions.o
 OCONFTREE = conftree.o tree.o string_tree.o # support_functions.o
-OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o # support_functions.o
-OANCON = anconstruction.o tree.o string_tree.o simpleML.o marth.o
+OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o -lnlopt -lm # support_functions.o
+#OANCON = anconstruction.o tree.o string_tree.o simpleML.o marth.o
 SQLOFLAGS = -ldl -lpthread
-ANCONFLAGS = -lnlopt -lm
+#ANCONFLAGS = -lnlopt -lm
 
 # treeator.cpp tree.cpp string_tree.cpp nj_tree.cpp
 
@@ -70,8 +70,8 @@ conftree: $(OCONFTREE)
 treeator: $(OTREEATOR)
 	$(PP) -o treeator $(OTREEATOR)
 
-anconstruction: $(OANCON)
-	$(PP) -o anconstruction $(OANCON) $(ANCONFLAGS)
+#anconstruction: $(OANCON)
+#	$(PP) -o anconstruction $(OANCON) $(ANCONFLAGS)
 
 treebender.o: $(TREEB)
 	$(PP) -c $(TREEB) $(EXTRAS)
@@ -97,8 +97,8 @@ conftree.o: $(CONFTREE)
 treeator.o: $(TREEATOR)
 	$(PP) -c $(TREEATOR) $(EXTRAS)
 
-anconstruction.o: $(ANCON)
-	$(PP) -c $(ANCON) $(EXTRAS)
+#anconstruction.o: $(ANCON)
+#	$(PP) -c $(ANCON) $(EXTRAS)
 
 tree.o: $(TREE)
 	$(PP) -c $(TREE) $(EXTRAS)

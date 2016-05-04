@@ -18,10 +18,13 @@ class simpleML : public tree {
 	    init_nodes(root);
 	};
 	void reset(const unsigned int states) { init(states); };
-	void set_char( const string taxon, const double* state ) {
+	void set_char( const string taxon, const bitset<SIZE>& state) { //const double* state ) {
 	    node* leaf = find_taxon_tip(root, nodelabels.find_string(taxon));
 	    if (leaf != 0)
-		for (unsigned int i=0; i < n_states; ++i) likelihoods[leaf][i] = state[i];
+		for (unsigned int i=0; i < n_states; ++i) {
+		    if (state[i]) likelihoods[leaf][i] = 1.0; //state[i];
+		    else likelihoods[leaf][i] = 0.0;
+		}
 	};
 	double calculate_log_likelihood() {
 	    if (!check_nodes ( root )) return 0.0;

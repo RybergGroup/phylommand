@@ -41,10 +41,19 @@ public:
     void reset_char() { characters.clear(); };
     void reset_taxon() { taxon.clear(); };
     void reset() { characters.clear(); taxon.clear(); }
+    bool empty() { return characters.empty() && taxon.empty(); }
     unsigned int n_char() { return characters.size(); };
     unsigned int max_n_char() { return characters.max_size(); };
     string& get_taxon() { return taxon; };
     void set_taxon ( const string& name ) { taxon = name; };
+    unsigned int highest_char_state() { highest_char_state(0,characters.size()-1); }
+    unsigned int highest_char_state(unsigned int start, unsigned int end) {
+	unsigned int higest_state(0);
+	for (unsigned int i=start; i <= end && i < characters.size(); ++i)
+	    for (unsigned int j=higest_state; j < SIZE; ++j)
+		if (characters[i].test(j)) higest_state = j;
+	return higest_state;
+    }
 protected:
     vector<bitset<SIZE> > characters;
     string taxon;

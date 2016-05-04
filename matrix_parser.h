@@ -9,7 +9,7 @@
 
 class matrix_parser {
 public:
-    matrix_parser(istream& input_file, vector<character_vector>& data_matrix,map<char,bitset<SIZE> >& code) : file(input_file), matrix(data_matrix), alphabet(code), matrix_type("relaxed_phylip") {};
+    matrix_parser(istream& input_file, vector<character_vector>& data_matrix, map<char,bitset<SIZE> >& code) : file(input_file), matrix(data_matrix), alphabet(code), matrix_type("relaxed_phylip") {};
     void pars () {
         if (!matrix_type.compare("relaxed_phylip")) pars_relaxed_phylip();
     };
@@ -63,7 +63,7 @@ void matrix_parser::pars_relaxed_phylip() {
 	    }
 	}
 	else if (read_mode == 'C') {
-	    if (character == '\n') {
+	    if ( !row.empty() && (character == '\n' || character == '\r')) {
 		read_mode='T';
 		if (row.n_char() != n_char) std::cerr << "Matrix size missmatch: " << taxon << " differes in " << (row.n_char() - n_char) << " from given number of characters." << std::endl;
 		matrix.push_back(row);
@@ -73,7 +73,7 @@ void matrix_parser::pars_relaxed_phylip() {
 		trait |= alphabet[character];
 		row.add_character(trait);
 		#ifdef DEBUG
-		std::cerr << "Set " << taxon << " to " << trait << std::endl;
+		std::cerr << "Set " << row.get_taxon() << " to " << trait << std::endl;
 		#endif //DEBUG
 		trait.reset();
 	    }
