@@ -120,13 +120,13 @@ void marth::square_matrix::exponential ( square_matrix* exponential, const doubl
     for (unsigned int i=0; i < k; ++i) exponential->power(2);
 }
 
-void marth::square_matrix::print() {
+void marth::square_matrix::print(std::ostream& out_stream) {
     for (unsigned int x=0; x < dimentions; ++x){
         for (unsigned int y=0; y < dimentions; ++y){
-            std::cout << values[x][y];
-            if (y < dimentions-1) std::cout << ' ';
+            out_stream << values[x][y];
+            if (y < dimentions-1) out_stream << ' ';
         }
-        if (x < dimentions-1) std::cout << std::endl;
+        if (x < dimentions-1) out_stream << std::endl;
     }
 }
 

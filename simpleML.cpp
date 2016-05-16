@@ -123,16 +123,19 @@ void simpleML::draw_normalized_likelihood_on_nodes( node* leaf ) {
 	    double sum=0;
 	    for (unsigned int i=0; i < n_states; ++i) sum += likelihoods[leaf][i];
 	    stringstream prob_label;
-	    prob_label << "[&";
+	    prob_label << "[& P={";
 	    for (unsigned int i=0; i < n_states; ++i) {
 		if (i!=0) prob_label << ',';
-		prob_label << "P_" << i << '=';
+		//prob_label << "P_" << i << '=';
 		prob_label << likelihoods[leaf][i]/sum;
 	    }
-	    prob_label << ']';
+	    prob_label << "}]";
 	    string label;
-	    prob_label >> label;
+	    label = prob_label.str();
 	    if (leaf->nodelabel!=0) label = *leaf->nodelabel+label;
+	    #ifdef DEBUG
+	    std::cerr << label << endl;
+	    #endif //DEBUG
 	    leaf->nodelabel = nodelabels.add_string(label);
 	}
     }

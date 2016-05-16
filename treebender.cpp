@@ -619,6 +619,7 @@ void help () {
     std::cout << "--read_figtree_annotations                                 will read annotations in FigTree/treeanotator format (e.g. [&rate=1.0,height=3.0])" << endl;
     std::cout << "--set_branch_lengths / -b [value]                          set all branches in the tree to the given value, e.g. 0.5 (default 1.0)." << endl;
     std::cout << "--sum_branch_length / -s                                   get the sum of the branch lengths in the tree (including root branch if length for this is given)." << endl;
+    std::cout << "--svg / -g                                                 output tree as svg immage." << endl;
     std::cout << endl;
 
 }

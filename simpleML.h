@@ -1,3 +1,4 @@
+#include <iostream>
 #include "tree.h"
 #include <cmath>
 #include "marth/marth.h"
@@ -58,7 +59,8 @@ class simpleML : public tree {
 	    set_Q_matrix(values);
 	    return calculate_likelihood_rate_change_in_time(cut_off, rate);
         }
-	void print_Q_matrix () { Q_matrix.print(); };
+	void print_Q_matrix ( ostream& output_stream ) { Q_matrix.print( output_stream ); };
+	void print_Q_matrix () { Q_matrix.print( std::cout ); };
 	void draw_normalized_likelihood_on_nodes() { draw_normalized_likelihood_on_nodes( root ); };
     private:
 	// variables

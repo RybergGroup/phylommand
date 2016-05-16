@@ -29,15 +29,16 @@ SIMPLEML = simpleML.cpp
 MARTH = marth/marth.cpp
 #SUPPORTFUNCTIONS = support_functions.cpp
 FILE_PARSER = file_parser.cpp
+MATRIXPARS = matrix_parser.cpp
 
-OTREE = tree.o treebender.o string_tree.o file_parser.o # support_functions.o
-OCLUSTTREE = clustertree.o tree.o sqlite3.o clustertree_main.o string_tree.o # support_functions.o
+OTREE = tree.o treebender.o string_tree.o file_parser.o matrix_parser.o # support_functions.o
+OCLUSTTREE = clustertree.o tree.o sqlite3.o clustertree_main.o string_tree.o matrix_parser.o # support_functions.o
 OALIGNMENT = seqpair.o align_group.o sqlite3.o alignmentgroups.o
 OPAIRALIGN = seqpair.o pairalign.o
-OSPLIT = tree.o treespliter.o string_tree.o # support_functions.o
-OSUPER = superstat.o tree.o decisiveness.o string_tree.o # support_functions.o
-OCONFTREE = conftree.o tree.o string_tree.o # support_functions.o
-OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o -lnlopt -lm # support_functions.o
+OSPLIT = tree.o treespliter.o string_tree.o matrix_parser.o # support_functions.o
+OSUPER = superstat.o tree.o decisiveness.o string_tree.o matrix_parser.o # support_functions.o
+OCONFTREE = conftree.o tree.o string_tree.o matrix_parser.o # support_functions.o
+OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o matrix_parser.o -lnlopt -lm # support_functions.o
 #OANCON = anconstruction.o tree.o string_tree.o simpleML.o marth.o
 SQLOFLAGS = -ldl -lpthread
 #ANCONFLAGS = -lnlopt -lm
@@ -135,3 +136,6 @@ marth.o: $(MARTH)
 
 file_parser.o: $(FILE_PARSER)
 	$(PP) -c $(FILE_PARSER) $(EXTRAS)
+
+matrix_parser.o: $(MATRIXPARS)
+	$(PP) -c $(MATRIXPARS) $(EXTRAS)

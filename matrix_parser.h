@@ -5,7 +5,11 @@
 #include <stdlib.h>
 #include <bitset>
 #include <vector>
+#include <map>
 #include "constants.h"
+#include "character_vector.h"
+
+using namespace std;
 
 class matrix_parser {
 public:
@@ -20,71 +24,22 @@ private:
     string matrix_type;
     void pars_relaxed_phylip();
 };
-/*
+
 class alphabet_parser {
 public:
-    
+    alphabet_parser(istream& input_file, map<char, bitset<SIZE> >& alphabet_map) : file(input_file), alphabet(alphabet_map), file_type("white space") {};	
+    void pars () {
+	if (!file_type.compare("white space")) pars_whitespace();
+    }
 private:
     istream& file;
-    map<char, bitseat<SIZE> >& alphabet;
-}
-*/
+    string file_type;
+    map<char, bitset<SIZE> >& alphabet;
+    void pars_whitespace();
+};
 
-void matrix_parser::pars_relaxed_phylip() {
-    char character;
-    string taxon;
-    bitset<SIZE> trait;
-    character_vector row;
-    unsigned int n_char(0);
-    unsigned int n_taxa(0);
-    char read_mode('n');
-    while (file) {
-	file.get(character);
-	if (read_mode == 'n') {
-	    if (character == ' ' && n_taxa > 0) read_mode = 'N';
-	    if (character != ' ') {
-		n_taxa *= 10;
-		n_taxa += character - '0';
-	    }
-	}
-	else if (read_mode == 'N') {
-	    if (character == '\n') read_mode = 'T';
-	    else if (character != ' ') {
-		n_char *= 10;
-		n_char += character - '0';
-	    }
-	}
-	else if (read_mode == 'T') {
-	    if (character != ' ') taxon += character;
-	    else if (!taxon.empty() && character == ' ') {
-		row.set_taxon(taxon);
-		taxon.clear();
-		read_mode = 'C';
-	    }
-	}
-	else if (read_mode == 'C') {
-	    if ( !row.empty() && (character == '\n' || character == '\r')) {
-		read_mode='T';
-		if (row.n_char() != n_char) std::cerr << "Matrix size missmatch: " << taxon << " differes in " << (row.n_char() - n_char) << " from given number of characters." << std::endl;
-		matrix.push_back(row);
-		row.reset();
-	    }
-	    else if (!row.get_taxon().empty() && alphabet.find(character) != alphabet.end()) {
-		trait |= alphabet[character];
-		row.add_character(trait);
-		#ifdef DEBUG
-		std::cerr << "Set " << row.get_taxon() << " to " << trait << std::endl;
-		#endif //DEBUG
-		trait.reset();
-	    }
-	}
-    }
-    if (matrix.size() != n_taxa) std::cerr << "Matrix size missmatch: there is a difference of " << (matrix.size() - n_taxa) << " between given number of taxa and number of read taxa." << std::endl;
-}
-
-void set_alphabet_binary (map<char,bitset<SIZE> >& alphapet) {
-    alphapet['0'][0] = 1;
-    alphapet['1'][1] = 1;
-    alphapet['-'][0] = alphapet['-'][1] = 1;
+namespace alphabet {
+    void set_alphabet_binary (map<char,bitset<SIZE> >& alphapet);
+    char translate_bitset (const bitset<SIZE> character, map<char,bitset<SIZE> >& alphapet); 
 }
 #endif //MATRIX_PARSER

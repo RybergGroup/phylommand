@@ -35,6 +35,7 @@ contact: martin.ryberg@ebc.uu.se
 #include "string_tree.h"
 #include "character_vector.h"
 #include "constants.h"
+#include "matrix_parser.h"
 //#include "supmar/character_vector.h"
 //#include "supmar/constants.h"
 //#include "support_functions.cpp"
@@ -203,10 +204,16 @@ class tree {
 	void tips_not_shared( tree* B, const string& name_tree1, const string & name_tree2 );
 	void add_to_matrix_representation(map<string,vector<char> >& matrix);
 	void nni (unsigned int node_no, tree& L, tree& R); // perform NNI on given branch. If branch_no == 0 random branch will be selected
-	unsigned int fitch_parsimony (vector<character_vector>& characters, bool ancestral_states, bool get_branch_lengths);
-	unsigned int fitch_parsimony (vector<character_vector>& characters, bool get_branch_lengths) { return fitch_parsimony(characters, false, get_branch_lengths); };
-	unsigned int fitch_parsimony (vector<character_vector>& characters) { return fitch_parsimony(characters, false, false); };
-	unsigned int fitch_parsimony_ancestral_states (vector<character_vector>& characters) { return fitch_parsimony(characters, true, false); };
+	unsigned int fitch_parsimony (vector<character_vector>& characters, bool ancestral_states, bool get_branch_lengths, map<char, bitset<SIZE> >& alphabet);
+	unsigned int fitch_parsimony (vector<character_vector>& characters, bool get_branch_lengths) {
+	    map<char, bitset<SIZE> > alphabet;
+	    return fitch_parsimony(characters, false, get_branch_lengths, alphabet);
+	};
+	unsigned int fitch_parsimony (vector<character_vector>& characters) {
+	    map<char, bitset<SIZE> > alphabet;
+	    return fitch_parsimony(characters, false, false, alphabet);
+	};
+	unsigned int fitch_parsimony_ancestral_states (vector<character_vector>& characters, map<char, bitset<SIZE> >& alphabet) { return fitch_parsimony(characters, true, false, alphabet); };
 	void assign_branch_number_to_internal_nodes (){
 	    assign_branch_number_to_internal_nodes(root, 0);
 	};
@@ -381,14 +388,14 @@ class tree {
 	void code_clades_in_matrix(node* leaf, map<string,vector<char> >& matrix, set<string>& absent_taxa);
 	void add_taxa_to_matrix(node* leaf, map<string,vector<char> >& matrix, unsigned int length);
 	void interchange(node* leaf, bool left);
-	unsigned int fitch_parsimony (node* leaf, map<node*, parsimony_character_vector>& characters, const unsigned int start_char, const unsigned int end_char);
-	void fitch_parsimony_second_pass (node* leaf, map<node*, parsimony_character_vector > characters, parsimony_character_vector prefered, bool calc_branch_length, bool draw_ancestral_state, const unsigned int start_char, const unsigned int end_char);
+	unsigned int fitch_parsimony (node* leaf, map<node*, parsimony_character_vector>& characters, const unsigned int start_char, const unsigned int end_char );
+	void fitch_parsimony_second_pass (node* leaf, map<node*, parsimony_character_vector > characters, parsimony_character_vector prefered, bool calc_branch_length, bool draw_ancestral_state, const unsigned int start_char, const unsigned int end_char, map<char, bitset<SIZE> >& alphabet);
 	unsigned int assign_branch_number_to_internal_nodes (node* leaf, unsigned int number);
 	bool add_tip_to_branch_parsimony(node* new_taxon, map<node*, parsimony_character_vector>& node_states, const unsigned int start_char, const unsigned int end_char);
 	unsigned int parsimony_score_if_tip_added_to_branch (const unsigned int branch_no, map<node*, parsimony_character_vector>& node_states, parsimony_character_vector taxa_state, const unsigned int start_char, const unsigned int end_char);
 	void recalc_fitch_parsimony_given_added_tip ( node* leaf, map<node*, parsimony_character_vector>& node_states, unsigned int start_char, unsigned int end_char );
 	void clear_node_states_from_tip ( node* leaf, map<node*, parsimony_character_vector>& node_states );
 	void add_to_support(node* leaf, tree* B, set<string*>& split);
-	void add_characters_as_node_comments(node* leaf, parsimony_character_vector& characters, const unsigned int start_char, const unsigned int end_char);
+	void add_characters_as_node_comments(node* leaf, parsimony_character_vector& characters, const unsigned int start_char, const unsigned int end_char, map<char, bitset<SIZE> >& alphabet);
 };
 #endif //TREEHEADER

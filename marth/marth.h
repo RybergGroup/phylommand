@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
@@ -30,7 +31,8 @@ namespace marth {
 	void exponential ( square_matrix* exponential, const double r, unsigned int k ); // recommended
 	void identity ();
 	void diagonal ( double* vector ); // require pointer to vector that is as long as dimentions
-        void print();
+	void print (std::ostream& out_stream);
+        void print() { print( std::cout ); };
         bool copy_matrix( const square_matrix* other);
 	bool reset( const unsigned int dim ) {
 	    if (delete_matrix()) {

@@ -2044,7 +2044,7 @@ unsigned int tree::fitch_parsimony (node* leaf, map<node*, parsimony_character_v
     if (leaf == 0) return 0;
     if (leaf->left == 0 && leaf->right == 0) {
 	if (characters.find(leaf) == characters.end()) {
-	    bitset<24> character;
+	    bitset<SIZE> character;
 	    character.flip();
 	    for (unsigned int i=start_char; i <= end_char; ++i) {
 		characters[leaf].add_character(i,character); // if no state given for the tip, set as uncertain
@@ -2064,7 +2064,7 @@ unsigned int tree::fitch_parsimony (node* leaf, map<node*, parsimony_character_v
 	//bitset<24>* this_node = characters[leaf].get_character(i);
 	if (!characters[leaf].get_character(i).any()) { // if no state given calc state from descendants
 	    if (leaf->left != 0 && characters.find(leaf->left) != characters.end() && leaf->right != 0 && characters.find(leaf->right) != characters.end()) { // if both descendentas are initiated
-		bitset<24> intersect = characters[leaf->left].get_character(i); 
+		bitset<SIZE> intersect = characters[leaf->left].get_character(i); 
 		intersect &= characters[leaf->right].get_character(i);
 		if (intersect.any()) characters[leaf].add_character(i,intersect); // set to intersect
 		else {
@@ -2077,36 +2077,36 @@ unsigned int tree::fitch_parsimony (node* leaf, map<node*, parsimony_character_v
 	    else if (leaf->left != 0 && characters.find(leaf->left) != characters.end()) characters[leaf].add_character(i,characters[leaf->left].get_character(i));
 	    else if (leaf->right != 0 && characters.find(leaf->right) != characters.end()) characters[leaf].add_character(i,characters[leaf->right].get_character(i));
 	    else { characters[leaf].get_character(i).flip();
-		#ifdef DEBUGTREEATOR
+		#ifdef DEBUG
 		cerr << "ERROR!!! Descendants without characters" << endl;
-		#endif //DEBUGTREEATOR
+		#endif //DEBUG
 	    }
 	}
 	else { // if state already given
-	    #ifdef DEBUGTREEATOR
+	    #ifdef DEBUG
     	    cerr << "ERROR!!! Character given for internal node" << endl;
-	    #endif //DEBUGTREEATOR
+	    #endif //DEBUG
 	    if (leaf->left != 0 && characters.find(leaf->left) != characters.end()) {
-		bitset<24> intersect = characters[leaf].get_character(i);
+		bitset<SIZE> intersect = characters[leaf].get_character(i);
 		intersect &= characters[leaf->left].get_character(i);
 		if (!intersect.any()) ++score; // if no intersect increase score
 	    }
 	    if (leaf->right != 0 && characters.find(leaf->right) != characters.end()) {
-		bitset<24> intersect = characters[leaf].get_character(i);
+		bitset<SIZE> intersect = characters[leaf].get_character(i);
 		intersect &= characters[leaf->right].get_character(i);
 		if (!intersect.any()) ++score; // if no intersect increase score
 	    }
 	}
     }
-    #ifdef DEBUGTREEATOR
+    #ifdef DEBUG
     cerr << score << endl;
-    #endif //DEBUGTREEATOR
+    #endif //DEBUG
     characters[leaf].set_score(score);
     return score;
 }
 
-unsigned int tree::fitch_parsimony (vector<character_vector>& characters, bool ancestral_states, bool get_branch_lengths) {
-    map<node*, parsimony_character_vector > decoded_characters;
+unsigned int tree::fitch_parsimony (vector<character_vector>& characters, bool ancestral_states, bool get_branch_lengths, map<char, bitset<SIZE> >& alphabet) {
+    map<node*, parsimony_character_vector > decoded_characters; // map characters to nodes
     unsigned int max_n_char = 0;
     for (vector<character_vector>::iterator i= characters.begin(); i != characters.end(); ++i) {
 	node* taxa = find_taxon_tip(root, i->get_taxon());
@@ -2118,9 +2118,9 @@ unsigned int tree::fitch_parsimony (vector<character_vector>& characters, bool a
 	    if (n_char > max_n_char) max_n_char = n_char;
 	}
     }
-    #ifdef DEBUGTREEATOR
+    #ifdef DEBUG
     cerr << "N char: " << max_n_char << endl;
-    #endif //DEBUGTREEATOR
+    #endif //DEBUG
     if (max_n_char==0) return 0;
     unsigned int score = fitch_parsimony(root, decoded_characters, 0, max_n_char-1);
     if (ancestral_states || get_branch_lengths) {
@@ -2131,15 +2131,14 @@ unsigned int tree::fitch_parsimony (vector<character_vector>& characters, bool a
 	    temp = support_functions::pick_a_random_true_bit(decoded_characters[root].get_character(i));
 	    prefered.add_character(i,temp);
 	}
-	fitch_parsimony_second_pass(root, decoded_characters, prefered, get_branch_lengths, ancestral_states, 0, max_n_char-1);
+	fitch_parsimony_second_pass(root, decoded_characters, prefered, get_branch_lengths, ancestral_states, 0, max_n_char-1, alphabet);
     }
     return score;
 }
 
-void tree::fitch_parsimony_second_pass (node* leaf, map<node*, parsimony_character_vector > characters, parsimony_character_vector prefered, bool calc_branch_length, bool draw_ancestral_state, const unsigned int start_char, const unsigned int end_char ) {
+void tree::fitch_parsimony_second_pass (node* leaf, map<node*, parsimony_character_vector > characters, parsimony_character_vector prefered, bool calc_branch_length, bool draw_ancestral_state, const unsigned int start_char, const unsigned int end_char, map<char, bitset<SIZE> >& alphabet ) {
     if (leaf==0) return;
     if (leaf->parent !=0 && characters.find(leaf->parent) != characters.end()) {
-	//unsigned int length(characters[leaf].n_char());
 	unsigned int branch(0);
 	for (unsigned int i=start_char; i<=end_char; ++i) {
 	    bitset<SIZE> temp = characters[leaf].get_character(i);
@@ -2154,7 +2153,7 @@ void tree::fitch_parsimony_second_pass (node* leaf, map<node*, parsimony_charact
 	    }
 	}
 	if (calc_branch_length) leaf->branchlength = branch;
-	if (draw_ancestral_state) add_characters_as_node_comments(leaf, characters[leaf], start_char, end_char);
+	if (draw_ancestral_state) add_characters_as_node_comments(leaf, characters[leaf], start_char, end_char, alphabet);
 	#ifdef DEBUGTREEATOR
 	cerr << "Branch length:" << branch << endl;
 	cerr << "Diff score: " << (characters[leaf->parent].get_score()-characters[leaf].get_score()) << endl;
@@ -2162,13 +2161,13 @@ void tree::fitch_parsimony_second_pass (node* leaf, map<node*, parsimony_charact
     }
     else {
 	if (calc_branch_length) leaf->branchlength = 0;
-	if (draw_ancestral_state) add_characters_as_node_comments(leaf, characters[leaf], start_char, end_char);
+	if (draw_ancestral_state) add_characters_as_node_comments(leaf, characters[leaf], start_char, end_char, alphabet);
     }
-    if (leaf->left!=0) fitch_parsimony_second_pass(leaf->left,characters,prefered,calc_branch_length,draw_ancestral_state,start_char,end_char);
-    if (leaf->right!=0) fitch_parsimony_second_pass(leaf->right,characters,prefered,calc_branch_length,draw_ancestral_state,start_char,end_char);
+    if (leaf->left!=0) fitch_parsimony_second_pass(leaf->left, characters, prefered, calc_branch_length, draw_ancestral_state, start_char, end_char, alphabet);
+    if (leaf->right!=0) fitch_parsimony_second_pass(leaf->right, characters, prefered, calc_branch_length, draw_ancestral_state, start_char, end_char, alphabet);
 }
 
-void tree::add_characters_as_node_comments(node* leaf, parsimony_character_vector& characters, const unsigned int start_char, const unsigned int end_char) {
+void tree::add_characters_as_node_comments(node* leaf, parsimony_character_vector& characters, const unsigned int start_char, const unsigned int end_char, map<char, bitset<SIZE> >& alphabet) {
     string labelcomment;
     if (leaf->nodelabel!=0) labelcomment = *leaf->nodelabel;
     labelcomment+="[&";
@@ -2180,7 +2179,9 @@ void tree::add_characters_as_node_comments(node* leaf, parsimony_character_vecto
 	converter << i;
 	labelcomment+=converter.str();
 	labelcomment+='=';
-	labelcomment+=characters.get_character(i).to_string<char,std::string::traits_type,std::string::allocator_type>();
+	if (alphabet.empty())
+	    labelcomment+=characters.get_character(i).to_string<char,std::string::traits_type,std::string::allocator_type>();
+	else labelcomment+= alphabet::translate_bitset(characters.get_character(i),alphabet);
     }
     labelcomment+=']';
     leaf->nodelabel = nodelabels.add_string(labelcomment);

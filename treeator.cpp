@@ -54,6 +54,7 @@ int main (int argc, char *argv []) {
     char method = 'p';
     bool random = false;
     bool print_br_length(true);
+    bool print_state_on_nodelable(false);
     string tree_file_name;
     ifstream tree_file;
     istream* tree_stream = &std::cin;
@@ -167,6 +168,9 @@ int main (int argc, char *argv []) {
                     return 1;
                 }
             }
+	    else if (!strcmp(argv[i],"--get_state_at_nodes")) {
+		print_state_on_nodelable = true;
+	    }
 ////////////////////////
             else if (i == argc-1 && argv[i][0] != '-' ) {
 		if (data_file_name.empty()) data_file_name = argv[i];
@@ -212,7 +216,19 @@ int main (int argc, char *argv []) {
 	vector<character_vector> characters;
 ////////////////////
 	map<char, bitset<SIZE> > alphabet;
-	set_alphabet_binary(alphabet);
+	alphabet::set_alphabet_binary(alphabet);
+	if (!alphabet_file_name.empty()) {
+	    ifstream alphabet_file;
+	    alphabet_file.open(alphabet_file_name.c_str(),std::ifstream::in);
+	    alphabet.clear();
+	    alphabet_parser parser(alphabet_file,alphabet);
+	    parser.pars();
+	}
+	#ifdef DEBUG
+	cerr << "Number of different characters: " << alphabet.size() << endl;
+	for (map<char,bitset<SIZE> >::const_iterator i = alphabet.begin(); i != alphabet.end(); ++i)
+	    cerr << i->first << " - " << i->second << endl;
+	#endif //DEBUG
 	matrix_parser data_parser(*data_stream, characters, alphabet);
 	data_parser.pars();
 	#ifdef DEBUG
@@ -226,7 +242,7 @@ int main (int argc, char *argv []) {
 		tree tree;
 		tree.tree_file_parser( *tree_stream );
 		if (tree.empty()) break;
-		std::cout << tree.fitch_parsimony( characters, print_br_length ) << std::endl;
+		std::cout << tree.fitch_parsimony( characters, print_state_on_nodelable, print_br_length, alphabet ) << std::endl;
 		if (print_br_length) tree.print_newick(print_br_length);
 	    }
 	}
@@ -286,6 +302,7 @@ int main (int argc, char *argv []) {
 
 ///////////////
 	    while (1) {
+		stringstream model_out;
 		simpleML tree;
 		tree.tree_file_parser( *tree_stream );
 		if (tree.empty()) break;
@@ -304,10 +321,10 @@ int main (int argc, char *argv []) {
 		    for (unsigned int i=0; i < n_parameters; ++i) lower_bounds.push_back(0.0);
 		    maximize.set_lower_bounds(lower_bounds);
 		    double LogL;
-		    if (print_tree == 'x') std::cout << '[';
+		    if (print_tree == 'x') model_out << '[';
 		    if (method == 'o') {
 			maximize.set_max_objective(opt_function,&data);
-			cout << "Number of parameters to optimize: " << maximize.get_dimension() << endl;
+			model_out << "Number of parameters to optimize: " << maximize.get_dimension() << endl;
 			nlopt::result result = maximize.optimize(variable_values,LogL);
 			if (result < 0) {
 			    cerr << "Failure when optimizing!!!" << endl;
@@ -324,31 +341,31 @@ int main (int argc, char *argv []) {
 			}
 			maximize.set_upper_bounds(upper_bounds);
 			maximize.set_max_objective(opt_rate_in_time,&data);
-			cout << "Number of parameters to optimize: " << maximize.get_dimension() << endl;
+			model_out << "Number of parameters to optimize: " << maximize.get_dimension() << endl;
 			//double LogL;
 			nlopt::result result = maximize.optimize(variable_values,LogL);
 			if (result < 0) {
 			    cerr << "Failure when optimizing!!!" << endl;
 			    return 1;
 			}
-			cout << "Time from root to rate change: " << model_parameters[model_parameters.size()-2] << endl;
-			cout << "Rate multiplier: " << model_parameters[model_parameters.size()-1] << endl;
+			model_out << "Time from root to rate change: " << model_parameters[model_parameters.size()-2] << endl;
+			model_out << "Rate multiplier: " << model_parameters[model_parameters.size()-1] << endl;
 		    }
 		    else {
 			cerr << "Unrecognized method. Nothing to do." << endl;
 			return 1;
 		    }
-		    cout << "Parameter values:" << endl;
+		    model_out << "Parameter values:" << endl;
 		    #if DEBUG
 		    for (unsigned int i= 0; i < model_parameters.size(); ++i) {
-			cout << i << ": " << model_parameters[i] << ' ';
+			model_out << i << ": " << model_parameters[i] << ' ';
 		    }
-		    cout << endl;
+		    model_out << endl;
 		    #endif /*DEBUG*/
-		    cout << "Q matrix:" << endl;
-		    tree.print_Q_matrix();
-		    cout << endl;
-		    cout << "Log likelihood: " << LogL << endl;
+		    model_out << "Q matrix:" << endl;
+		    tree.print_Q_matrix( model_out );
+		    model_out << endl;
+		    model_out << "Log likelihood: " << LogL << endl;
 /////////////////////
 //		    cerr << "Not implemented yet" << endl;
 		}
@@ -356,30 +373,31 @@ int main (int argc, char *argv []) {
 		else {
 		    if (method == 'o') {
 			tree.set_Q_matrix(&model_specifications[0],&model_parameters[0]);
-			cout << "Log likelihood= " << tree.calculate_log_likelihood() << endl;
+			model_out << "Log likelihood= " << tree.calculate_log_likelihood() << endl;
 		    }
 		    else if (method == 't') {
 			tree.set_Q_matrix(&model_specifications[0],&model_parameters[0]);
-			cout << "Log likelihood= " << tree.calculate_likelihood_rate_change_in_time(cut_off,rate_mod) << endl;
-			cout << "Time from root: " << cut_off << " Rate modifier: " << rate_mod << endl;
+			model_out << "Log likelihood= " << tree.calculate_likelihood_rate_change_in_time(cut_off,rate_mod) << endl;
+			model_out << "Time from root: " << cut_off << " Rate modifier: " << rate_mod << endl;
 		    }
 		    else {
 			cerr << "Unrecognized method. Nothing to do." << endl;
 			return 1;
 		    }
-		    tree.print_Q_matrix();
-		    cout << endl;
+		    tree.print_Q_matrix( model_out );
+		    model_out << endl;
 		}
 		if (print_tree == 'w') {
-		    cout << "Tree:" << endl;
-		    tree.draw_normalized_likelihood_on_nodes();
+		    // cout << "Tree:" << endl;
+		    if (print_state_on_nodelable) tree.draw_normalized_likelihood_on_nodes();
 		    tree.print_newick();
 		}
 		else if (print_tree == 'x') {
-		    std::cout << ']' << std::endl;
-		    tree.draw_normalized_likelihood_on_nodes();
+		    model_out << ']' << std::endl;
+		    if (print_state_on_nodelable) tree.draw_normalized_likelihood_on_nodes();
 		    tree.print_nexus();
 		}
+		cout << model_out.str();
 /////////////////////////////
 	    }
 	    //std::cout << "Sorry, likelihood is not available yet." << std::endl;
@@ -397,11 +415,13 @@ void help () {
     std::cout << "(c) Martin Ryberg 2015." << endl << endl;
     std::cout << "Usage:" << endl << "treeator [arguments] < data_file.txt" << endl << endl;
     std::cout << "Arguments:" << endl;
-    std::cout << "--alphabet_file / -a (not yet valid)" << std::endl;
-    std::cout << "--data_file / -d [file name]                               give the data file"<< std::endl;
+    std::cout << "--alphabet_file / -a                                       give file with character alphabet." << std::endl;
+    std::cout << "--data_file / -d [file name]                               give the data file."<< std::endl;
     std::cout << "--fixed/-x [parameter name]                                give name of parameter to fix. This argument can be repeated." << endl;
+    std::cout << "--get_state_at_nodes                                       will give the states at nodes as comments (readable in FigTree)." << endl;
     std::cout << "--help / -h                                                print this help." << endl;
-    std::cout << "--likelihood / -l (not yet valid)" << std::endl;
+    std::cout << "--likelihood / -l                                          calculate likelihood for data given tree. Either with constant rate throug time (const) or" << endl;
+    std::cout << "                                                               with rate changing (multiplied by a variable) at a certain time point (time)." << endl;
     std::cout << "--model/-m [space separated string of integer numbers]     give the model by numbering the rate parameters for different transition, e.g. -m 0,1,0,2,1,2" << endl;
     std::cout << "--neighbour_joining / -n                                   compute neighbour joining tree for given data. The data should be" << std::endl;
     std::cout << "                                                           a left triangular similarity matrix." << std::endl;
@@ -409,7 +429,8 @@ void help () {
     std::cout << "                                                               parsimony trees" << endl;
     std::cout << "--no_lable / -l                                            will tell treeator that there are no taxon labels in the matrix." << endl;
     std::cout << "--no_optim/-n                                              calculate likelihood for given parameters. No optimization." << endl;
-    std::cout << "--parameters/-P [space separated string of real numbers]   give corresponding parameter values for parameters. If optimizing these will be starting values, e.g. -p 0.1 0.01 0.05" << endl;
+    std::cout << "--parameters/-P [space separated string of real numbers]   give corresponding parameter values for parameters. If optimizing these will be starting values," << endl;
+    std::cout << "                                                               e.g. -p 0.1 0.01 0.05" << endl;
     std::cout << "--parsimony / -p                                           calculate parsimony score for given tree and data." << std::endl;
     std::cout << "--rate_mod/-R [real number]                                give modifier for rate compared to rate at root, e.g. -r 0.5. Default: 1.0." << endl;
     std::cout << "--random / -r                                              do stepwise addition in random order." << endl;
