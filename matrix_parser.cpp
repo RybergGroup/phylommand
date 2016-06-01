@@ -13,6 +13,7 @@ void matrix_parser::pars_relaxed_phylip() {
     unsigned int n_char(0);
     unsigned int n_taxa(0);
     char read_mode('n');
+    unsigned int pos(0);
     while (file) {
 	file.get(character);
 	if (read_mode == 'n') {
@@ -35,9 +36,11 @@ void matrix_parser::pars_relaxed_phylip() {
 		row.set_taxon(taxon);
 		taxon.clear();
 		read_mode = 'C';
+		pos = 0;
 	    }
 	}
 	else if (read_mode == 'C') {
+	    map<char, bitset<SIZE> > alphabet = regions.get_alphabet(pos);
 	    if ( !row.empty() && (character == '\n' || character == '\r')) {
 		read_mode='T';
 		if (row.n_char() != n_char) std::cerr << "Matrix size missmatch: " << taxon << " differes in " << (row.n_char() - n_char) << " from given number of characters." << std::endl;
@@ -51,6 +54,7 @@ void matrix_parser::pars_relaxed_phylip() {
 		std::cerr << "Set " << row.get_taxon() << " to " << trait << std::endl;
 		#endif //DEBUG
 		trait.reset();
+		++pos;
 	    }
 	}
     }

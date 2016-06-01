@@ -115,11 +115,11 @@ class tree {
         void print_nexus( bool include_br_length ) { print_nexus_subtree( root, include_br_length ); };
         void print_nexus( ) { print_nexus_subtree( root ); };
 	void print_svg() { print_svg (true, false, 595.0, 842.0, 2.0, 1,12,"Arial",NULL); };
-	void print_svg(const string* tip_color) { print_svg (true, false, 595.0, 842.0, 2.0, 1,12,"Arial",tip_color); };
-        void print_svg ( bool scalebar, bool node_lable, const float width, const float height, const float offset, const unsigned int stroke_width, const int font_size, string font, const string* tip_color);
-	void print_svg_no_head ( bool scalebar, bool node_lable, const float width, const float height, const float offset, const unsigned int stroke_width, const int font_size, string font, const string* tip_color, bool for_html );
-	void print_svg_autoscale (bool scalebar, bool node_lable, const unsigned int font_size, const string* tip_color );
-	void print_svg_autoscale_no_head (bool scalebar, bool node_lable, const unsigned int font_size, const string* tip_color, bool for_html );
+	void print_svg(const string& tip_color) { print_svg (true, false, 595.0, 842.0, 2.0, 1,12,"Arial",tip_color); };
+        void print_svg ( bool scalebar, bool node_lable, const float width, const float height, const float offset, const unsigned int stroke_width, const int font_size, string font, const string& tip_color);
+	void print_svg_no_head ( bool scalebar, bool node_lable, const float width, const float height, const float offset, const unsigned int stroke_width, const int font_size, string font, const string& tip_color, bool for_html );
+	void print_svg_autoscale (bool scalebar, bool node_lable, const unsigned int font_size, const string& tip_color );
+	void print_svg_autoscale_no_head (bool scalebar, bool node_lable, const unsigned int font_size, const string& tip_color, bool for_html );
         int n_nodes() { //get number of nodes
             if (root == 0) return 0; //if the root is empty there is no values to sum up
             return n_descendants(root); //calculate the sum from the root up
@@ -280,7 +280,7 @@ class tree {
 	    print_newick_subtree(output, leaf, 1, include_br_length, int_node_label, translate_taxa);
 	    output << ";" << endl;
 	}
-        void print_svg_subtree ( node* leaf, poly_line_start* branch_start, bool node_lable, int n, float x, const float x_unit, const float y_unit, const float offset, const int stroke_width, const int font_size, string font, const string* tip_color );
+        void print_svg_subtree ( node* leaf, poly_line_start* branch_start, bool node_lable, int n, float x, const float x_unit, const float y_unit, const float offset, const int stroke_width, const int font_size, string font, const string& tip_color );
         int n_descendants ( node *leaf ) { //returns the number of daughter nodes for a node +1
             if (leaf == 0) return 0; //if a empty leaf return 0
             return 1 + n_descendants(leaf->left) + n_descendants(leaf->right); //return 1 plus the number of descendants to the left and right

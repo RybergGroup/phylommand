@@ -229,7 +229,10 @@ int main (int argc, char *argv []) {
 	for (map<char,bitset<SIZE> >::const_iterator i = alphabet.begin(); i != alphabet.end(); ++i)
 	    cerr << i->first << " - " << i->second << endl;
 	#endif //DEBUG
-	matrix_parser data_parser(*data_stream, characters, alphabet);
+	partitions regions;
+	regions.add_alphabet("first",alphabet);
+	regions.add_partition(0,0,"default","first");
+	matrix_parser data_parser(*data_stream, characters, regions);
 	data_parser.pars();
 	#ifdef DEBUG
 	std::cerr << "Number of taxa: " << characters.size() << endl;

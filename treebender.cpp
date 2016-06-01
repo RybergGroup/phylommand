@@ -46,7 +46,17 @@ int main (int argc, char *argv []) {
     vector<string> taxon_vector;
     string separator(",");
     string separator2(" ");
+    bool print_scalebar(true);
+    bool print_nodelabel(true);
+    // svg
+    float svg_width(-1.0);
+    float svg_height(-1.0);
+    float textoffset(5.0);
+    int strokewidth(1);
+    int fontsize(5);
+    string font("Arial");
     string tip_colors;
+    /////
     string stats_param;
     bool read_figtree_annotations = false;
     bool print_br_length(true);
@@ -251,7 +261,33 @@ int main (int argc, char *argv []) {
 	    }
             else if (!strcmp(argv[i],"-g") || !strcmp(argv[i],"--svg")) {
 		output_format = 's';
-		if ( i < argc-1 && argv[i+1][0] != '-' ) tip_colors = argv[++i];
+		if ( i < argc-1 && argv[i+1][0] != '-' ) {
+		    ++i;
+		    unsigned int j=0;
+		    string temp;
+		    string param;
+		    while (1) {
+		    	if (argv[i][j] == '&' || argv[i][j] == '\0') {
+			    if (!param.compare("width")) svg_width = atof(temp.c_str());
+			    else if (!param.compare("height")) svg_height = atof(temp.c_str());
+			    else if (!param.compare("offset")) textoffset = atof(temp.c_str());
+			    else if (!param.compare("strokewidth"))  strokewidth = atoi(temp.c_str());
+			    else if (!param.compare("fontsize")) fontsize = atoi(temp.c_str());
+			    else if (!param.compare("font")) font = temp;
+			    else if (!param.compare("tipcolor") || !param.compare("tipcolour")) tip_colors = temp;
+			    else { cerr << "Unrecognized parameter for svg output: " << param << endl; return 1; }
+			    if (argv[i][j] == '\0') break;
+			    temp.clear();
+			    param.clear();
+			}
+			else if (argv[i][j] == ':') {
+			    param = temp;
+			    temp.clear();
+			}
+			else temp += argv[i][j];
+			++j;
+		    }
+		}
 	    }
             else if (!strcmp(argv[i],"-h") || !strcmp(argv[i],"--help")) {
                 help();
@@ -525,7 +561,8 @@ int main (int argc, char *argv []) {
 			string tree_name(ss.str());
 			i->print_tree_to_nexus( tree_name, print_br_length, true, taxa_trans );
 		    }
-		    else if (output_format == 's') i->print_svg_autoscale(true, true, 5, &tip_colors);
+		    else if (output_format == 's' && (svg_width < -0.5 || svg_height < -0.5)) i->print_svg_autoscale(true, true, fontsize, tip_colors);
+		    else if (output_format == 's') i->print_svg(print_scalebar,print_nodelabel,svg_width,svg_height,textoffset,strokewidth,fontsize,font,tip_colors);
 		}
 	    }
 	    if (read_trees > tree_interval_end) break;
@@ -619,7 +656,12 @@ void help () {
     std::cout << "--read_figtree_annotations                                 will read annotations in FigTree/treeanotator format (e.g. [&rate=1.0,height=3.0])" << endl;
     std::cout << "--set_branch_lengths / -b [value]                          set all branches in the tree to the given value, e.g. 0.5 (default 1.0)." << endl;
     std::cout << "--sum_branch_length / -s                                   get the sum of the branch lengths in the tree (including root branch if length for this is given)." << endl;
-    std::cout << "--svg / -g                                                 output tree as svg immage." << endl;
+    std::cout << "--svg / -g                                                 output tree as svg immage. Extra graphical commands can be given as next argument. Ech command should be separated" << endl;
+    std::cout << "                                                               by & and commands and arguments should be separated by :. Possible commands are: 'width' set width of figure;" << endl;
+    std::cout << "                                                               'height' set hight of figure; 'offset' set offset between tips and tip label; 'strokewidth' set the width of" << endl;
+    std::cout << "                                                               the branches; 'fontsize' sets the size of the font used; 'font' sets which font to use; and 'tipcolor' sets the" << endl;
+    std::cout << "                                                               of the tip labels given in parenthesis directly behind the color. 'width' and 'height' are mandatory if you want to set" << endl;
+    std::cout << "                                                               any other parameter than tip color. E.g. --svg 'width:300&height:400&tipcolor:red(taxon1,taxon2,taxon3)green(taxon4)'." << endl;
     std::cout << endl;
 
 }

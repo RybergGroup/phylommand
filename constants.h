@@ -1,8 +1,10 @@
 #ifndef PHYLOMMAND_CONSTANTS
 #define PHYLOMMAND_CONSTANTS
+#include <map>
+#include <bitset>
+
 static const unsigned int SIZE = 24;
 static const char VERSION[] = "0.2.8";
-
 
 namespace nexus_command {
     const char END = 'e';

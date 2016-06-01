@@ -62,16 +62,16 @@ main (int argc, char *argv []) {
             else if (!strcmp(argv[i],"-i") || !strcmp(argv[i],"--print_int_label")) {
                 if ( i < argc-1 && (argv[i+1][0] == 'n' || argv[i+1][0] == 'N')) {
                     int_lables = false;
-                    i++;
+                    ++i;
                 }
                 else if ( i < argc-1 && (argv[i+1][0] == 'y' || argv[i+1][0] == 'Y')) {
                     int_lables = true;
-                    i++;
+                    ++i;
                 }
                 else std::cerr << "-i/--print_int_label should be followed by y(es) or n(o). Keeping default to print internal node labels." << endl;
             }
             else if (!strcmp(argv[i],"-r") || !strcmp(argv[i],"--rooted")) rooted=true;
-            else if (!strcmp(argv[i],"-h") || !strcmp(argv[i],"--help")) help();
+            else if (!strcmp(argv[i],"-h") || !strcmp(argv[i],"--help")) { help(); return 0; }
             else {
                 std::cerr << "Unrecognized argument: " << argv[i] << ". Quitting." << endl;
                 return 1;
@@ -128,5 +128,10 @@ main (int argc, char *argv []) {
 }
 
 void help ( ) {
-    std::cout << "This is treespliter, no help is currently available. Wait for future releases" << endl;
+    std::cout << "This is treespliter, options are" << endl;
+    std::cout << "--longest_branch/-l" << endl;
+    std::cout << "--mid_point/-m" << endl;
+    std::cout << "--max_tree_number/-t" << endl;
+    std::cout << "--max_tree_size/-s" << endl;
+    std::cout << "--print_int_label/-i [y/n]" << endl;
 }

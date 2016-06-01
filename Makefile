@@ -1,11 +1,11 @@
 # Makefile to compile phylcommand
 # using gcc and g++
 
-PP=g++
+PP=g++ -std=c++11
 CC=gcc
 #CFLAGS
 EXTRAS=
-PHYLOMMAND = treebender clustertree alignmentgroups pairalign treespliter superstat conftree treeator # anconstruction
+PHYLOMMAND = treebender clustertree alignmentgroups pairalign treesplitter superstat conftree treeator # anconstruction
 TREE = tree.cpp
 ALIGN = align_group.cpp
 CLUST = clustertree.cpp
@@ -18,7 +18,7 @@ CLUSTFLAG = -DDATABASE
 ALIGNMENT = alignmentgroups.cpp
 ALIGNFLAGS = -DPTHREAD
 PAIRALIGN = pairalign.cpp
-TREESPLIT = treespliter.cpp
+TREESPLIT = treesplitter.cpp
 SUPER = superstat.cpp
 CONFTREE = conftree.cpp
 TREEATOR = treeator.cpp
@@ -35,7 +35,7 @@ OTREE = tree.o treebender.o string_tree.o file_parser.o matrix_parser.o # suppor
 OCLUSTTREE = clustertree.o tree.o sqlite3.o clustertree_main.o string_tree.o matrix_parser.o # support_functions.o
 OALIGNMENT = seqpair.o align_group.o sqlite3.o alignmentgroups.o
 OPAIRALIGN = seqpair.o pairalign.o
-OSPLIT = tree.o treespliter.o string_tree.o matrix_parser.o # support_functions.o
+OSPLIT = tree.o treesplitter.o string_tree.o matrix_parser.o # support_functions.o
 OSUPER = superstat.o tree.o decisiveness.o string_tree.o matrix_parser.o # support_functions.o
 OCONFTREE = conftree.o tree.o string_tree.o matrix_parser.o # support_functions.o
 OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o matrix_parser.o -lnlopt -lm # support_functions.o
@@ -59,8 +59,8 @@ alignmentgroups: $(OALIGNMENT)
 pairalign: $(OPAIRALIGN)
 	$(PP) -o pairalign $(OPAIRALIGN)
 
-treespliter: $(OSPLIT)
-	$(PP) -o treespliter $(OSPLIT)
+treesplitter: $(OSPLIT)
+	$(PP) -o treesplitter $(OSPLIT)
 
 superstat: $(OSUPER)
 	$(PP) -o superstat $(OSUPER)
@@ -86,7 +86,7 @@ alignmentgroups.o: $(ALIGNMENT)
 pairalign.o: $(PAIRALIGN)
 	$(PP) -c $(PAIRALIGN) $(EXTRAS)
 
-treespliter.o: $(TREESPLIT)
+treesplitter.o: $(TREESPLIT)
 	$(PP) -c $(TREESPLIT) $(EXTRAS)
 
 superstat.o: $(SUPER)

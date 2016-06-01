@@ -1088,13 +1088,13 @@ void tree::split_at_midpoint ( node* leaf, tree* tree ) {
     else prune_clade( split_node, tree );
 }
 
-void tree::print_svg_autoscale (bool scalebar, bool node_lable, const unsigned int font_size, const string* tip_color ) {
+void tree::print_svg_autoscale (bool scalebar, bool node_lable, const unsigned int font_size, const string& tip_color ) {
     std::cout << "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">" << endl;
     print_svg_autoscale_no_head(scalebar, node_lable, font_size, tip_color, false);
     std::cout << "</svg>" << endl;
 }
 
-void tree::print_svg_autoscale_no_head (bool scalebar, bool node_lable, const unsigned int font_size, const string* tip_color, bool for_html ) {
+void tree::print_svg_autoscale_no_head (bool scalebar, bool node_lable, const unsigned int font_size, const string& tip_color, bool for_html ) {
     node_and_distance x_lim_node;
     tip_furthest_from_root (root, &x_lim_node);
     float height = n_tips()*font_size;
@@ -1106,13 +1106,13 @@ void tree::print_svg_autoscale_no_head (bool scalebar, bool node_lable, const un
     if (for_html) std::cout << "</svg>" << endl;
 }
 
-void tree::print_svg ( bool scalebar, bool node_lable, const float width, const float height, const float offset, const unsigned int stroke_width, const int font_size, string font, const string* tip_color ) {
+void tree::print_svg ( bool scalebar, bool node_lable, const float width, const float height, const float offset, const unsigned int stroke_width, const int font_size, string font, const string& tip_color ) {
     std::cout << "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">" << endl;
     print_svg_no_head( scalebar, node_lable, width, height, offset, stroke_width, font_size, font, tip_color, false);
     std::cout << "</svg>" << endl;
 }
 
-void tree::print_svg_no_head ( bool scalebar, bool node_lable, const float width, const float height, const float offset, const unsigned int stroke_width, const int font_size, string font, const string* tip_color, bool for_html ) {
+void tree::print_svg_no_head ( bool scalebar, bool node_lable, const float width, const float height, const float offset, const unsigned int stroke_width, const int font_size, string font, const string& tip_color, bool for_html ) {
     node_and_distance x_lim_node;
     tip_furthest_from_root (root, &x_lim_node);
     float x_unit = (width-5-(x_lim_node.tip->nodelabel->length()*font_size/1.6))/x_lim_node.distance;
@@ -1135,28 +1135,29 @@ void tree::print_svg_no_head ( bool scalebar, bool node_lable, const float width
     if (for_html) std::cout << "</svg>" << endl;
 }
 
-void tree::print_svg_subtree ( node* leaf, poly_line_start* branch_start, bool node_lable, int n, float x, const float x_unit, const float y_unit, const float offset, const int stroke_width, const int font_size, string font, const string* tip_color ) {
+void tree::print_svg_subtree ( node* leaf, poly_line_start* branch_start, bool node_lable, int n, float x, const float x_unit, const float y_unit, const float offset, const int stroke_width, const int font_size, string font, const string& tip_color ) {
     x += leaf->branchlength * x_unit;
     float y;
     if (leaf->left == 0 && leaf->right == 0) {
         y = n * y_unit;
         std::cout << "<text x=\"" << (x+offset)  << "\" y=\"" << y+(font_size/3.0) << "\" font-family=\"" << font << "\" font-size=\"" << font_size ;
-	if (!tip_color->empty()) {
-	    unsigned int length = tip_color->length();
+	if (!tip_color.empty()) {
+	    unsigned int length = tip_color.length();
 	    string color;
 	    string temp;
 	    for (unsigned int i=0; i<length+1; ++i) {
-                if (i == length || tip_color->at(i) == ',') {
+                if (i == length || tip_color.at(i) == ',') {
                     if (!leaf->nodelabel->compare(temp)) {
                         std::cout << "\" style=\"fill:" << color << ';';
                     }
 		    temp.clear();
                 }
-		else if (tip_color->at(i) == ';') {
+		else if (tip_color.at(i) == '(') {
 		    color = temp;
 		    temp.clear();
 		}
-		else temp += tip_color->at(i);
+		else if (tip_color.at(i) == ')') color.clear();
+		else temp += tip_color.at(i);
 	    }
 	}
 	if (leaf->nodelabel != 0) std::cout << "\">" << *leaf->nodelabel << "</text>" << endl;
@@ -1506,9 +1507,9 @@ void tree::print_conflict_clades ( node* leaf, tree* tree, const float supp, set
 			    std::cout << "</p>" << endl;
 			    std::cout << "<h2>Fist tree:</h2>" << endl;
 			    string tip_color = "red;" + missfits + ",green;" + taxa_names;
-			    print_svg_autoscale_no_head(false,true,10.0,&tip_color, true);
+			    print_svg_autoscale_no_head(false,true,10.0,tip_color, true);
 			    std::cout << "<h2>Second tree:</h2>" << endl;
-			    tree->print_svg_autoscale_no_head(false,true,10.0,&tip_color, true);
+			    tree->print_svg_autoscale_no_head(false,true,10.0,tip_color, true);
 			}
 		    }
 		}
