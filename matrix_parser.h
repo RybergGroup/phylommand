@@ -89,5 +89,5 @@ private:
 namespace alphabet {
     void set_alphabet_binary (map<char,bitset<SIZE> >& alphapet);
     char translate_bitset (const bitset<SIZE> character, map<char,bitset<SIZE> >& alphapet); 
-}
+};
 #endif //MATRIX_PARSER

@@ -40,7 +40,7 @@ void matrix_parser::pars_relaxed_phylip() {
 	    }
 	}
 	else if (read_mode == 'C') {
-	    map<char, bitset<SIZE> > alphabet = regions.get_alphabet(pos);
+	    map<char, bitset<SIZE> > alphabet = regions.get_partition_alphabet(pos);
 	    if ( !row.empty() && (character == '\n' || character == '\r')) {
 		read_mode='T';
 		if (row.n_char() != n_char) std::cerr << "Matrix size missmatch: " << taxon << " differes in " << (row.n_char() - n_char) << " from given number of characters." << std::endl;

@@ -478,10 +478,10 @@ int tree::print_tips ( ostream& output, node *leaf, string leading_n, int n, str
     }
     return n;
 }
-void tree::outgroup_root ( const string taxa ) {
+/*void tree::outgroup_root ( const string taxa ) {
     node *present = most_recent_common_ancestor (taxa);
     re_root(present);
-}
+}*/
 void tree::midpoint_root ( ) {
     node *present = find_midpoint_node( root );
     double length_left;
@@ -818,84 +818,37 @@ double tree::two_taxa_distance ( const string* taxon1, const string* taxon2 ) {
 
 tree::node * tree::most_recent_common_ancestor ( const string* taxon1, const string* taxon2 ) {
     vector<node*> nodes;
-    //node_array* nodes= new node_array;
-    //nodes->entry = find_taxon_tip (root, taxon1);
     nodes.push_back(find_taxon_tip (root, taxon1));
-    //nodes->next = new node_array;
-    //nodes->next->entry = find_taxon_tip (root, taxon2);
     nodes.push_back(find_taxon_tip (root, taxon2));
-    //nodes->next->next = 0;
     node* mrca =  most_recent_common_ancestor ( nodes );
-    //delete nodes->next;
-    //delete nodes;
     return mrca;
 }
 
 tree::node * tree::most_recent_common_ancestor ( const string taxa ) {
     string taxon;
     int str_length=taxa.length();
-    //node_array* nodes= new node_array;
     vector<node*> nodes;
-    //nodes->entry=0;
-    //nodes->next=0;
-    //node_array* present=nodes;
     for (int i=0; i<=str_length; ++i) {
         if (taxa[i]==',' || i == str_length) {
 	    nodes.push_back(find_taxon_tip (root, taxon));
-            /*if (present->entry==0) present->entry=find_taxon_tip (root, nodelabels.find_string(taxon));
-            else if (present->next==0) {
-                present->next = new node_array;
-                present=present->next;
-                present->next=0;
-                present->entry=find_taxon_tip (root, nodelabels.find_string(taxon));
-                if (present->entry==0) cerr << "Error in reading tip location for tip label " << taxon << ". Proceeding." << endl;
-            }
-            else cerr << "Error in subroutine tree::most_recent_common_ancestor ( const string taxa ): error in saving tip nodes." << endl;*/
             taxon.clear();
         }
         else taxon += taxa[i];
     }
     node* mrca =  most_recent_common_ancestor ( nodes );
-    //delete_node_array(nodes);
     return mrca;
 }
 
 tree::node * tree::most_recent_common_ancestor ( set<string*> taxa ) {
     vector<node*> nodes;
+    #ifdef DEBUG
+    cerr << "N taxa: " << taxa.size() << endl;
+    #endif //DEBUG
     for (set<string*>::iterator i=taxa.begin(); i != taxa.end(); ++i) {
 	nodes.push_back(find_taxon_tip (root, *i));
     }
     return most_recent_common_ancestor ( nodes );
 }
-
-/*void tree::delete_node_array ( node_array* nodes ) {
-    if (nodes!=0 && nodes->next!=0) delete_node_array (nodes->next);
-    delete nodes;
-}
-tree::node * tree::most_recent_common_ancestor ( const node_array* nodes ) {
-    if (nodes == 0 || nodes->entry == 0)  return 0;
-    node* mrca = nodes->entry;
-    node* tip1;
-    node* tip2;
-    while (nodes->next !=0) {
-        nodes=nodes->next;
-        tip1=mrca;
-        if (nodes->entry!=0) tip2=nodes->entry;
-        else continue;
-        do {
-            do {
-                if (tip1 != tip2 && tip2 != root && tip2 != 0) tip2 = tip2->parent;
-                if (tip1 == tip2) { mrca=tip1; break; }
-            } while (tip2 != root && tip2 != 0);
-            if ( tip1 == tip2 ) break;
-            if (tip1 != root && tip1 != 0) {
-                tip1 = tip1->parent;
-                tip2=nodes->entry;
-            }
-        } while (tip1 != tip2 && tip1 != 0);
-    }
-    return mrca;
-} */
 
 tree::node * tree::most_recent_common_ancestor ( vector<node*>& nodes ) {
     if (nodes.empty())  return 0;
@@ -1393,6 +1346,77 @@ char tree::is_monophyletic_unrooted (node* leaf, set<string*>& taxa) {
     else if ((left == 'C' && right == 'T') ||  (left == 'T' && right == 'C')) return 'D';
     else if ((left == 'C' && right == 'F') ||  (left == 'F' && right == 'C')) return 'E';
     return 'X';
+}
+
+tree::node* tree::max_proportion_taxa(node* leaf, const string& taxa) {
+    if ( taxa.empty() ) return 0;
+    set<string*> query_taxa;
+    int unsigned length = taxa.length();
+    string taxon;
+    for (int unsigned i=0; i <= length; ++i) {
+        if (taxa[i]==',' || i==length) {
+            string* query = nodelabels.find_string(taxon);
+            if (query != 0) query_taxa.insert(query);
+            taxon.clear();
+        }
+        else taxon += taxa[i];
+    }
+    unsigned int in_taxa_above(0);
+    unsigned int out_taxa_above(0);
+    double max_proportion(0.0);
+    unsigned int tot_n_taxta = n_sub_tips(leaf);
+    #ifdef DEBUG
+    cerr << "N taxa: " << query_taxa.size() /*<< " (" << taxa << ')'*/ << endl;
+    #endif //DEBUG
+    return max_proportion_taxa(leaf, query_taxa, in_taxa_above, out_taxa_above, tot_n_taxta, max_proportion);
+}
+
+tree::node* tree::max_proportion_taxa(node* leaf, const set<string*>& taxa, unsigned int& in_taxa_above, unsigned int& out_taxa_above, const unsigned int tot_n_taxa, double& max_proportion) {
+    if (leaf == 0)  return 0;
+    //#ifdef DEBUG
+    //cerr << "Max in: " << max_proportion << endl;
+    //#endif //DEBUG
+    if (leaf->right == 0 && leaf->left == 0) {
+	if (taxa.find(leaf->nodelabel) != taxa.end()) {
+	    ++in_taxa_above;
+	    if (1.0/taxa.size() > max_proportion) {
+		max_proportion = 1.0/taxa.size();
+		return leaf;
+	    }
+	}
+	else {
+	    ++out_taxa_above;
+	}
+	return 0;
+    }
+    else {
+	unsigned int in_taxa_above_right(0);
+	unsigned int out_taxa_above_right(0);
+	node* left_return(0);
+	node* right_return(0);
+	if (leaf->left != 0) left_return = max_proportion_taxa(leaf->left, taxa, in_taxa_above, out_taxa_above, tot_n_taxa, max_proportion);
+	if (leaf->right != 0) right_return = max_proportion_taxa(leaf->right, taxa, in_taxa_above_right, out_taxa_above_right, tot_n_taxa, max_proportion);
+	in_taxa_above += in_taxa_above_right;
+	out_taxa_above += out_taxa_above_right;
+	if (in_taxa_above > out_taxa_above && (double)(in_taxa_above-out_taxa_above)/taxa.size() > max_proportion) {
+	    max_proportion = (double)(in_taxa_above-out_taxa_above)/taxa.size();
+	    #ifdef DEBUG
+	    cerr << "In above: " << in_taxa_above << " Out above: " << out_taxa_above << " Prop above: " << (double)(in_taxa_above-out_taxa_above)/taxa.size() << endl;
+	    cerr << "Max new up: " << max_proportion << endl;
+	    #endif //DEBUG
+	    return leaf;
+	}
+	else if ((taxa.size()-in_taxa_above) > (tot_n_taxa-taxa.size()-out_taxa_above) && (double)((taxa.size()-in_taxa_above-tot_n_taxa+taxa.size()+out_taxa_above))/taxa.size() > max_proportion) {
+	    max_proportion = (double)((taxa.size()-in_taxa_above-tot_n_taxa+taxa.size()+out_taxa_above))/taxa.size();
+	    #ifdef DEBUG
+	    cerr << "In above: " << in_taxa_above << " Out above: " << out_taxa_above << " Prop below: " << (double)((taxa.size()-in_taxa_above-tot_n_taxa+taxa.size()+out_taxa_above))/taxa.size() << ' ' << (double)((2*taxa.size()-in_taxa_above-(tot_n_taxa-out_taxa_above))/taxa.size()) << endl;
+	    cerr << "Max new down: " << max_proportion << endl;
+	    #endif //DEBUG
+	    return leaf;
+	}
+	else if (right_return != 0) return right_return;
+	else return left_return;
+    }
 }
 
 bool tree::is_nested_in ( const node* ancestor, const node* descendent) {

@@ -4,7 +4,7 @@
 PP=g++ -std=c++11
 CC=gcc
 #CFLAGS
-EXTRAS=
+EXTRAS= # add EXTRAS=-DDEBUG for debug mode
 PHYLOMMAND = treebender clustertree alignmentgroups pairalign treesplitter superstat conftree treeator # anconstruction
 TREE = tree.cpp
 ALIGN = align_group.cpp

@@ -29,5 +29,29 @@ namespace support_functions {
 	}
 	else return trait;
     }
+    string pars_ARGV_string ( char [] input ) {
+	string argv_string;
+	bool file_pars(false);
+	for (unsigned int i(0); input[i] != '\0'; ++i) {
+	    if (input[i] == ':' && !argv_string.compare("file")) {
+		file_pars = true;
+		argv_string.clear();
+	    }
+	    else argv_string += input[i]; 
+       	}
+	if (file_pars) {
+	    ifstream fileinput;
+	    fileinput.open(argv_string.c_str());
+	    argv_string.clear();
+	    if (fileinput.is_open()) {
+		while (fileinput) {
+		    char in;
+		    fileinput >> in;
+		    argv_string += in;
+		}
+	    }
+	}
+	return argv_string;
+    }
 }
 #endif //SUPPORT_FUNCTIONS

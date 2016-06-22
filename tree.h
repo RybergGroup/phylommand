@@ -142,7 +142,21 @@ class tree {
             return tip_names( root, separator );
         };
         void midpoint_root ( );
-        void outgroup_root ( const string taxa );
+        void outgroup_root ( const string taxa ){
+	    node *present = most_recent_common_ancestor (taxa);
+	    re_root(present);
+	};
+	void relaxed_outgroup_root ( const string& taxa ){
+	    node* new_root = max_proportion_taxa( root, taxa );
+	    #ifdef DEBUG
+	    print_tips (new_root); cout << endl;
+	    #endif //DEBUG
+	    re_root(new_root);
+	};
+	void print_relaxed_outgroup( const string& taxa ) {
+	    node* theNode = max_proportion_taxa( root, taxa );
+	    print_tips (theNode);
+       	};
         void ladderize ( ) {
             ladderize ( root, 1 );
         };
@@ -326,6 +340,8 @@ class tree {
         bool is_monophyletic ( node* leaf, string& taxa );
 	char is_monophyletic_unrooted (node* leaf, set<string*>& taxa, set<string*>& ignor_taxa);
 	char is_monophyletic_unrooted (node* leaf, set<string*>& taxa);
+	node* max_proportion_taxa(node* leaf, const string& taxa); // returns the node that has hoghest (N ingroup - N outgroup)/N total of ingroup
+	node* max_proportion_taxa(node* leaf, const set<string*>& taxa, unsigned int& in_taxa_above, unsigned int& out_taxa_above, const unsigned int tot_n_taxa, double& max_proportion);
 	bool is_nested_in ( const node* ancestor, const node* descendent);
         node* find_midpoint_node ( node* leaf );
         void turn_nodes ( node *leaf, bool clockwise );

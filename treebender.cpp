@@ -31,6 +31,7 @@ contact: kryberg@utk.edu
 using namespace std;
 
 void help ();
+string pars_ARGV_string ( char input [] );
 
 int main (int argc, char *argv []) {
     #ifdef DEBUG
@@ -80,11 +81,22 @@ int main (int argc, char *argv []) {
             if (!strcmp(argv[i],"-m") || !strcmp(argv[i],"--mid_point_root")) method = 'm';
             else if (!strcmp(argv[i],"-o") || !strcmp(argv[i],"--outgroup_root")) {
                 method = 'g';
-                if ( i < argc-1 && argv[i+1][0] != '-') taxastring = argv[++i];
+                if ( i < argc-1 && argv[i+1][0] != '-') taxastring = pars_ARGV_string( argv[++i]);
+		else { cerr << "-o/--outgroup_root need an outgroup as next argument" << endl; return 1; }
+            }
+	    else if (!strcmp(argv[i],"--relaxed_outgroup_root")) {
+                method = 'G';
+                if ( i < argc-1 && argv[i+1][0] != '-') taxastring = pars_ARGV_string( argv[++i]);
+                else { cerr << "--relaxed_outgroup_root need an outgroup as next argument" << endl; return 1; }
+            }
+            else if (!strcmp(argv[i],"--get_relaxed_outgroup")) {
+                method = 'H';
+                if ( i < argc-1 && argv[i+1][0] != '-') taxastring = pars_ARGV_string( argv[++i]);
+		else { cerr << "--get_relaxed_outgroup need an outgroup as next argument" << endl; return 1; }
             }
             else if (!strcmp(argv[i],"--is_monophyletic")) {
                 method = 'M';
-                if ( i < argc-1 && argv[i+1][0] != '-') taxastring = argv[++i];
+                if ( i < argc-1 && argv[i+1][0] != '-') taxastring = pars_ARGV_string( argv[++i]); //argv[++i];
             }
             else if (!strcmp(argv[i],"-l") || !strcmp(argv[i],"--ladderize")) {
                 method = 'l';
@@ -181,11 +193,11 @@ int main (int argc, char *argv []) {
             }
             else if (!strcmp(argv[i],"-c") || !strcmp(argv[i],"--change_names")) {
                 method = 'c';
-                if ( i < argc-1 && argv[i+1][0] != '-') taxastring = argv[++i];
+                if ( i < argc-1 && argv[i+1][0] != '-') taxastring = pars_ARGV_string( argv[++i]); //argv[++i];
             }
             else if (!strcmp(argv[i],"-d") || !strcmp(argv[i],"--drop_tips")) {
                 method = 'd';
-                if ( i < argc-1 && argv[i+1][0] != '-' ) taxastring = argv[++i];
+                if ( i < argc-1 && argv[i+1][0] != '-' ) taxastring = pars_ARGV_string( argv[++i]); //argv[++i];
             }
             else if (!strcmp(argv[i],"-r") || !strcmp(argv[i],"--random_tree")) {
                 tree_source = 'r';
@@ -213,7 +225,7 @@ int main (int argc, char *argv []) {
             }
             else if (!strcmp(argv[i],"--aMPL")) {
                 method = 'C';
-                if ( i < argc-1 && argv[i+1][0] != '-') taxastring = argv[++i];
+                if ( i < argc-1 && argv[i+1][0] != '-') taxastring = pars_ARGV_string( argv[++i]); //argv[++i];
             }
             else if (!strcmp(argv[i],"--nni")) {
                 method = 'I';
@@ -310,10 +322,15 @@ int main (int argc, char *argv []) {
             }
         }
     }
-    if ( (method == 'c' || method == 'd' || method == 'g' || method == 'M') && taxastring.empty() ) {
+    if ( (method == 'c' || method == 'd' || method == 'M') && taxastring.empty() ) {
         std::cerr << "Selected method reqire a taxon string. Use -h to print help." << endl;
         return 1;
     }
+    #ifdef DEBUG
+    if (!taxastring.empty()) {
+	cout << "Taxon string: " << taxastring << endl;
+    }
+    #endif //DEBUG
     if ( !separator.compare("\\n") ) separator = "\n";
     else if ( !separator.compare("\\t") ) separator = "\t";
     else if ( !separator.compare("\\r") ) separator = "\r";
@@ -422,14 +439,6 @@ int main (int argc, char *argv []) {
 		input.read_translate_parameters(taxa_trans);
 		nexus_command = input.read_next_nexus_command();
 	    }
-	//input_format = 'x';
-	//if (nexus_support::move_to_next_tree_block(*input_stream)) {
-	    //nexus_command = nexus_support::read_tree_block_command(*input_stream);
-	    //if (nexus_command==nexus_support::TRANSLATE) {
-		//nexus_support::read_translate_parameters(*input_stream,taxa_trans);
-		//nexus_command = nexus_support::read_tree_block_command(*input_stream);
-		//for (map<string,string>::const_iterator i = taxa_trans.begin(); i!=taxa_trans.end(); ++i) cerr << i->first << ' ' << i->second << endl;
-	    //}
 	}
     }
     unsigned int read_trees = 0;
@@ -475,6 +484,12 @@ int main (int argc, char *argv []) {
 	    print_tree = false;
 	}
 	else if (method == 'g') in_tree.back().outgroup_root( taxastring );//std::cerr << "No function for outgroup rooting yet available" << endl; //tree.name_clust_cout( name_position, separator);
+	else if (method == 'G') in_tree.back().relaxed_outgroup_root( taxastring );//std::cerr << "No function for outgroup rooting yet available" << endl; //tree.name_clust_cout( name_position, separator);
+	else if (method == 'H') {
+	    in_tree.back().print_relaxed_outgroup( taxastring );
+	    cout << endl;
+	    print_tree = false;
+	}
 	else if (method == 'o') {
 	    in_tree.back().print_distance_to_root_for_all ( separator2, separator );
 	    print_tree = false;
@@ -619,6 +634,8 @@ void help () {
     std::cout << "--get_tip_names / -t [separator]                           get the names of the tips/taxa in the tree, a separator can be specified, e.g. -t \\n (each name on" << endl;
     std::cout << "                                                               separate rows). ',' is the default separator." << endl;
     std::cout << "--get_branch_numbers                                       assign branch number as node label." << endl;
+    std::cout << "--get_relaxed_outgroup [taxon_string]                      get the taxa in the clade that include the largest fraction of the difference between number of taxa included in" << endl;
+    std::cout << "                                                               the given group and number not included in the group divided by the total number in the group." << endl;
     std::cout << "--file/-f                                                  give file name, e.g. -f file.tree." << endl;
     std::cout << "--format [newick/nexus]                                    give format of input, e.g. --format nexus. If no format is given and the input is a file treebender will try to" << endl;
     std::cout << "                                                               guess the format, if it is through standard in it will assume newick format." << endl;
@@ -654,6 +671,7 @@ void help () {
     std::cout << "                                                               line and tab)." << endl;
     std::cout << "--random_tree / -r                                         get a random topology (no branch lengths) with given number of taxa, e.g. -r 20 (default 0)." << endl;
     std::cout << "--read_figtree_annotations                                 will read annotations in FigTree/treeanotator format (e.g. [&rate=1.0,height=3.0])" << endl;
+    std::cout << "--relaxed_outgroup_root [taxon_string]                     will root on the group defined as for --get_relaxed_outgroup." << endl;
     std::cout << "--set_branch_lengths / -b [value]                          set all branches in the tree to the given value, e.g. 0.5 (default 1.0)." << endl;
     std::cout << "--sum_branch_length / -s                                   get the sum of the branch lengths in the tree (including root branch if length for this is given)." << endl;
     std::cout << "--svg / -g                                                 output tree as svg immage. Extra graphical commands can be given as next argument. Ech command should be separated" << endl;
@@ -664,5 +682,31 @@ void help () {
     std::cout << "                                                               any other parameter than tip color. E.g. --svg 'width:300&height:400&tipcolor:red(taxon1,taxon2,taxon3)green(taxon4)'." << endl;
     std::cout << endl;
 
+}
+
+string pars_ARGV_string ( char input [] ) {
+    string argv_string;
+    bool file_pars(false);
+    for (unsigned int i(0); input[i] != '\0'; ++i) {
+	if (input[i] == ':' && !argv_string.compare("file")) {
+	    file_pars = true;
+	    argv_string.clear();
+	}
+	else argv_string += input[i];
+    }
+    if (file_pars) {
+	ifstream fileinput;
+	fileinput.open(argv_string.c_str());
+	argv_string.clear();
+	if (fileinput.is_open()) {
+	    char in;
+	    while (fileinput.get(in)) {
+		//fileinput.get(in);// >> in;
+		if (in != '\n' && in != '\r') argv_string += in;
+	    }
+	    if (fileinput.is_open()) fileinput.close();
+	}
+    }
+    return argv_string;
 }
 

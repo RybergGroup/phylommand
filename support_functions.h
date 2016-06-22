@@ -13,6 +13,7 @@ using namespace std;
 namespace support_functions {
     string get_file_type( istream& infile );
     bitset<SIZE> pick_a_random_true_bit(const bitset<SIZE>& trait);
+    string pars_ARGV_string ( char [] input );
 }
 
 namespace nexus_support {
