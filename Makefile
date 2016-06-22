@@ -5,7 +5,7 @@ PP=g++ -std=c++11
 CC=gcc
 #CFLAGS
 EXTRAS= # add EXTRAS=-DDEBUG for debug mode
-PHYLOMMAND = treebender clustertree alignmentgroups pairalign treesplitter superstat conftree treeator # anconstruction
+PHYLOMMAND = treebender clustertree alignmentgroups pairalign treesplitter superstat contree treeator # anconstruction
 TREE = tree.cpp
 ALIGN = align_group.cpp
 CLUST = clustertree.cpp
@@ -20,7 +20,7 @@ ALIGNFLAGS = -DPTHREAD
 PAIRALIGN = pairalign.cpp
 TREESPLIT = treesplitter.cpp
 SUPER = superstat.cpp
-CONFTREE = conftree.cpp
+CONTREE = contree.cpp
 TREEATOR = treeator.cpp
 #ANCON = anconstruction.cpp
 STRINGTREE = string_tree.cpp
@@ -37,11 +37,9 @@ OALIGNMENT = seqpair.o align_group.o sqlite3.o alignmentgroups.o
 OPAIRALIGN = seqpair.o pairalign.o
 OSPLIT = tree.o treesplitter.o string_tree.o matrix_parser.o # support_functions.o
 OSUPER = superstat.o tree.o decisiveness.o string_tree.o matrix_parser.o # support_functions.o
-OCONFTREE = conftree.o tree.o string_tree.o matrix_parser.o # support_functions.o
+OCONTREE = contree.o tree.o string_tree.o matrix_parser.o # support_functions.o
 OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o matrix_parser.o -lnlopt -lm # support_functions.o
-#OANCON = anconstruction.o tree.o string_tree.o simpleML.o marth.o
 SQLOFLAGS = -ldl -lpthread
-#ANCONFLAGS = -lnlopt -lm
 
 # treeator.cpp tree.cpp string_tree.cpp nj_tree.cpp
 
@@ -65,14 +63,11 @@ treesplitter: $(OSPLIT)
 superstat: $(OSUPER)
 	$(PP) -o superstat $(OSUPER)
 
-conftree: $(OCONFTREE)
-	$(PP) -o conftree $(OCONFTREE)
+contree: $(OCONTREE)
+	$(PP) -o contree $(OCONTREE)
 
 treeator: $(OTREEATOR)
 	$(PP) -o treeator $(OTREEATOR)
-
-#anconstruction: $(OANCON)
-#	$(PP) -o anconstruction $(OANCON) $(ANCONFLAGS)
 
 treebender.o: $(TREEB)
 	$(PP) -c $(TREEB) $(EXTRAS)
@@ -92,8 +87,8 @@ treesplitter.o: $(TREESPLIT)
 superstat.o: $(SUPER)
 	$(PP) -c $(SUPER) $(EXTRAS)
 
-conftree.o: $(CONFTREE)
-	$(PP) -c $(CONFTREE) $(EXTRAS)
+contree.o: $(CONTREE)
+	$(PP) -c $(CONTREE) $(EXTRAS)
 
 treeator.o: $(TREEATOR)
 	$(PP) -c $(TREEATOR) $(EXTRAS)
