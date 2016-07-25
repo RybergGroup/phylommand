@@ -130,6 +130,9 @@ void pairalign ( istream& infile, const char output, const bool output_names, co
                 }
             }
             else if (mode == 'b' || mode == 't') {
+		#ifdef DEBUG
+		cerr << "Length seq1: " << sequence1.length() << "; seq2: " << sequence2.length() << endl;
+		#endif //DEBUG
                 seqpair sequences(sequence1,sequence2);
                 if (!aligned) {
                     sequences.set_cost_matrix( 7, -5 );

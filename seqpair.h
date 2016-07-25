@@ -51,8 +51,9 @@ class seqpair {
 
     };
     seqpair (string x, string y) {
-        seq_x = translate_to_binary ( x );
-        seq_y = translate_to_binary ( y );
+	set_DNA_alphapet();
+        translate_to_binary ( x, seq_x );
+        translate_to_binary ( y, seq_y );
         GO = -10;
         GE = -1;
         set_cost_matrix();
@@ -101,7 +102,7 @@ class seqpair {
     vector< bitset<SIZE> > seq_x;
     vector< bitset<SIZE> > seq_y;
     string translate_to_string ( const vector< bitset<SIZE> >& binary );
-    vector< bitset<SIZE> > translate_to_binary ( const string& iupac );
+    void translate_to_binary ( const string& iupac, vector< bitset<SIZE> >& sequence );
     map <char, bitset<SIZE> > alphabet;
     int GO;
     int GE;
@@ -109,7 +110,8 @@ class seqpair {
     int cost_matrix[size_triang_matrix<SIZE>::result]; // left lower triangle
     //map< pair<bitset<SIZE>, bitset<SIZE> >, int> cost_matrix;
     void add_bp ( vector< bitset<SIZE> >& seq, const string& x ) {
-	vector< bitset<SIZE> > add = translate_to_binary ( x );
+	vector< bitset<SIZE> > add;
+	translate_to_binary ( x, add );
 	for (vector< bitset<SIZE> >::iterator i=add.begin(); i != add.end(); ++i)
 	    seq.push_back(*i);
     };

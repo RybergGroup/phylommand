@@ -18,6 +18,11 @@ void seqpair::set_DNA_alphapet() {
     alphabet['V'].set(0); alphabet['V'].set(1); alphabet['V'].set(2);
     alphabet['N'].set(0); alphabet['N'].set(1); alphabet['N'].set(2); alphabet['N'].set(3);
     alphabet['.'].set(0); alphabet['.'].set(1); alphabet['.'].set(2); alphabet['.'].set(3);
+    #ifdef DEBUG
+    for (map<char, bitset<SIZE> >::const_iterator i = alphabet.begin(); i != alphabet.end(); ++i) {
+	cerr << i->first << " = " << i->second.to_string() << endl;
+    }
+    #endif //DEBUG
 }
 
 string seqpair::translate_to_string ( const vector< bitset<SIZE> >& binary ) {
@@ -30,16 +35,23 @@ string seqpair::translate_to_string ( const vector< bitset<SIZE> >& binary ) {
     return sequence;
 }
 
-vector< bitset<SIZE> > seqpair::translate_to_binary ( const string& iupac ) {
+void seqpair::translate_to_binary ( const string& iupac, vector< bitset<SIZE> >& sequence ) {
     int n_bases = iupac.length();
-    vector< bitset<SIZE> > sequence;
+    #ifdef DEBUG
+    cerr << "In seq length: " << n_bases << endl;
+    #endif //DEBUG
+    //vector< bitset<SIZE> > sequence;
     for (int i=1; i<n_bases; ++i) {
 	map<char, bitset<SIZE> >::const_iterator test = alphabet.find(iupac[i]);
 	if (test != alphabet.end()) {
 	    sequence.push_back(test->second);
 	}
+	else cerr << "Can not interpret '" << iupac[i] << "'. Not in alphabet." << endl;
     }
-    return sequence;
+    #ifdef DEBUG
+    cerr << "Out seq length: " << sequence.size() << endl;
+    #endif //DEBUG
+    //return sequence;
 }
 
 
@@ -164,21 +176,32 @@ void seqpair::set_cost_matrix ( int AA, int AG, int AC, int AT, int GG, int GC, 
 
 int seqpair::hamming_distance ( bool gap ) {
     int n = min (seq_x.size(),seq_y.size());
+    #ifdef DEBUG
+    cerr << "Seq length: " << n << endl;
+    #endif //DEBUG
     int distance=0;
     for (int i=0; i < n; ++i) {
         if (!seq_x[i].any() && !seq_y[i].any()) continue;
         if (!gap && (!seq_x[i].any() || !seq_y[i].any())) continue;
 	bitset<SIZE> test = seq_x[i] & seq_y[i];
-        if (!test.any()) ++distance;
+        if (test.none()) {
+	    ++distance;
+	    #ifdef DEBUG
+	    cerr << "Distance: " << distance << endl;
+	    #endif //DEBUG
+	}
     }
     return distance;
 }
 
 double seqpair::similarity ( bool gap ) {
     int n_i = min (seq_x.size(),seq_y.size());
+    #ifdef DEBUG
+    cerr << "Seq length: " << n_i << endl;
+    #endif //DEBUG
     int length = 0;
     for (int i=0; i<n_i; ++i) {
-        if (seq_x[i]==0x00 && seq_y[i]==0x00) continue;
+        if (seq_x[i].none() && seq_y[i].none()) continue;
         else if (!gap && (seq_x[i]==0x00 || seq_y[i]==0x00)) continue;
         ++length;
     }
