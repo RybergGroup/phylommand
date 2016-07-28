@@ -1,10 +1,10 @@
-# Makefile to compile phylcommand
+# Makefile to compile phylcommand using mingw
 # using gcc and g++
 
 PP=g++ -std=c++11
 CC=gcc
 #CFLAGS
-EXTRAS= # add EXTRAS=-DDEBUG for debug mode
+EXTRAS = # add EXTRAS=-DDEBUG for debug mode
 TREEATORFLAGS = -DNLOPT
 TREEATORLINKFLAGS = -lnlopt -lm
 NLOPT= # if NLOPT set to NO set TREEATORFLAGS = -DNOLNLOPT
@@ -12,7 +12,9 @@ ifeq ($(NLOPT),NO)
     TREEATORFLAGS=
     TREEATORLINKFLAGS=
 endif
-SQLOFLAGS = -ldl -lpthread
+#SQLOFLAGS = -ldl -lpthread
+SQLFLAGS =
+SQLITEWIN =-DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENTIONS
 PHYLOMMAND = treebender clustertree alignmentgroups pairalign treesplitter superstat contree treeator # anconstruction
 TREE = tree.cpp
 ALIGN = align_group.cpp

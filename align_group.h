@@ -44,7 +44,7 @@ class align_group {
         };
 
         string get_levels ( sqlite3 *db, string gene ) {
-            return get_levels ( root, db, gene );
+            return get_levels ( root, gene); //db, gene );
         };
         float aprox_mad ( ) {
             int values[array_length];
@@ -69,7 +69,7 @@ class align_group {
         };
         void find_node_insert_value ( string taxon, float value, node *leaf );
         void add_node ( list<node> *position, node *parent, string taxon );
-        string get_levels ( node *leaf, sqlite3 *db, string gene );
+        string get_levels ( node *leaf, string gene); //sqlite3 *db, string gene );
         void add_values ( int values[], node *leaf );
         float calc_aprox_mad( int values[] );
         int get_n_taxa( string taxon, sqlite3 *db, string table );

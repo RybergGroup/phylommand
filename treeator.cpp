@@ -24,7 +24,9 @@ contact: kryberg@utk.edu
 #include <vector>
 #include <set>
 #include <cfloat>
+#ifdef NLOPT
 #include <nlopt.hpp>
+#endif //NLOPT
 #include "tree.h"
 #include "nj_tree.h"
 #include "character_vector.h"
@@ -63,7 +65,11 @@ int main (int argc, char *argv []) {
     istream* data_stream = &std::cin;
     string alphabet_file_name;
     ///// Variables for ancon
+    #ifdef NLOPT
     bool optimize_param = true;
+    #else
+    bool optimize_param = false;
+    #endif //NLOPT
     vector<unsigned int> model_specifications;
     double cut_off = 0.0;
     double rate_mod = 1.0;
@@ -314,6 +320,7 @@ int main (int argc, char *argv []) {
 		    tree.set_char(i->get_taxon(),i->get_character(0));
 ////////////////////////////////////////////
 		if (optimize_param) {
+		    #ifdef NLOPT
 		    nlopt::opt maximize(nlopt::LN_NELDERMEAD, n_parameters);
 		    tree_modelspec_struct data = {&tree, &model_specifications, &model_parameters, &fixed_parameters};
 		    vector<double> variable_values;
@@ -371,6 +378,9 @@ int main (int argc, char *argv []) {
 		    model_out << "Log likelihood: " << LogL << endl;
 /////////////////////
 //		    cerr << "Not implemented yet" << endl;
+		    #else
+		    cerr << "Compiled without NLOPT can not do optimization" << endl;
+		    #endif //NLOPT
 		}
 		/////////////////////////////
 		else {
@@ -431,7 +441,9 @@ void help () {
     std::cout << "--no_branch_length / -0                                    do not print branch lengths and do not calculate branch lengths for" << std::endl;
     std::cout << "                                                               parsimony trees" << endl;
     std::cout << "--no_lable / -l                                            will tell treeator that there are no taxon labels in the matrix." << endl;
+    #ifdef NLOPT
     std::cout << "--no_optim/-n                                              calculate likelihood for given parameters. No optimization." << endl;
+    #endif //NLOPT
     std::cout << "--parameters/-P [space separated string of real numbers]   give corresponding parameter values for parameters. If optimizing these will be starting values," << endl;
     std::cout << "                                                               e.g. -p 0.1 0.01 0.05" << endl;
     std::cout << "--parsimony / -p                                           calculate parsimony score for given tree and data." << std::endl;

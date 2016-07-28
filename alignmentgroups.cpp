@@ -304,7 +304,7 @@ void cluster( sqlite3 *db, const string table, const float cut_off, const int mi
                         #else /* PTHREAD */
                         two_sequences.accno1 = (char*)sqlite3_column_text(statement,0);
                         two_sequences.sequence1 = (char*)sqlite3_column_text(statement,1);
-                         previous = two_sequences.accno1;
+			previous = two_sequences.accno1;
                         #endif /* PTHREAD */
                         mode = '2';
                     }

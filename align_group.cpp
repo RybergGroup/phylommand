@@ -108,7 +108,7 @@ void align_group::add_node ( list<node> *position, node *parent, string taxon ) 
 /*** This function will go through the hierarchy from the root and until   ****
 **** it hit a level that is alignable. It returns a semicolon separated  ****
 **** string with the most specific taxa that are alignable based on MAD. ***/
-string align_group::get_levels ( node *leaf, sqlite3 *db, string gene ) {
+string align_group::get_levels ( node *leaf, string gene ) { //sqlite3 *db, string gene ) {
     int values[array_length];
     for (int i=0; i<array_length; ++i) values[i]=0;
     add_values( values, leaf ); // add up the values of lower taxa
@@ -131,7 +131,7 @@ string align_group::get_levels ( node *leaf, sqlite3 *db, string gene ) {
         list<node> *present=leaf->nodes;
         while (present!=0) { 
             // Add all the alignment groups from lower taxa
-            taxon_string += get_levels(present->daughter, db, gene);
+            taxon_string += get_levels(present->daughter, gene); //db, gene);
             present = present->next;
         }
         return taxon_string;
