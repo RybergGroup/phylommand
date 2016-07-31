@@ -1,4 +1,9 @@
 g++ -o anconstruction anconstruction.cpp tree.cpp simpleML.cpp string_tree.cpp marth/marth.cpp -lnlopt -lm
 
 Add svg viewer
-Put tree splitter in treebender
+Put treesplitter in treebender - done
+Make alignmentgroups independent of sqlite
+Make evry program pipable and also able to read from file, with file given as last argument
+Make sure help funktions are good
+Testing, testing, testing
+Ask people to test

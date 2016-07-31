@@ -1,7 +1,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string.h>
-#include "sqlite3.h"
+//#include "sqlite3.h"
 
 using namespace std;
 
@@ -37,13 +37,13 @@ class align_group {
             destroy_sub_tree( root );
         };
         void insert_value ( string taxon_string1, string taxon_string2, float value );
-        void insert_value( string accno1, string accno2, float value, sqlite3 *db ) {
+/*        void insert_value ( string accno1, string accno2, float value, sqlite3 *db ) {
             string taxon_string1=get_taxon_string(accno1, db);
             string taxon_string2=get_taxon_string(accno2, db);
             insert_value ( taxon_string1, taxon_string2, value );
-        };
+        };*/
 
-        string get_levels ( sqlite3 *db, string gene ) {
+        string get_levels ( string gene ) {
             return get_levels ( root, gene); //db, gene );
         };
         float aprox_mad ( ) {
@@ -72,9 +72,9 @@ class align_group {
         string get_levels ( node *leaf, string gene); //sqlite3 *db, string gene );
         void add_values ( int values[], node *leaf );
         float calc_aprox_mad( int values[] );
-        int get_n_taxa( string taxon, sqlite3 *db, string table );
+        //int get_n_taxa( string taxon, sqlite3 *db, string table );
         // function for database handling
-        string get_taxon_string( string accno, sqlite3 *db );
+        //string get_taxon_string( string accno, sqlite3 *db );
         // Function to print the values for each level in the hierarchy, mostly for debugging purposes
         void print_hierarchy ( node *leaf );
 };

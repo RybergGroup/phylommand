@@ -38,11 +38,18 @@ int main (int argc, char *argv []) {
     cerr << "Debug mode" << endl;
     #endif //DEBUG
     char method('0');
+    // from treesplitter
+    const int max_trees = 1000;
+    char split_criteria('n');
+    char split_stop('s');
+    int max_size(0);
+    bool rooted(false);
+    ///
     char tree_source('s');
     char output_format('w');
     char inverse_taxa('n');
-    unsigned int tree_interval_start = 0;
-    unsigned int tree_interval_end = UINT_MAX;
+    unsigned int tree_interval_start(0);
+    unsigned int tree_interval_end(UINT_MAX);
     string taxastring;
     vector<string> taxon_vector;
     string separator(",");
@@ -105,6 +112,46 @@ int main (int argc, char *argv []) {
                     else if (!(strcmp(argv[i+1],"r")) or !(strcmp(argv[i+1],"R")) or !(strcmp(argv[i+1],"right"))) ++i;
                 }
             }
+	    else if (!strcmp(argv[i],"--split")) { // implement functionality previously in treesplitter
+                if ( i < argc-1 && argv[i+1][0] != '-') {
+////////////////////////////////////////////
+		    ++i;
+		    if (!strcmp(argv[i],"l") || !strcmp(argv[i],"longest_branch")) {
+			method = 'L';
+			if ( i < argc-1 && argv[i+1][0] != '-') split_criteria = argv[++i][0];
+			else split_criteria = 'l';
+		    }
+		    else if (!strcmp(argv[i],"m") || !strcmp(argv[i],"mid_point")) {
+			method = 'P';
+			if ( i < argc-1 && argv[i+1][0] != '-') split_criteria = argv[++i][0];
+			else split_criteria = 'n';
+		    }
+///////////////////////////////////////
+		}
+		else {
+		    cerr << "--split require a method for splitting the tree, see help for further instructions (--help)." << endl;
+		}
+	    }
+	    else if (!strcmp(argv[i],"--split_stop")) { // implement functionality previously in treesplitter
+                if ( i < argc-1 && argv[i+1][0] != '-') {
+////////////////////////////////////////////
+		    ++i;
+		    if (!strcmp(argv[i],"t") || !strcmp(argv[i],"max_tree_number")) {
+			split_stop = 't';
+			if ( i < argc-1 && argv[i+1][0] != '-') max_size = atoi(argv[++i]);
+		    }
+		    else if (!strcmp(argv[i],"s") || !strcmp(argv[i],"max_tree_size")) {
+			split_stop = 's';
+			if ( i < argc-1 && argv[i+1][0] != '-') max_size = atoi(argv[++i]);
+		    }
+		}
+		else {
+		    cerr << "--split_stop require a criterion for stopping splitting the tree, see help for further instructions (--help)." << endl;
+		}
+	    }
+	    ///////////////
+	    else if (!strcmp(argv[i],"-R") || !strcmp(argv[i],"--rooted")) rooted=true;
+	    ///////////////
             else if (!strcmp(argv[i],"-a") || !strcmp(argv[i],"--branch_lengths")) {
                 method = 'a';
                 if ( i < argc-1 && argv[i+1][0] != '-') {
@@ -563,6 +610,58 @@ int main (int argc, char *argv []) {
 	    if (warn) std::cerr << "WARNING!!! Matrix rows of different lengths!!!" << std::endl;
 	}
 	else if (method == 'N') in_tree.back().assign_branch_number_to_internal_nodes();
+	else if (method == 'L' || method == 'P') {
+	    #ifdef DEBUG
+	    cerr << "Starting to split tree " << read_trees << endl;
+	    unsigned int split_count = 0;
+	    #endif //DEBUG
+	    //int split=0;
+	    vector<tree>::iterator tree_to_split = in_tree.begin();
+	    bool cont = true;
+	    if (max_size==0) max_size = tree_to_split->n_tips() + 100;
+	    while(cont && in_tree.size() <= max_trees) {
+		#ifdef DEBUG
+		cerr << "Making split " << ++split_count << endl;
+		#endif //DEBUG
+		cont=false;
+	    	//in_tree.push_back(tree());
+		//tree* tree_part = &in_tree.back();
+		tree tree_part;
+		if (method == 'L') {
+		    if (rooted) /**trees[last]=*/tree_to_split->split_tree_at_longest_branch(&tree_part);
+		    else /**trees[last]=*/tree_to_split->split_tree_at_longest_branch_unrooted(&tree_part);
+		}
+		else if (method == 'P') tree_to_split->split_tree_at_midpoint(&tree_part);
+		in_tree.push_back(tree_part);
+		#ifdef DEBUG
+		cerr << "Made split " << split_count << endl;
+		#endif //DEBUG
+		int max=0;
+		double max_br=0;
+		for (vector<tree>::iterator i=in_tree.begin(); i != in_tree.end(); ++i) {
+		    int n = i->n_tips();
+		    if (split_stop == 's')
+			if (n > max_size) cont = true;
+		    //else if (split_stop == 't')
+			//if ( <= max_size) cont = true;
+		    if (split_criteria == 'n') {
+			if (n > max) {
+			    max=n;
+			    tree_to_split = i;
+			}
+		    }
+		    else if (split_criteria == 'l') {
+			double br=i->longest_branch();
+			if (br > max_br) {
+			    max_br=br;
+			    tree_to_split = i;
+			}
+		    }
+		}
+		if (split_stop == 't')
+		    if ( in_tree.size() < max_size ) cont = true;
+	    }
+	}
 	// Print tree
 	if (print_tree) {
 	    if (read_trees >= tree_interval_start && read_trees <= tree_interval_end) {
@@ -673,6 +772,14 @@ void help () {
     std::cout << "--read_figtree_annotations                                 will read annotations in FigTree/treeanotator format (e.g. [&rate=1.0,height=3.0])" << endl;
     std::cout << "--relaxed_outgroup_root [taxon_string]                     will root on the group defined as for --get_relaxed_outgroup." << endl;
     std::cout << "--set_branch_lengths / -b [value]                          set all branches in the tree to the given value, e.g. 0.5 (default 1.0)." << endl;
+////////////////////
+    std::cout << "--split [split_method]                                     splits tree based on the longest branch (longest_branch/l) or the mid point (mid_point/m) until a stop criterion" << endl;
+    std::cout << "                                                               set by --split_stop reached is reached." << endl;
+    std::cout << "--split_stop [stop_criterion integer]                      sets criterion for when to stop when splitting trees, either at a maximum number of trees (max_tree_number/t) or" << endl;
+    std::cout << "                                                               when all trees have fewer than a certain number of tips (max_tree_size/s). The number should be given after the" << endl;
+    std::cout << "                                                               specific criterion." << endl;
+/////////////////////////
+    std::cout << "--rooted/-R                                                sets if the tree should be considered as rooted or not (only matters when splitting trees)." << endl;
     std::cout << "--sum_branch_length / -s                                   get the sum of the branch lengths in the tree (including root branch if length for this is given)." << endl;
     std::cout << "--svg / -g                                                 output tree as svg immage. Extra graphical commands can be given as next argument. Ech command should be separated" << endl;
     std::cout << "                                                               by & and commands and arguments should be separated by :. Possible commands are: 'width' set width of figure;" << endl;

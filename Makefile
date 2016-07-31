@@ -1,19 +1,28 @@
 # Makefile to compile phylcommand
 # using gcc and g++
+# If compiling on windows using MinGW add WIN=YES to make command
 
 PP=g++ -std=c++11
 CC=gcc
+
+# Options
+NLOPT= YES # if NLOPT set to NO set TREEATORFLAGS = -DNOLNLOPT
+WIN = NO # add WIN=YES if compiling on windows using MinGW
+PTHREADS = NO # set to yes to compile using pthreads, PTHREADS=-DPTREADS
+
+PHYLOMMAND = treebender clustertree alignmentgroups pairalign superstat contree treeator # anconstruction treesplitter
 #CFLAGS
 EXTRAS= # add EXTRAS=-DDEBUG for debug mode
 TREEATORFLAGS = -DNLOPT
 TREEATORLINKFLAGS = -lnlopt -lm
-NLOPT= # if NLOPT set to NO set TREEATORFLAGS = -DNOLNLOPT
 ifeq ($(NLOPT),NO)
     TREEATORFLAGS=
     TREEATORLINKFLAGS=
 endif
 SQLOFLAGS = -ldl -lpthread
-PHYLOMMAND = treebender clustertree alignmentgroups pairalign treesplitter superstat contree treeator # anconstruction
+ifeq ($(WIN),YES))
+    SQLOFLAGS=
+endif
 TREE = tree.cpp
 ALIGN = align_group.cpp
 CLUST = clustertree.cpp
@@ -22,11 +31,14 @@ DECISIVE = decisiveness.cpp
 SQLITE = sqlite3.c
 TREEB = treebender.cpp
 CLUSTTREE = clustertree_main.cpp
-CLUSTFLAG = -DDATABASE
+DATABASEFLAG = -DDATABASE
 ALIGNMENT = alignmentgroups.cpp
-ALIGNFLAGS = -DPTHREAD
+ALIGNFLAGS =
+ifeq ($(PTHREADS),YES)
+    ALIGNFLAGS = -DPTHREAD
+endif
 PAIRALIGN = pairalign.cpp
-TREESPLIT = treesplitter.cpp
+#TREESPLIT = treesplitter.cpp
 SUPER = superstat.cpp
 CONTREE = contree.cpp
 TREEATOR = treeator.cpp
@@ -38,12 +50,13 @@ MARTH = marth/marth.cpp
 #SUPPORTFUNCTIONS = support_functions.cpp
 FILE_PARSER = file_parser.cpp
 MATRIXPARS = matrix_parser.cpp
+SEQDB = seqdatabase.cpp
 
 OTREE = tree.o treebender.o string_tree.o file_parser.o matrix_parser.o # support_functions.o
 OCLUSTTREE = clustertree.o tree.o sqlite3.o clustertree_main.o string_tree.o matrix_parser.o # support_functions.o
-OALIGNMENT = seqpair.o align_group.o sqlite3.o alignmentgroups.o
+OALIGNMENT = seqpair.o align_group.o seqdatabase.o sqlite3.o alignmentgroups.o
 OPAIRALIGN = seqpair.o pairalign.o
-OSPLIT = tree.o treesplitter.o string_tree.o matrix_parser.o # support_functions.o
+#OSPLIT = tree.o treesplitter.o string_tree.o matrix_parser.o # support_functions.o
 OSUPER = superstat.o tree.o decisiveness.o string_tree.o matrix_parser.o # support_functions.o
 OCONTREE = contree.o tree.o string_tree.o matrix_parser.o # support_functions.o
 OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o matrix_parser.o $(TREEATORLINKFLAGS) # support_functions.o
@@ -64,8 +77,8 @@ alignmentgroups: $(OALIGNMENT)
 pairalign: $(OPAIRALIGN)
 	$(PP) -o pairalign $(OPAIRALIGN)
 
-treesplitter: $(OSPLIT)
-	$(PP) -o treesplitter $(OSPLIT)
+#treesplitter: $(OSPLIT)
+#	$(PP) -o treesplitter $(OSPLIT)
 
 superstat: $(OSUPER)
 	$(PP) -o superstat $(OSUPER)
@@ -80,16 +93,17 @@ treebender.o: $(TREEB)
 	$(PP) -c $(TREEB) $(EXTRAS)
 
 clustertree_main.o: $(CLUSTTREE)
-	$(PP) $(CLUSTFLAG) -c $(CLUSTTREE) $(EXTRAS)
+	$(PP) $(DATABASEFLAG) -c $(CLUSTTREE) $(EXTRAS)
 
 alignmentgroups.o: $(ALIGNMENT)
-#	$(PP) $(ALIGNFLAGS) -c $(ALIGNMENT)
-	$(PP) -c $(ALIGNMENT) $(EXTRAS)
+	$(PP) $(DATABASEFLAG) $(ALIGNFLAGS) -c $(ALIGNMENT) $(EXTRAS)
+#	$(PP) $(DATABASEFLAG) -c $(ALIGNMENT) $(EXTRAS)
+
 pairalign.o: $(PAIRALIGN)
 	$(PP) -c $(PAIRALIGN) $(EXTRAS)
 
-treesplitter.o: $(TREESPLIT)
-	$(PP) -c $(TREESPLIT) $(EXTRAS)
+#treesplitter.o: $(TREESPLIT)
+#	$(PP) -c $(TREESPLIT) $(EXTRAS)
 
 superstat.o: $(SUPER)
 	$(PP) -c $(SUPER) $(EXTRAS)
@@ -110,7 +124,7 @@ align_group.o: $(ALIGN)
 	$(PP) -c $(ALIGN) $(EXTRAS)
 
 clustertree.o: $(CLUST)
-	$(PP) $(CLUSTFLAG) -c $(CLUST) $(EXTRAS)
+	$(PP) $(DATABASEFLAG) -c $(CLUST) $(EXTRAS)
 
 seqpair.o: $(SEQPAIR)
 	$(PP) -c $(SEQPAIR) $(EXTRAS)
@@ -141,3 +155,6 @@ file_parser.o: $(FILE_PARSER)
 
 matrix_parser.o: $(MATRIXPARS)
 	$(PP) -c $(MATRIXPARS) $(EXTRAS)
+
+seqdatabase.o: $(SEQDB)
+	$(PP) $(DATABASEFLAG) -c $(SEQDB) $(EXTRAS)

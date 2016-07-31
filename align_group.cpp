@@ -28,7 +28,7 @@ void align_group::insert_value ( string taxon_string1, string taxon_string2, flo
     find_node_insert_value ( inclusive_taxon, value, root );
 }
 
-/*** This function gets the taxon string for a accession number ***/
+/*** This function gets the taxon string for a accession number ***
 string align_group::get_taxon_string( string accno, sqlite3 *db ) {
     sqlite3_stmt *statement;
     string taxon_string;
@@ -44,7 +44,7 @@ string align_group::get_taxon_string( string accno, sqlite3 *db ) {
     }
     sqlite3_finalize(statement);
     return taxon_string;
-}
+}*/
 
 /*** This node will find the right place in the hierarchy to insert a value, starting ****
 **** from the root and given a taxon. If the taxon is not already in the hierarchy it ****
@@ -144,7 +144,7 @@ string align_group::get_levels ( node *leaf, string gene ) { //sqlite3 *db, stri
 }
 
 /*** Returns the number of sequences for a specific taxon. Not used ****
-**** any more.                                                      ***/
+**** any more.                                                      ***
 int align_group::get_n_taxa( string taxon, sqlite3 *db, string table ) {
     sqlite3_stmt *statement;
     string query = "SELECT COUNT(accno) FROM ";
@@ -169,7 +169,7 @@ int align_group::get_n_taxa( string taxon, sqlite3 *db, string table ) {
     sqlite3_finalize(statement);
     return n_taxa;
 }
-
+*/
 /*** This function will calculate the mad value based on the value string ***/
 float align_group::calc_aprox_mad( int values[] ) {
     int sum=0;

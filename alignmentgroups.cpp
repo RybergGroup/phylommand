@@ -1,13 +1,18 @@
 #include <iostream>
+#include <sstream>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <vector>
 #include "seqpair.h"
+#ifdef DATABASE
 #include "sqlite3.h"
+#endif //DATABASE
 #include "align_group.h"
 #ifdef PTHREAD // if compiling multithreads
 #include <pthread.h>
 #endif /*PTHREAD*/
+#include "seqdatabase.h"
 
 using namespace std;
 
@@ -21,10 +26,8 @@ struct sequence_package {
     string accno2;
     string sequence1;
     string sequence2;
-    //float proportion_N1;
-    //float proportion_N2;
     const string *table;
-    sqlite3 *db;
+    seqdatabase* db;
     const float *cut_off;
     align_group *deviations;
 };
@@ -34,15 +37,12 @@ void *pthread_align_pair (void *threadarg);
 #endif /* PTHREAD */
 
 void align_pair ( sequence_package *two_sequences );
-void clust_update( string accno, string cluster, string table, sqlite3 *db, bool where_accno);
-void cluster( sqlite3 *db, const string table, const float cut_off, const int min_length, bool only_lead );
-string get_cluster( string accno, string table, sqlite3 *db);
-float get_comp_value ( const string accno, const string table, sqlite3 *db);
-void cluster_each_table ( const char* database, const string cut_off, const int min_length, bool only_lead, bool perform_clustering );
+void cluster ( seqdatabase& db, const string table, const float cut_off, const int min_length, bool only_lead );
+void cluster_each_table ( const char* file, const char* databasetype, const string cut_off, const int min_length, bool only_lead, bool perform_clustering );
 void help();
 
 /********************************************************************
- **** MAIN FUNCTION, parse arguments and execute cluster function ****
+**** MAIN FUNCTION, parse arguments and execute cluster function ****
 ********************************************************************/
 int main (int argc, char *argv[]) {
    // Variables to calculate starting and end time
@@ -53,6 +53,7 @@ int main (int argc, char *argv[]) {
    int min_length = 100;
    bool only_lead = 0;
    bool perform_clustering = true;
+    char db_type[] = "sqlite" // alternative fasta
    std::cout << "The program was called with the following command:" << endl;
    for (int i=0; i<argc; ++i) std::cout << argv[i] << ' ';
    std::cout << endl << endl;
@@ -111,11 +112,6 @@ int main (int argc, char *argv[]) {
    }
    // Check if variables have reasonable values or else quit
    bool error_flag = 0; // flag to indicate if we should quit
-   // If cut off value out of bound, give instructions then  quit
-/*   if (cut_off <= 0.0 || cut_off > 1.1) {
-       std::cout << "Cut off (--cut_off or -c) must be a value between 0 and 1.1, e.g. 0.99." << endl;
-       error_flag = 1;
-   }*/
    if ( min_length < 0 ) {
        std::cout << "Minimum sequence length to consider for clustering must be positive integer, e.g. 100." << endl;
        error_flag = 1;
@@ -126,6 +122,7 @@ int main (int argc, char *argv[]) {
        error_flag = 1;
    }
    #endif /* PTHREAD */
+    #ifdef DATABASE
    // If database can not be opened, give instructions then quit
    std::cout << "Using database: " << argv[argc-1] << '.' << endl;
    sqlite3 *db;
@@ -134,6 +131,7 @@ int main (int argc, char *argv[]) {
        error_flag = 1;
    }
    sqlite3_close(db);
+    #endif //DATABASE
    // if any problems above, quit!
    if (error_flag) {
        std::cout << "Quitting quietly." << endl;
@@ -142,7 +140,7 @@ int main (int argc, char *argv[]) {
 
    std::cout << "Started at:" << endl << asctime( timeinfo );
    // Execute clustering, last argument is interpreted as the database file
-   cluster_each_table ( argv[argc-1], cut_off, min_length, only_lead, perform_clustering );
+   cluster_each_table ( argv[argc-1], db_type, cut_off, min_length, only_lead, perform_clustering );
    // Calculate end time
    rawtime = time(0);
    timeinfo = localtime( &rawtime );
@@ -175,76 +173,43 @@ void help() {
 }
 
 /*** Function to cluster each table ***/
-void cluster_each_table ( const char* database, const string cut_off, const int min_length, bool only_lead, bool perform_clustering ) {
-    sqlite3 *db;
-    if ( sqlite3_open(database, &db) == 0 ) {
-        sqlite3_stmt *statement;
-        string query = "CREATE TABLE alignment_groups (gene TEXT DEFAULT 'empty', taxon TEXT DEFAULT 'empty', tree TEXT DEFAULT 'empty', tree_method TEXT DEFAULT 'empty', alignable INTEGER, PRIMARY KEY (gene, taxon));";
-        if(sqlite3_prepare_v2(db, query.c_str(), -1, &statement, 0) == SQLITE_OK) {
-            if (sqlite3_step(statement) != SQLITE_DONE) {
-                std::cerr << "Could not create table for alignment_groups (1). Quitting." << endl;
-                return;
-            }
-            sqlite3_finalize(statement);
-        }
-        else {
-            sqlite3_finalize(statement);
-            query = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;";
-            bool flag = 0;
-            if(sqlite3_prepare_v2(db, query.c_str(), -1, &statement, 0) == SQLITE_OK) {
-                while (sqlite3_step(statement) == SQLITE_ROW) {
-                    string table = (char*)sqlite3_column_text(statement,0);
-                    if (!table.compare("alignment_groups")) {
-                        flag = 1;
-                        break;
-                    }
-                }
-            }
-            sqlite3_finalize(statement);
-            if (!flag) {
-                std::cerr << "Could not create table for alignment_groups (2). Quitting." << endl;
-                return;
-            }
-        }
-        query = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;";
-        if(sqlite3_prepare_v2(db, query.c_str(), -1, &statement, 0) == SQLITE_OK) {
-            while (sqlite3_step(statement) == SQLITE_ROW) {
-                string table = (char*)sqlite3_column_text(statement,0);
-                if (!table.compare("gb_data") || !table.compare("alignments") || !table.compare("alignment_groups")) continue;
-                float present_cut_off=0;
-                if (perform_clustering) {
-                    int length = cut_off.length();
-                    string gene;
-                    for (int i=0; i < length; ++i) {
-                        if (cut_off[i]==',') {
-                            if(!table.compare(gene) || !table.compare("all")) {
-                                string number;
-                                ++i;
-                                while (cut_off[i]!=',' && i<length) {
-                                    number+=cut_off[i];
-                                    ++i;
-                                }
-                                present_cut_off = atof(number.c_str());
-                                break;
-                            }
-                        }
-                        else gene+=cut_off[i];
-                    }
-                    if (present_cut_off < 0.000000001) {
-                        std::cout << "Could not find appropriate cut off for " << table << ". Will only define alignment groups and not cluster." << endl;
-                        continue;
-                    }
-                }
-                std::cout << "Checking " << table << endl;
-                cluster(db, table, present_cut_off, min_length, only_lead);
-            }
-        }
-        sqlite3_finalize(statement);
+void cluster_each_table ( const char* file, const char* databasetype, const string cut_off, const int min_length, bool only_lead, bool perform_clustering ) {
+    seqdatabase database(file,databasetype);
+    if (!database.alignment_groups_present())
+	if (!database.create_alignment_groups()) return;
+    vector<string> tables = database.tables_in_database();
+    for (vector<string>::const_iterator table = tables.begin(); table != tables.end(); ++table) {
+	if (!table->compare("gb_data") || !table->compare("alignments") || !table->compare("alignment_groups")) continue;
+	float present_cut_off=0;
+	if (perform_clustering) {
+	    int length = cut_off.length();
+	    string gene;
+	    for (int i=0; i < length; ++i) {
+		if (cut_off[i]==',') {
+		    if(!table->compare(gene) || !table->compare("all")) {
+			string number;
+			++i;
+			while (cut_off[i]!=',' && i<length) {
+			    number += cut_off[i];
+			    ++i;
+			}
+			present_cut_off = atof(number.c_str());
+			break;
+		    }
+		}
+		else gene+=cut_off[i];
+	    }
+	    if (present_cut_off < 0.000000001) {
+		std::cout << "Could not find appropriate cut off for " << &table << ". Will only define alignment groups and not cluster." << endl;
+		continue;
+	    }
+	}
+	std::cout << "Checking " << *table << endl;
+	cluster(database, *table, present_cut_off, min_length, only_lead);
     }
-    sqlite3_close(db);
 }
 
-void cluster( sqlite3 *db, const string table, const float cut_off, const int min_length, bool only_lead ) {
+void cluster( seqdatabase& db, const string table, const float cut_off, const int min_length, bool only_lead ) {
     #ifdef PTHREAD
     pthread_t thread[n_threads];
     pthread_attr_t attr;
@@ -263,114 +228,56 @@ void cluster( sqlite3 *db, const string table, const float cut_off, const int mi
     #endif /* PTHREAD */
     align_group deviations;
     char mode='1';
-    char char_min_length[33];
-    sprintf (char_min_length, "%d", min_length);
+    stringstream converter;
+    converter << min_length;
+    string char_min_length(converter.str());
 
     std::cout << "Starting pairwise alignment." << endl;
-    string query = "SELECT accno,sequence,cluster FROM ";
-    query += table;
-    query += " WHERE LENGTH(sequence)>";
-    query += char_min_length;
-    query += ';';
     string previous = "empty";
-    while(mode!='9') {
-        sqlite3_stmt *statement;
-        if(sqlite3_prepare_v2(db, query.c_str(), -1, &statement, 0) == SQLITE_OK) {
-            if (previous.compare("empty")) { // if previous is not empty
-                while (1) {
-                    string accno;
-                    if (sqlite3_step(statement) == SQLITE_ROW) accno = (char*)sqlite3_column_text(statement,0);
-                    else {
-                        mode = '9';
-                        break;
-                    }
-                    if (!accno.compare(previous)) break;
-                }
-            }
-            while (1) { 
-                if (sqlite3_step(statement) == SQLITE_ROW) {
-                    if (only_lead) {
-                        string cluster = (char*)sqlite3_column_text(statement,2);
-                        if (cluster.compare("lead")) {
-                            if (mode == '1') previous = (char*)sqlite3_column_text(statement,0); // if looking for first seq save accno
-                            continue; // if not lead sequence continue
-                        }
-                    }
-                    if (mode == '1') {
-                        #ifdef PTHREAD
-                        accno1 = (char*)sqlite3_column_text(statement,0);
-                        previous = accno1;
-                        sequence1 = (char*)sqlite3_column_text(statement,1);
-                        #else /* PTHREAD */
-                        two_sequences.accno1 = (char*)sqlite3_column_text(statement,0);
-                        two_sequences.sequence1 = (char*)sqlite3_column_text(statement,1);
-			previous = two_sequences.accno1;
-                        #endif /* PTHREAD */
-                        mode = '2';
-                    }
-                    else if ( mode == '2' || mode == '3') {
-                        #ifdef PTHREAD
-                        if (next_thread >= n_threads) next_thread = 0;
-                        int thread_code=0;
-                        if (activated[next_thread]) thread_code = pthread_join(thread[next_thread], &status);
-                        if (thread_code) {
-                            std::cout << "ERROR!!! Return code from pthread_join() is: " << thread_code << endl;
-                            exit (-1);
-                        }
-                        else {
-                            two_sequences[next_thread].accno1 = accno1;
-                            two_sequences[next_thread].sequence1 = sequence1;
-                            two_sequences[next_thread].accno2 = (char*)sqlite3_column_text(statement,0);
-                            two_sequences[next_thread].sequence2 = (char*)sqlite3_column_text(statement,1);
-                            two_sequences[next_thread].table = &table;
-                            two_sequences[next_thread].db = db;
-                            two_sequences[next_thread].cut_off = &cut_off;
-                            two_sequences[next_thread].deviations = &deviations;
-                            thread_code = pthread_create(&thread[next_thread], &attr, pthread_align_pair, (void *) &two_sequences[next_thread]);
-                            activated[next_thread] = true;
-                            ++next_thread;
-                            if (thread_code) {
-                                std::cout << "ERROR!!! Return code from pthread_create() is: " << thread_code << endl;
-                                exit(-1);
-                            }
-                        }
-                        #else /* PTHREAD */
-                        two_sequences.accno2 = (char*)sqlite3_column_text(statement,0);
-                        two_sequences.sequence2 = (char*)sqlite3_column_text(statement,1);
-                        two_sequences.table = &table;
-                        two_sequences.db = db;
-                        two_sequences.cut_off = &cut_off;
-                        two_sequences.deviations = &deviations;
-                        align_pair ( &two_sequences );
-                        #endif /* PTHREAD */
-                        if (mode == '2') {
-                            mode = '3';
-                        }
-                    }
-                    #ifdef PTHREAD
-                    #else /* PTHREAD */
-                    two_sequences.accno2.clear();
-                    two_sequences.sequence2.clear();
-                    #endif /* PTHREAD */
-                }
-                else {
-                    if ( mode == '2' || mode == '1') mode = '9';
-                    break;
-                }
-            }
-            #ifdef PTHREAD
-            #else /* PTHREAD */
-            two_sequences.accno1.clear();
-            two_sequences.sequence1.clear();
-            #endif /* PTHREAD */
-            if (mode !='9') mode='1';
-        }
-        else {
-            std::cerr << "Could not prepare SQLite query!!! Quitting." << endl;
-            exit(-1);
-        }
-        sqlite3_finalize(statement);
+    //Need a fasta parser here as alternative, we should prepars
+    //Maybe make an object that does the different steps and keep track
+    if (db.initiate_sequence_retrieval(table, char_min_length)) {
+    	while(!db.all_pairs()) {
+    	    db.move_to_next_pair(only_lead);
+    	    #ifdef PTHREAD
+    	    if (next_thread >= n_threads) next_thread = 0;
+    	    int thread_code=0;
+    	    if (activated[next_thread]) thread_code = pthread_join(thread[next_thread], &status);
+    	    if (thread_code) {
+    		std::cout << "ERROR!!! Return code from pthread_join() is: " << thread_code << endl;
+    		exit (-1);
+    	    }
+    	    else {
+    		two_sequences[next_thread].accno1 = db.get_accno1();
+    		two_sequences[next_thread].sequence1 = db.get_sequence1();
+    		two_sequences[next_thread].accno2 = db.get_accno2();
+    		two_sequences[next_thread].sequence2 = db.get_sequence2();
+    		two_sequences[next_thread].table = &table;
+    		two_sequences[next_thread].db = &db;
+    		two_sequences[next_thread].cut_off = &cut_off;
+    		two_sequences[next_thread].deviations = &deviations;
+    		thread_code = pthread_create(&thread[next_thread], &attr, pthread_align_pair, (void *) &two_sequences[next_thread]);
+    		activated[next_thread] = true;
+    		++next_thread;
+    		if (thread_code) {
+    		    std::cout << "ERROR!!! Return code from pthread_create() is: " << thread_code << endl;
+    		    exit(-1);
+    		}
+    	    }
+    	    #else /* PTHREAD */
+    	    two_sequences.accno1 = db.get_accno1();
+    	    two_sequences.sequence1 = db.get_sequence1();
+    	    two_sequences.accno2 = db.get_accno2();
+    	    two_sequences.sequence2 = db.get_sequence2();
+    	    two_sequences.table = &table;
+    	    two_sequences.db = &db;
+    	    two_sequences.cut_off = &cut_off;
+    	    two_sequences.deviations = &deviations;
+    	    align_pair ( &two_sequences ); // this is where the action is?
+    	    #endif /* PTHREAD */
+	}
     }
+    else cerr << "Could not initiate sequence retrieval. No aligning done for " << table << "." << endl;
     #ifdef PTHREAD
     pthread_attr_destroy(&attr);
     for (int i=0; i < n_threads; ++i) {
@@ -383,38 +290,11 @@ void cluster( sqlite3 *db, const string table, const float cut_off, const int mi
     #endif /* PTHREAD */
     std::cout << "Finished aligning. Calculating mad to determine taxonomic level suitable for alignment." << endl;
     cout << "Alignment groups for " << table << endl;
-    string alignment_groups = deviations.get_levels( db, table );
+    string alignment_groups = deviations.get_levels( table );
     std::cout << "    Alignment groups: " << alignment_groups << endl;
-    if (alignment_groups.compare("empty")) { // if something in alignment groups
-        string taxon;
-        char alignable;
-        for (int i=0; i < alignment_groups.length(); ++i) {
-            if (alignment_groups[i] == ';') {
-                sqlite3_stmt *statement;
-                string insert = "INSERT INTO alignment_groups (gene, taxon, alignable) VALUES ('";
-                insert += table;
-                insert += "', '";
-                insert += taxon;
-                insert += "', ";
-                insert += alignable;
-                insert += ");";
-                if(sqlite3_prepare_v2(db, insert.c_str(), -1, &statement, 0) == SQLITE_OK) {
-                    sqlite3_step(statement);
-                }
-                else std::cerr << "Failed to uppdate database. SQL statement: " << insert << endl << "Proceeding reluctantly." << endl;
-                sqlite3_finalize(statement);
-                std::cout << "    " << taxon << "    ";
-                if (alignable == '1') std::cout << "Alignable" << endl;
-                else std::cout << "Not alignable" << endl;
-                taxon.clear();
-            }
-            else if (alignment_groups[i] == '_') {
-                if (alignment_groups[++i] == 'A') alignable = '1';
-                else alignable = '0';
-            }
-            else taxon += alignment_groups[i];
-        }
-    }
+    #if DATABASE
+    db.insert_alignment_group(table, alignment_groups); 
+    #endif //DATABASE
     #ifdef DEBUG
     cout << "    Aprox. mad. entire group = " << deviations.aprox_mad() << endl;
     deviations.print_hierarchy();
@@ -437,142 +317,86 @@ void align_pair ( sequence_package *two_sequences ) {
     pthread_mutex_lock (&databasemutex);
     #endif /* PTHREAD */
     if (*two_sequences->cut_off > 0.000000001) {
-        string cluster1 = get_cluster( two_sequences->accno1, *two_sequences->table, two_sequences->db );
-        string cluster2 = get_cluster( two_sequences->accno2, *two_sequences->table, two_sequences->db );
+        string cluster1 = two_sequences->db->get_cluster( two_sequences->accno1, *two_sequences->table );
+        string cluster2 = two_sequences->db->get_cluster( two_sequences->accno2, *two_sequences->table );
         if (sequences.similarity(1) > *two_sequences->cut_off) {
             float comp1;
             float comp2;
-            if (!cluster1.compare( "empty" ) || !cluster1.compare( "lead" )) comp1 = get_comp_value( two_sequences->accno1, *two_sequences->table, two_sequences->db );
-            else comp1 = get_comp_value( cluster1, *two_sequences->table, two_sequences->db );
-            if (!cluster2.compare( "empty" ) || !cluster2.compare( "lead" )) comp2 = get_comp_value( two_sequences->accno2, *two_sequences->table, two_sequences->db );
-            else comp2 = get_comp_value( cluster2, *two_sequences->table, two_sequences->db );
+            if (!cluster1.compare( "empty" ) || !cluster1.compare( "lead" )) comp1 = two_sequences->db->get_comp_value( two_sequences->accno1, *two_sequences->table );
+            else comp1 = two_sequences->db->get_comp_value( cluster1, *two_sequences->table );
+            if (!cluster2.compare( "empty" ) || !cluster2.compare( "lead" )) comp2 = two_sequences->db->get_comp_value( two_sequences->accno2, *two_sequences->table );
+            else comp2 = two_sequences->db->get_comp_value( cluster2, *two_sequences->table );
             // If sequence 1 better
             if (comp1 >= comp2) {
                 if ( !cluster1.compare( "empty" ) ) {
-                    clust_update( two_sequences->accno1, "lead", *two_sequences->table, two_sequences->db, 1 );
-                    clust_update( two_sequences->accno2, two_sequences->accno1, *two_sequences->table, two_sequences->db, 1 );
-                    if (!cluster2.compare( "lead" ) || !cluster2.compare( "empty" )) clust_update( two_sequences->accno2, two_sequences->accno1, *two_sequences->table, two_sequences->db, 0 );
+                    two_sequences->db->clust_update( two_sequences->accno1, "lead", *two_sequences->table, 1 );
+                    two_sequences->db->clust_update( two_sequences->accno2, two_sequences->accno1, *two_sequences->table, 1 );
+                    if (!cluster2.compare( "lead" ) || !cluster2.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno2, two_sequences->accno1, *two_sequences->table, 0 );
                     else {
-                        clust_update( cluster2, two_sequences->accno1, *two_sequences->table, two_sequences->db, 1 );
-                        clust_update( cluster2, two_sequences->accno1, *two_sequences->table, two_sequences->db, 0 );
+                        two_sequences->db->clust_update( cluster2, two_sequences->accno1, *two_sequences->table, 1 );
+                        two_sequences->db->clust_update( cluster2, two_sequences->accno1, *two_sequences->table, 0 );
                     }
                 }
                 else if ( !cluster1.compare( "lead" ) ) {
-                    clust_update( two_sequences->accno2, two_sequences->accno1, *two_sequences->table, two_sequences->db, 1 );
-                    if (!cluster2.compare( "lead" ) || !cluster2.compare( "empty" )) clust_update( two_sequences->accno2, two_sequences->accno1, *two_sequences->table, two_sequences->db, 0 );
+                    two_sequences->db->clust_update( two_sequences->accno2, two_sequences->accno1, *two_sequences->table, 1 );
+                    if (!cluster2.compare( "lead" ) || !cluster2.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno2, two_sequences->accno1, *two_sequences->table, 0 );
                     else {
-                        clust_update( cluster2, two_sequences->accno1, *two_sequences->table, two_sequences->db, 1 );
-                        clust_update( cluster2, two_sequences->accno1, *two_sequences->table, two_sequences->db, 0 );
+                        two_sequences->db->clust_update( cluster2, two_sequences->accno1, *two_sequences->table, 1 );
+                        two_sequences->db->clust_update( cluster2, two_sequences->accno1, *two_sequences->table, 0 );
                     }
                 }
                 else {
-                    clust_update( two_sequences->accno2, cluster1, *two_sequences->table, two_sequences->db, 1 );
-                    if (!cluster2.compare( "lead" ) || !cluster2.compare( "empty" )) clust_update( two_sequences->accno2, cluster1, *two_sequences->table, two_sequences->db, 0 );
+                    two_sequences->db->clust_update( two_sequences->accno2, cluster1, *two_sequences->table, 1 );
+                    if (!cluster2.compare( "lead" ) || !cluster2.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno2, cluster1, *two_sequences->table, 0 );
                     else {
-                        clust_update( cluster2, cluster1, *two_sequences->table, two_sequences->db, 1 );
-                        clust_update( cluster2, cluster1, *two_sequences->table, two_sequences->db, 0 );
+                        two_sequences->db->clust_update( cluster2, cluster1, *two_sequences->table, 1 );
+                        two_sequences->db->clust_update( cluster2, cluster1, *two_sequences->table, 0 );
                     }
                 }
             }
          // If sequence 2 better
             else {
                 if ( !cluster2.compare( "empty" ) ) { // if no previous annotation
-                    clust_update( two_sequences->accno2, "lead", *two_sequences->table, two_sequences->db, 1 ); // set best sequence to lead
-                    clust_update( two_sequences->accno1, two_sequences->accno2, *two_sequences->table, two_sequences->db, 1 ); // set worse sequence to the same cluster
-                    if (!cluster1.compare( "lead" ) || !cluster1.compare( "empty" )) clust_update( two_sequences->accno1, two_sequences->accno2, *two_sequences->table, two_sequences->db, 0 ); // if worse sequence lead or empty uppdate sequences in that cluster
+                    two_sequences->db->clust_update( two_sequences->accno2, "lead", *two_sequences->table, 1 ); // set best sequence to lead
+                    two_sequences->db->clust_update( two_sequences->accno1, two_sequences->accno2, *two_sequences->table, 1 ); // set worse sequence to the same cluster
+                    if (!cluster1.compare( "lead" ) || !cluster1.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno1, two_sequences->accno2, *two_sequences->table, 0 ); // if worse sequence lead or empty uppdate sequences in that cluster
                     else { // if not lead
-                        clust_update( cluster1, two_sequences->accno2, *two_sequences->table, two_sequences->db, 1 ); // change lead of cluster to point to new best sequence
-                        clust_update( cluster1, two_sequences->accno2, *two_sequences->table, two_sequences->db, 0 ); // change all sequences previusly pointing to that sequence to point to new best sequence
+                        two_sequences->db->clust_update( cluster1, two_sequences->accno2, *two_sequences->table, 1 ); // change lead of cluster to point to new best sequence
+                        two_sequences->db->clust_update( cluster1, two_sequences->accno2, *two_sequences->table, 0 ); // change all sequences previusly pointing to that sequence to point to new best sequence
                     }
                 }
                 else if ( !cluster2.compare( "lead" ) ) {
-                    clust_update( two_sequences->accno1, two_sequences->accno2, *two_sequences->table, two_sequences->db, 1 ); // set worse sequence to the same cluster
-                    if (!cluster1.compare( "lead" ) || !cluster1.compare( "empty" )) clust_update( two_sequences->accno1, two_sequences->accno2, *two_sequences->table, two_sequences->db, 0 ); // if worse sequence lead or empty uppdate sequences in that cluster
+                    two_sequences->db->clust_update( two_sequences->accno1, two_sequences->accno2, *two_sequences->table, 1 ); // set worse sequence to the same cluster
+                    if (!cluster1.compare( "lead" ) || !cluster1.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno1, two_sequences->accno2, *two_sequences->table, 0 ); // if worse sequence lead or empty uppdate sequences in that cluster
                     else {
-                        clust_update( cluster1, two_sequences->accno2, *two_sequences->table, two_sequences->db, 1 ); // change lead of cluster to point to new best sequence
-                        clust_update( cluster1, two_sequences->accno2, *two_sequences->table, two_sequences->db, 0 ); // change all sequences previusly pointing to that sequence to point to new best sequence
+                        two_sequences->db->clust_update( cluster1, two_sequences->accno2, *two_sequences->table, 1 ); // change lead of cluster to point to new best sequence
+                        two_sequences->db->clust_update( cluster1, two_sequences->accno2, *two_sequences->table, 0 ); // change all sequences previusly pointing to that sequence to point to new best sequence
                     }
                 }
                 else {
-                    clust_update( two_sequences->accno1, cluster2, *two_sequences->table, two_sequences->db, 1 ); // set worse sequence to point to the same sequence as better sequence
-                    if (!cluster1.compare( "lead" ) || !cluster1.compare( "empty" )) clust_update( two_sequences->accno1, cluster2, *two_sequences->table, two_sequences->db, 0 ); // set worse sequence to point to same sequence as better sequence
+                    two_sequences->db->clust_update( two_sequences->accno1, cluster2, *two_sequences->table, 1 ); // set worse sequence to point to the same sequence as better sequence
+                    if (!cluster1.compare( "lead" ) || !cluster1.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno1, cluster2, *two_sequences->table, 0 ); // set worse sequence to point to same sequence as better sequence
                     else {
-                        clust_update( cluster1, cluster2, *two_sequences->table, two_sequences->db, 1 ); // change lead of worse cluster to point to the same sequence as new best sequence
-                        clust_update( cluster1, cluster2, *two_sequences->table, two_sequences->db, 0 ); // change rest of cluster to point to the same sequence as new best sequence
+                        two_sequences->db->clust_update( cluster1, cluster2, *two_sequences->table, 1 ); // change lead of worse cluster to point to the same sequence as new best sequence
+                        two_sequences->db->clust_update( cluster1, cluster2, *two_sequences->table, 0 ); // change rest of cluster to point to the same sequence as new best sequence
                     }
                 }
             }
         }
         else {
-            if ( !cluster1.compare( "empty" ) ) clust_update( two_sequences->accno1, "lead", *two_sequences->table, two_sequences->db, 1 );
-            if ( !cluster2.compare( "empty" ) ) clust_update( two_sequences->accno2, "lead", *two_sequences->table, two_sequences->db, 1 );
+            if ( !cluster1.compare( "empty" ) ) two_sequences->db->clust_update( two_sequences->accno1, "lead", *two_sequences->table, 1 );
+            if ( !cluster2.compare( "empty" ) ) two_sequences->db->clust_update( two_sequences->accno2, "lead", *two_sequences->table, 1 );
             if ((!cluster1.compare( "empty" ) || !cluster1.compare( "lead" )) && (!cluster2.compare( "empty" ) || !cluster2.compare( "lead" ))) {
-                two_sequences->deviations->insert_value( two_sequences->accno1, two_sequences->accno2, sequences.jc_distance()-(1-sequences.similarity()), two_sequences->db );
+                two_sequences->deviations->insert_value( two_sequences->db->get_taxon_string(two_sequences->accno1), two_sequences->db->get_taxon_string(two_sequences->accno2), sequences.jc_distance()-(1-sequences.similarity()) );
             }
         }
     }
-    else two_sequences->deviations->insert_value( two_sequences->accno1, two_sequences->accno2, sequences.jc_distance()-(1-sequences.similarity()), two_sequences->db );
+    else two_sequences->deviations->insert_value( two_sequences->db->get_taxon_string(two_sequences->accno1), two_sequences->db->get_taxon_string(two_sequences->accno2), sequences.jc_distance()-(1-sequences.similarity()) );
     #ifdef PTHREAD
     pthread_mutex_unlock(&databasemutex);
     #endif /* PTHREAD */
 }
 
-void clust_update( const string accno, const string cluster, const string table, sqlite3 *db, const bool where_accno) {
-    sqlite3_stmt *statement;
-    string update = "UPDATE ";
-    update += table;
-    update += " SET cluster='";
-    update += cluster;
-    if (where_accno) {
-        update += "' WHERE accno='";
-        update += accno;
-    }
-    else {
-        update += "' WHERE cluster='";
-        update += accno;
-    }
-    update += "';";
-    if(sqlite3_prepare_v2(db, update.c_str(), -1, &statement, 0) == SQLITE_OK) {
-        sqlite3_step(statement);
-    }
-    sqlite3_finalize(statement);
-}
 
-string get_cluster( const string accno, const string table, sqlite3 *db) {
-    string cluster;
-    sqlite3_stmt *statement;
-    string query = "SELECT cluster FROM ";
-    query += table;
-    query += " WHERE accno='";
-    query += accno;
-    query += "';";
-    if(sqlite3_prepare_v2(db, query.c_str(), -1, &statement, 0) == SQLITE_OK) {
-        if (sqlite3_step(statement) == SQLITE_ROW) {
-            cluster=(char*)sqlite3_column_text(statement,0);
-        }
-    }
-    sqlite3_finalize(statement);
-    return cluster;
-}
 
-float get_comp_value ( const string accno, const string table, sqlite3 *db) {
-    int length=0;
-    float prop_N=0.0;
-    string query  = "SELECT LENGTH(";
-    query += table;
-    query += ".sequence),gb_data.proportion_N FROM gb_data INNER JOIN ";
-    query += table;
-    query += " on gb_data.accno=";
-    query += table;
-    query += ".accno WHERE gb_data.accno='";
-    query += accno;
-    query += "';";
-    sqlite3_stmt *statement;
-    if(sqlite3_prepare_v2(db, query.c_str(), -1, &statement, 0) == SQLITE_OK) {
-        if (sqlite3_step(statement) == SQLITE_ROW) {
-            length=sqlite3_column_int(statement,0);
-            prop_N=sqlite3_column_double(statement,1);
-        }
-    }
-    return length*(1-prop_N);
-}
+
