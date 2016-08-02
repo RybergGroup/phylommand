@@ -9,6 +9,7 @@ CC=gcc
 NLOPT= YES # if NLOPT set to NO set TREEATORFLAGS = -DNOLNLOPT
 WIN = NO # add WIN=YES if compiling on windows using MinGW
 PTHREADS = NO # set to yes to compile using pthreads, PTHREADS=-DPTREADS
+DATABASE = YES # set to compile with database
 
 PHYLOMMAND = treebender clustertree alignmentgroups pairalign superstat contree treeator # anconstruction treesplitter
 #CFLAGS
@@ -20,7 +21,7 @@ ifeq ($(NLOPT),NO)
     TREEATORLINKFLAGS=
 endif
 SQLOFLAGS = -ldl -lpthread
-ifeq ($(WIN),YES))
+ifeq ($(WIN),YES)
     SQLOFLAGS=
 endif
 TREE = tree.cpp
@@ -29,9 +30,15 @@ CLUST = clustertree.cpp
 SEQPAIR = seqpair.cpp
 DECISIVE = decisiveness.cpp
 SQLITE = sqlite3.c
+SQLITEO = sqlite3.o
 TREEB = treebender.cpp
 CLUSTTREE = clustertree_main.cpp
 DATABASEFLAG = -DDATABASE
+ifeq ($(DATABASE),NO)
+    DATABASEFLAG =
+    SQLITEO =
+    SQLITEFLAGS =
+endif
 ALIGNMENT = alignmentgroups.cpp
 ALIGNFLAGS =
 ifeq ($(PTHREADS),YES)
@@ -51,10 +58,11 @@ MARTH = marth/marth.cpp
 FILE_PARSER = file_parser.cpp
 MATRIXPARS = matrix_parser.cpp
 SEQDB = seqdatabase.cpp
+INDEXEDFST = indexedfasta.cpp
 
 OTREE = tree.o treebender.o string_tree.o file_parser.o matrix_parser.o # support_functions.o
-OCLUSTTREE = clustertree.o tree.o sqlite3.o clustertree_main.o string_tree.o matrix_parser.o # support_functions.o
-OALIGNMENT = seqpair.o align_group.o seqdatabase.o sqlite3.o alignmentgroups.o
+OCLUSTTREE = clustertree.o tree.o clustertree_main.o string_tree.o matrix_parser.o $(SQLITEO) # support_functions.o
+OALIGNMENT = seqpair.o align_group.o seqdatabase.o indexedfasta.o alignmentgroups.o $(SQLITEO)
 OPAIRALIGN = seqpair.o pairalign.o
 #OSPLIT = tree.o treesplitter.o string_tree.o matrix_parser.o # support_functions.o
 OSUPER = superstat.o tree.o decisiveness.o string_tree.o matrix_parser.o # support_functions.o
@@ -132,8 +140,10 @@ seqpair.o: $(SEQPAIR)
 decisiveness.o: $(DECISIVE)
 	$(PP) -c $(DECISIVE) $(EXTRAS)
 
+ifeq ($(DATABASE), YES)
 sqlite3.o: $(SQLITE)
 	$(CC) -c $(SQLITE)
+endif
 
 string_tree.o: $(STRINGTREE)
 	$(PP) -c $(STRINGTREE) $(EXTRAS)
@@ -158,3 +168,6 @@ matrix_parser.o: $(MATRIXPARS)
 
 seqdatabase.o: $(SEQDB)
 	$(PP) $(DATABASEFLAG) -c $(SEQDB) $(EXTRAS)
+
+indexedfasta.o: $(INDEXEDFST)
+	$(PP) -c $(INDEXEDFST) $(EXTRAS)

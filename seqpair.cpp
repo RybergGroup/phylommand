@@ -2,21 +2,36 @@
 
 void seqpair::set_DNA_alphapet() {
     alphabet['A'].set(0);
+    alphabet['a'].set(0);
     alphabet['G'].set(1);
+    alphabet['g'].set(1);
     alphabet['C'].set(2);
+    alphabet['c'].set(2);
     alphabet['T'].set(3);
+    alphabet['t'].set(3);
     alphabet['-'].set(0); alphabet['-'].set(1); alphabet['-'].set(2); alphabet['-'].set(3);
     alphabet['R'].set(0); alphabet['R'].set(1);
+    alphabet['r'].set(0); alphabet['r'].set(1);
     alphabet['Y'].set(2); alphabet['Y'].set(3);
+    alphabet['y'].set(2); alphabet['y'].set(3);
     alphabet['S'].set(1); alphabet['S'].set(2);
+    alphabet['s'].set(1); alphabet['s'].set(2);
     alphabet['W'].set(0); alphabet['W'].set(3);
+    alphabet['w'].set(0); alphabet['w'].set(3);
     alphabet['K'].set(1); alphabet['K'].set(3);
+    alphabet['k'].set(1); alphabet['k'].set(3);
     alphabet['M'].set(0); alphabet['M'].set(2);
+    alphabet['m'].set(0); alphabet['m'].set(2);
     alphabet['B'].set(1); alphabet['B'].set(2); alphabet['B'].set(3);
+    alphabet['b'].set(1); alphabet['b'].set(2); alphabet['b'].set(3);
     alphabet['D'].set(0); alphabet['D'].set(1); alphabet['D'].set(3);
+    alphabet['d'].set(0); alphabet['d'].set(1); alphabet['d'].set(3);
     alphabet['H'].set(0); alphabet['H'].set(2); alphabet['H'].set(3);
+    alphabet['h'].set(0); alphabet['h'].set(2); alphabet['h'].set(3);
     alphabet['V'].set(0); alphabet['V'].set(1); alphabet['V'].set(2);
+    alphabet['v'].set(0); alphabet['v'].set(1); alphabet['v'].set(2);
     alphabet['N'].set(0); alphabet['N'].set(1); alphabet['N'].set(2); alphabet['N'].set(3);
+    alphabet['n'].set(0); alphabet['n'].set(1); alphabet['n'].set(2); alphabet['n'].set(3);
     alphabet['.'].set(0); alphabet['.'].set(1); alphabet['.'].set(2); alphabet['.'].set(3);
     #ifdef DEBUG
     for (map<char, bitset<SIZE> >::const_iterator i = alphabet.begin(); i != alphabet.end(); ++i) {
@@ -177,7 +192,7 @@ void seqpair::set_cost_matrix ( int AA, int AG, int AC, int AT, int GG, int GC, 
 int seqpair::hamming_distance ( bool gap ) {
     int n = min (seq_x.size(),seq_y.size());
     #ifdef DEBUG
-    cerr << "Seq length: " << n << endl;
+    cerr << "Seq length for hamming distance: " << n << endl;
     #endif //DEBUG
     int distance=0;
     for (int i=0; i < n; ++i) {
@@ -186,18 +201,18 @@ int seqpair::hamming_distance ( bool gap ) {
 	bitset<SIZE> test = seq_x[i] & seq_y[i];
         if (test.none()) {
 	    ++distance;
-	    #ifdef DEBUG
-	    cerr << "Distance: " << distance << endl;
-	    #endif //DEBUG
 	}
     }
+    #ifdef DEBUG
+    cerr << "Distance: " << distance << endl;
+    #endif //DEBUG
     return distance;
 }
 
 double seqpair::similarity ( bool gap ) {
     int n_i = min (seq_x.size(),seq_y.size());
     #ifdef DEBUG
-    cerr << "Seq length: " << n_i << endl;
+    cerr << "Seq length for similarity: " << n_i << endl;
     #endif //DEBUG
     int length = 0;
     for (int i=0; i<n_i; ++i) {
@@ -205,6 +220,9 @@ double seqpair::similarity ( bool gap ) {
         else if (!gap && (seq_x[i]==0x00 || seq_y[i]==0x00)) continue;
         ++length;
     }
+    #ifdef DEBUG
+    cerr << "Effective seq length: " << n_i << endl;
+    #endif //DEBUG
     if (length > 0) return 1.0-(hamming_distance(gap)/double(length));
     else return 1.0;
 }

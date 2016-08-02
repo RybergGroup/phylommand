@@ -1,13 +1,22 @@
 #include "align_group.h"
 /*** This function find the most specific inclusive taxon for two sequences and call ****
 **** find_node_insert_value to insert the value at that level in the hierarchy        ***/
-void align_group::insert_value ( string taxon_string1, string taxon_string2, float value ) {
+void align_group::insert_value ( const string taxon_string1, const string taxon_string2, float value ) {
+    #ifdef DEBUG
+    cerr << "Begining to insert value" << endl << taxon_string1 << endl << taxon_string2 << endl;
+    #endif //DEBUG
     string inclusive_taxon;
     int i=0;
     int j=0;
     int length1 = taxon_string1.length();
     int length2 = taxon_string2.length();
-    while (i < length1 && j <length2) {
+    #ifdef DEBUG
+    cerr << "Length string1: " << length1 << " length string2: " << length2 << endl;
+    #endif //DEBUG
+    while (i < length1 && j < length2) {
+	#ifdef DEBUG
+	cerr << "Pos string1: " << i << " pos string2: " << j << endl;
+	#endif //DEBUG
         string taxon1;
         string taxon2;
         while (taxon_string1[i] != ';' && i < length1) {
@@ -18,6 +27,9 @@ void align_group::insert_value ( string taxon_string1, string taxon_string2, flo
             taxon2 += taxon_string2[j++];
         }
         j += 2;
+	#ifdef DEBUG
+	cerr << "Taxon1: " << taxon1 << ", taxon2: " << taxon2<< endl;
+	#endif //DEBUG
         if (!taxon1.compare(taxon2)) {
             inclusive_taxon += taxon1;
             inclusive_taxon += ';';
@@ -26,30 +38,18 @@ void align_group::insert_value ( string taxon_string1, string taxon_string2, flo
     }
     if ( inclusive_taxon.empty() ) inclusive_taxon = root->taxon;
     find_node_insert_value ( inclusive_taxon, value, root );
+    #ifdef DEBUG
+    cerr << "Finished insert value" << endl;
+    #endif //DEBUG
 }
-
-/*** This function gets the taxon string for a accession number ***
-string align_group::get_taxon_string( string accno, sqlite3 *db ) {
-    sqlite3_stmt *statement;
-    string taxon_string;
-    string query = "SELECT taxon_string FROM ";
-    query += gb_data;
-    query += " WHERE accno='";
-    query += accno;
-    query += "';";
-    if(sqlite3_prepare_v2(db, query.c_str(), -1, &statement, 0) == SQLITE_OK) {
-        if (sqlite3_step(statement) == SQLITE_ROW) {
-            taxon_string= (char*)sqlite3_column_text(statement,0);
-        }
-    }
-    sqlite3_finalize(statement);
-    return taxon_string;
-}*/
 
 /*** This node will find the right place in the hierarchy to insert a value, starting ****
 **** from the root and given a taxon. If the taxon is not already in the hierarchy it ****
 **** will be inserted.                                                               ***/
 void align_group::find_node_insert_value ( string taxon, float value, node *leaf ) {
+    #ifdef DEBUG
+    cerr << "Finding and inserting value" << endl;
+    #endif //DEBUG
     string heighest_taxon;
     string next_taxon;
     string rest;
@@ -89,6 +89,9 @@ void align_group::find_node_insert_value ( string taxon, float value, node *leaf
                 }
             }
         }
+	#ifdef DEBUG
+	cerr << "Found and inserted value" << endl;
+	#endif //DEBUG
     }
     else {
         std::cerr << "WARNING!!! Error in align_group::insert_value!!! Reached unexpected node!!! Value not inserted!!!" << endl;

@@ -45,51 +45,67 @@ void help();
 **** MAIN FUNCTION, parse arguments and execute cluster function ****
 ********************************************************************/
 int main (int argc, char *argv[]) {
-   // Variables to calculate starting and end time
-   time_t rawtime = time(0);
-   struct tm * timeinfo = localtime( &rawtime );
-   // Cut off value set to default
-   string cut_off="all,0.999";
-   int min_length = 100;
-   bool only_lead = 0;
-   bool perform_clustering = true;
-    char db_type[] = "sqlite" // alternative fasta
-   std::cout << "The program was called with the following command:" << endl;
-   for (int i=0; i<argc; ++i) std::cout << argv[i] << ' ';
-   std::cout << endl << endl;
-   // Parse arguments
-   for (int i = 1; i < argc; ++i) {
-       if ( !strcmp(argv[i],"-c") || !strcmp(argv[i],"--cut_off") ) {
-           ++i;
-           if (i < argc && argv[i][0] != '-') { 
-               cut_off = argv[i];
-               std::cout << "Cut offs for clustering set to: " << cut_off << endl;
-           }
-           else {
-               std::cout << "--cut_off or -c must be followed by a comma separated string. Quitting quietly." << endl;
-               return 0; 
-           }
-       }
-       else if ( !strcmp(argv[i],"-m") || !strcmp(argv[i],"--min_length") ) {
-           ++i;
-           if (i < argc && argv[i][0] != '-') {
-               min_length = atoi(argv[i]);
-               std::cout << "Minimum sequence length to cluster set to: " << min_length << endl;
-           }
-           else {
-               std::cout << "--min_length or -m must be followed by a integer value, e.g. -m 100. Quitting quietly." << endl;
-               return 0;
-           }
-       }
-       else if ( !strcmp(argv[i],"-p") || !strcmp(argv[i],"--previous_clusters") ) {
+    // Variables to calculate starting and end time
+    time_t rawtime = time(0);
+    struct tm * timeinfo = localtime( &rawtime );
+    // Cut off value set to default
+    string cut_off="all,0.999";
+    int min_length = 100;
+    bool only_lead = 0;
+    bool perform_clustering = true;
+    char db_type[7] = "fasta"; // alternative fasta
+    std::cout << "The program was called with the following command:" << endl;
+    for (int i=0; i<argc; ++i) std::cout << argv[i] << ' ';
+    std::cout << endl << endl;
+    // Parse arguments
+    for (int i = 1; i < argc; ++i) {
+	if ( !strcmp(argv[i],"-c") || !strcmp(argv[i],"--cut_off") ) {
+	    ++i;
+	    if (i < argc && argv[i][0] != '-') { 
+		cut_off = argv[i];
+		std::cout << "Cut offs for clustering set to: " << cut_off << endl;
+	    }
+	    else {
+	       	std::cout << "--cut_off or -c must be followed by a comma separated string. Quitting quietly." << endl;
+		return 0; 
+	    }
+	}
+	else if ( !strcmp(argv[i],"-m") || !strcmp(argv[i],"--min_length") ) {
+	    ++i;
+	    if (i < argc && argv[i][0] != '-') {
+	     	min_length = atoi(argv[i]);
+	      	std::cout << "Minimum sequence length to cluster set to: " << min_length << endl;
+	    }
+	    else {
+	       	std::cout << "--min_length or -m must be followed by a integer value, e.g. -m 100. Quitting quietly." << endl;
+		return 0;
+	    }
+	}
+	else if ( !strcmp(argv[i],"-p") || !strcmp(argv[i],"--previous_clusters") ) {
            only_lead = 1;
            std::cout << "Only lead sequences of previous clusters will be considered." << endl;
-       }
-       else if ( !strcmp(argv[i],"-n") || !strcmp(argv[i],"--no_cluster") ) {
-           perform_clustering = false;
-           std::cout << "No clustering will be performed. Only constructing alignmenmt groups." << endl;
-       }
-       #ifdef PTHREAD
+	}
+	else if ( !strcmp(argv[i],"-n") || !strcmp(argv[i],"--no_cluster") ) {
+	    perform_clustering = false;
+	    std::cout << "No clustering will be performed. Only constructing alignmenmt groups." << endl;
+	}
+	#ifdef DATABASE
+	else if ( !strcmp(argv[i],"-D") || !strcmp(argv[i],"--db_type") ) {
+	    if (i+1 < argc && argv[i+1][0] != '-') {
+		++i;
+		if (!strcmp(argv[i], "sqlite")) strcpy(db_type, "sqlite");
+		else if (!strcmp(argv[i], "fasta")) strcpy(db_type, "fasta");
+		else {
+		    cerr << argv[i] << " is not a valid option. -D/--db_type can only take the values sqlite or fasta." << endl;
+		    return 0;
+		}
+	    }
+	    else {
+		cerr << "-D/--db_type require sqlite or fasta as next option depending on database type." << endl;
+	    }
+	}
+	#endif // DATABASE
+	#ifdef PTHREAD
        else if ( !strcmp(argv[i],"-T") || !strcmp(argv[i],"--threads") ) {
            if (i < argc && argv[i+1][0] != '-') {
                n_threads = atoi(argv[++i]);
@@ -160,15 +176,18 @@ void help() {
     std::cout << "alignmentgroups version 0.3 (c) Martin Ryberg" << endl << endl;
     std::cout << "Usage:" << endl << "alignmentgroups [arguments] databasefile" << endl << endl;
     std::cout << "Arguments:" << endl;
-    std::cout << "--cut_off / -c [0-1]        Sets the cut off value in pairwise similarity for clustering of each gene. Should be" << endl;
-    std::cout << "                                comma separated string with gene name first and value second. If all genes should" << endl;
-    std::cout << "                                have same cut off 'all' could be given as gene. E.g. -c all,0.99 or ITS,0.97,LSU,0.99." << endl;
-    std::cout << "--help / -h                 Print this this help text." << endl;
-    std::cout << "--min_length / -m [1+]      Sets the minimum length of sequences to consider for clustering, e.g. -m 100." << endl;
-    std::cout << "--no_cluster / -n           Turn clustering off. Only calculating alignment groups." << endl;
-    std::cout << "--previous_clusters / -p    Only sequences with cluster marked as 'lead' will be considered for further clustering." << endl;
+    std::cout << "--cut_off / -c [0-1]          Sets the cut off value in pairwise similarity for clustering of each gene. Should be" << endl;
+    std::cout << "                                  comma separated string with gene name first and value second. If all genes should" << endl;
+    std::cout << "                                  have same cut off 'all' could be given as gene. E.g. -c all,0.99 or ITS,0.97,LSU,0.99." << endl;
+    #ifdef DATABASE
+    std::cout << "-D / --db_type [sqlite/fasta] Sets if the database is in sqlite or fasta format." << endl;
+    #endif // DATABASE
+    std::cout << "--help / -h                   Print this this help text." << endl;
+    std::cout << "--min_length / -m [1+]        Sets the minimum length of sequences to consider for clustering, e.g. -m 100." << endl;
+    std::cout << "--no_cluster / -n             Turn clustering off. Only calculating alignment groups." << endl;
+    std::cout << "--previous_clusters / -p      Only sequences with cluster marked as 'lead' will be considered for further clustering." << endl;
     #ifdef PTHREAD
-    std::cout << "--threads / -T [1+]         Set the number of threads additional to the controling thread, e.g. -T 4." << endl;
+    std::cout << "--threads / -T [1+]           Set the number of threads additional to the controling thread, e.g. -T 4." << endl;
     #endif /* PTHREAD */
 }
 
@@ -186,7 +205,7 @@ void cluster_each_table ( const char* file, const char* databasetype, const stri
 	    string gene;
 	    for (int i=0; i < length; ++i) {
 		if (cut_off[i]==',') {
-		    if(!table->compare(gene) || !table->compare("all")) {
+		    if(!gene.compare(*table) || !gene.compare("all")) {
 			string number;
 			++i;
 			while (cut_off[i]!=',' && i<length) {
@@ -200,12 +219,15 @@ void cluster_each_table ( const char* file, const char* databasetype, const stri
 		else gene+=cut_off[i];
 	    }
 	    if (present_cut_off < 0.000000001) {
-		std::cout << "Could not find appropriate cut off for " << &table << ". Will only define alignment groups and not cluster." << endl;
+		std::cout << "Could not find appropriate cut off (" << present_cut_off<< ") for " << *table << ". Will only define alignment groups and not cluster." << endl;
 		continue;
 	    }
 	}
 	std::cout << "Checking " << *table << endl;
 	cluster(database, *table, present_cut_off, min_length, only_lead);
+	if (!strcmp(databasetype,"fasta")) {
+	    database.print_clusters();
+	}
     }
 }
 
@@ -275,6 +297,7 @@ void cluster( seqdatabase& db, const string table, const float cut_off, const in
     	    two_sequences.deviations = &deviations;
     	    align_pair ( &two_sequences ); // this is where the action is?
     	    #endif /* PTHREAD */
+	    cout << '.';
 	}
     }
     else cerr << "Could not initiate sequence retrieval. No aligning done for " << table << "." << endl;
@@ -288,6 +311,7 @@ void cluster( seqdatabase& db, const string table, const float cut_off, const in
         }
     }
     #endif /* PTHREAD */
+    cout << endl;
     std::cout << "Finished aligning. Calculating mad to determine taxonomic level suitable for alignment." << endl;
     cout << "Alignment groups for " << table << endl;
     string alignment_groups = deviations.get_levels( table );
@@ -311,15 +335,32 @@ void *pthread_align_pair (void *threadarg) {
 
 void align_pair ( sequence_package *two_sequences ) {
     seqpair sequences(two_sequences->sequence1,two_sequences->sequence2);
+    #ifdef DEBUG
+    cerr << two_sequences->accno1 << " " << two_sequences->accno2 << endl;
+    #endif //DEBUG
     sequences.set_cost_matrix( 7, -5 );
     sequences.align();
     #ifdef PTHREAD
     pthread_mutex_lock (&databasemutex);
     #endif /* PTHREAD */
+    string taxon_string1 = two_sequences->db->get_taxon_string(two_sequences->accno1);
+    string taxon_string2 = two_sequences->db->get_taxon_string(two_sequences->accno2);
+    #ifdef DEBUG
+    cerr << "Taxon string1: " << taxon_string1 << endl << "Taxon string2: " << taxon_string2 << endl;
+    #endif //DEBUG
     if (*two_sequences->cut_off > 0.000000001) {
+	#ifdef DEBUG
+	cerr << "Staring to compare seq for clustering." << endl;
+	#endif //DEBUG
         string cluster1 = two_sequences->db->get_cluster( two_sequences->accno1, *two_sequences->table );
         string cluster2 = two_sequences->db->get_cluster( two_sequences->accno2, *two_sequences->table );
-        if (sequences.similarity(1) > *two_sequences->cut_off) {
+	#ifdef DEBUG
+	cerr << "Seq1 belong to cluster: " << cluster1 << ". Seq2 belong to cluster: " << cluster2 << "." << endl;
+	#endif //DEBUG
+        if (sequences.similarity(true) > *two_sequences->cut_off) {
+	    #ifdef DEBUG
+	    cerr << "Clustering seq togather." << endl;
+	    #endif //DEBUG
             float comp1;
             float comp2;
             if (!cluster1.compare( "empty" ) || !cluster1.compare( "lead" )) comp1 = two_sequences->db->get_comp_value( two_sequences->accno1, *two_sequences->table );
@@ -328,6 +369,9 @@ void align_pair ( sequence_package *two_sequences ) {
             else comp2 = two_sequences->db->get_comp_value( cluster2, *two_sequences->table );
             // If sequence 1 better
             if (comp1 >= comp2) {
+		#ifdef DEBUG
+		cerr << "Seq1 longer than seq2." << endl;
+		#endif //DEBUG
                 if ( !cluster1.compare( "empty" ) ) {
                     two_sequences->db->clust_update( two_sequences->accno1, "lead", *two_sequences->table, 1 );
                     two_sequences->db->clust_update( two_sequences->accno2, two_sequences->accno1, *two_sequences->table, 1 );
@@ -356,6 +400,9 @@ void align_pair ( sequence_package *two_sequences ) {
             }
          // If sequence 2 better
             else {
+		#ifdef DEBUG
+		cerr << "Seq2 longer than seq1." << endl;
+		#endif //DEBUG
                 if ( !cluster2.compare( "empty" ) ) { // if no previous annotation
                     two_sequences->db->clust_update( two_sequences->accno2, "lead", *two_sequences->table, 1 ); // set best sequence to lead
                     two_sequences->db->clust_update( two_sequences->accno1, two_sequences->accno2, *two_sequences->table, 1 ); // set worse sequence to the same cluster
@@ -382,16 +429,25 @@ void align_pair ( sequence_package *two_sequences ) {
                     }
                 }
             }
+	    #ifdef DEBUG
+	    cerr << "Clustered seq togather." << endl;
+	    #endif //DEBUG
         }
         else {
+	    #ifdef DEBUG
+	    cerr << "Sequences are not clustered togather." << endl;
+	    #endif //DEBUG
             if ( !cluster1.compare( "empty" ) ) two_sequences->db->clust_update( two_sequences->accno1, "lead", *two_sequences->table, 1 );
             if ( !cluster2.compare( "empty" ) ) two_sequences->db->clust_update( two_sequences->accno2, "lead", *two_sequences->table, 1 );
             if ((!cluster1.compare( "empty" ) || !cluster1.compare( "lead" )) && (!cluster2.compare( "empty" ) || !cluster2.compare( "lead" ))) {
-                two_sequences->deviations->insert_value( two_sequences->db->get_taxon_string(two_sequences->accno1), two_sequences->db->get_taxon_string(two_sequences->accno2), sequences.jc_distance()-(1-sequences.similarity()) );
+		#ifdef DEBUG
+		cerr << "Since sequences may get included in alignment they are counted towards the MAD." << endl;
+		#endif
+                two_sequences->deviations->insert_value( taxon_string1, taxon_string2, sequences.jc_distance()-(1-sequences.similarity()) );
             }
         }
     }
-    else two_sequences->deviations->insert_value( two_sequences->db->get_taxon_string(two_sequences->accno1), two_sequences->db->get_taxon_string(two_sequences->accno2), sequences.jc_distance()-(1-sequences.similarity()) );
+    else two_sequences->deviations->insert_value( taxon_string1, taxon_string2, sequences.jc_distance()-(1-sequences.similarity()) );
     #ifdef PTHREAD
     pthread_mutex_unlock(&databasemutex);
     #endif /* PTHREAD */

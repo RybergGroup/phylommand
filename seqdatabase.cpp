@@ -1,7 +1,48 @@
 #include "seqdatabase.h"
 
+void seqdatabase::move_to_next_pair_fst (bool only_lead) {
+    #ifdef DEBUG
+    cerr << "Moving to next pair" << endl;
+    #endif //DEBUG
+    if (mode != '9') { // unless we should quit
+	if (mode == '0') { // if at start of new round
+	    if (previous_taxon.compare("empty")) { // if no at first run
+		if (!fst.set_seq1(previous_taxon)) mode = '9'; // if we fail to set first taxon to previous taxon set to quit
+		if (!fst.next_seq1()) mode = '9'; // if not able to go to next sequence set to quit
+	    }
+	    else { // if at first round
+		if (!fst.initiate_sequence_retrieval()) mode = '9'; // set to quit is we fail to initiate
+	    }
+	    if (mode != 9) {
+		fst.set_seq2_to_seq1(); //set seq 2 to to be same as seq 1
+		accno2.clear();
+		sequence2.clear();
+		accno1 = fst.get_accno1(); // get accno
+		fst.get_sequence1(sequence1); // get sequence
+		previous_taxon = accno1; // set previous accno to be present accno
+		mode = '1'; // we have now read seq1
+		#ifdef DEBUG
+		cerr << "New first seq: " << accno1 << endl;
+		#endif //DEBUG
+	    }
+	}
+	if (mode != '9') { // if not at end
+	    if (fst.next_seq2()) { // if able to read next sequence
+		accno2 = fst.get_accno2(); // get accno
+		fst.get_sequence2(sequence2); // get sequence
+		if (mode == '1') mode = '2'; // we have now read a second sequence
+		#ifdef DEBUG
+		cerr << "New second seq: " << accno2 << endl;
+		#endif //DEBUG
+	    }
+	    else if (mode == '1') mode = '9'; // if not able to read a second sequence we are at the end
+	    else mode = '0'; // if second sequence read but there are no more, start a new run
+	}
+    }
+}
+
 #ifdef DATABASE
-bool seqdatabase::alignment_groups_present() {
+bool seqdatabase::alignment_groups_present_sql() {
     if (OPEN) {
 	sqlite3_stmt* statment;
 	const char query[] = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;";
@@ -21,7 +62,7 @@ bool seqdatabase::alignment_groups_present() {
     else return false;
 }
 
-bool seqdatabase::create_alignment_groups(){
+bool seqdatabase::create_alignment_groups_sql(){
     if (OPEN) {
         sqlite3_stmt *statement;
         const char query[] = "CREATE TABLE alignment_groups (gene TEXT DEFAULT 'empty', taxon TEXT DEFAULT 'empty', tree TEXT DEFAULT 'empty', tree_method TEXT DEFAULT 'empty', alignable INTEGER, PRIMARY KEY (gene, taxon));";
@@ -42,7 +83,7 @@ bool seqdatabase::create_alignment_groups(){
     }
 }
 
-vector<string> seqdatabase::tables_in_database() {
+vector<string> seqdatabase::tables_in_database_sql() {
     const char query[] = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;";
     sqlite3_stmt *statement;
     vector<string> return_vector;
@@ -57,7 +98,8 @@ vector<string> seqdatabase::tables_in_database() {
     return return_vector;
 }
 
-bool seqdatabase::initiate_sequence_retrieval( const string table, string min_length) {
+bool seqdatabase::initiate_sequence_retrieval_sql ( const string table, string min_length) {
+    mode = '0';
     query = "SELECT accno,sequence,cluster FROM ";
     query += table;
     query += " WHERE LENGTH(sequence)>";
@@ -67,7 +109,7 @@ bool seqdatabase::initiate_sequence_retrieval( const string table, string min_le
     else return false;
 }
 
-void seqdatabase::move_to_next_pair(bool only_lead) {
+void seqdatabase::move_to_next_pair_sql (bool only_lead) {
     if (mode=='0' && previous_taxon.compare("empty")) {
 	if(sqlite3_prepare_v2(db, query.c_str(), -1, &statement, 0) == SQLITE_OK) {
 	    while (1) { // Move up until previou sequence, we are finished will all before that and should start from next
@@ -117,7 +159,8 @@ void seqdatabase::move_to_next_pair(bool only_lead) {
     }
 }
 
-bool seqdatabase::insert_alignment_group (const string& table, const string& group) {
+
+bool seqdatabase::insert_alignment_group_sql (const string& table, const string& group) {
     if (OPEN) {
 	if (group.compare("empty")) { // if something in alignment groups
 	    sqlite3_stmt* statment;
@@ -154,9 +197,9 @@ bool seqdatabase::insert_alignment_group (const string& table, const string& gro
     else return false;
 }
 
-string seqdatabase::get_taxon_string( string accno ) {
+void seqdatabase::get_taxon_string_sql( string accno, string& taxon_string ) {
     sqlite3_stmt *statement;
-    string taxon_string;
+    //string taxon_string;
     if (OPEN) {
 	string query = "SELECT taxon_string FROM ";
 	query += "gb_data";
@@ -170,10 +213,10 @@ string seqdatabase::get_taxon_string( string accno ) {
 	}
 	sqlite3_finalize(statement);
     }
-    return taxon_string;
+    //return taxon_string;
 }
 
-void seqdatabase::clust_update( const string accno, const string cluster, const string table, const bool where_accno) {
+void seqdatabase::clust_update_sql( const string accno, const string cluster, const string table, const bool where_accno) {
     sqlite3_stmt *statement;
     string update = "UPDATE ";
     update += table;
@@ -194,7 +237,7 @@ void seqdatabase::clust_update( const string accno, const string cluster, const 
     sqlite3_finalize(statement);
 }
 
-string seqdatabase::get_cluster( const string accno, const string table ) {
+string seqdatabase::get_cluster_sql( const string accno, const string table ) {
     string cluster;
     if (OPEN) {
 	sqlite3_stmt *statement;
@@ -213,7 +256,7 @@ string seqdatabase::get_cluster( const string accno, const string table ) {
     return cluster;
 }
 
-float seqdatabase::get_comp_value ( const string accno, const string table ) {
+float seqdatabase::get_comp_value_sql ( const string accno, const string table ) {
     int length=0;
     float prop_N=0.0;
     if (OPEN) {

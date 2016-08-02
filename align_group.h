@@ -36,7 +36,7 @@ class align_group {
         ~align_group ( ) {
             destroy_sub_tree( root );
         };
-        void insert_value ( string taxon_string1, string taxon_string2, float value );
+        void insert_value ( const string taxon_string1, const string taxon_string2, float value );
 /*        void insert_value ( string accno1, string accno2, float value, sqlite3 *db ) {
             string taxon_string1=get_taxon_string(accno1, db);
             string taxon_string2=get_taxon_string(accno2, db);
