@@ -11,16 +11,22 @@
 
 using namespace std;
 
-class partitions {
+class partitions { // class for vector of partitions
 public:
     void add_alphabet( string name, map<char, bitset<SIZE> > alphabet) { alphabets[name] = alphabet; };
     void add_partition( unsigned int start, unsigned int end, const string& name, const string& alphabet) {
 	values.push_back(partition(start,end,name,get_alphabet_iterator_by_name(alphabet)));
     };
     map<char, bitset<SIZE> > get_partition_alphabet(unsigned int pos) {
+	#ifdef DEBUG
+	cerr << "Gettin partition for: " << pos << endl;
+	#endif //DEBUG
 	vector<partition>::iterator part = get_partition(pos);
 	if (part == values.end()) {
-	    get_partition_alphabet("default");
+	    #ifdef DEBUG
+	    cerr << "No partition found." << endl;
+	    #endif //DEBUG
+	    return get_partition_alphabet("default");
 	}
 	return part->get_alphabet();
     };
@@ -29,7 +35,7 @@ public:
 	return part->get_alphabet();
     };
 private:
-    class partition {
+    class partition { //class for each partition
     public:
 	partition(unsigned int begining, unsigned int ending, const string& type, map<string, map<char, bitset<SIZE> > >::const_iterator code) : start(begining), end(ending), name(type), alphabet(code) { };
 	bool in_partition(unsigned int pos) {
@@ -50,18 +56,20 @@ private:
 	for (vector<partition>::iterator i=values.begin(); i != values.end(); ++i) {
 	    if (i->in_partition(pos)) return i;
 	}
+	return values.end();
     };
     vector<partition>::iterator get_partition ( const string& name ) {
         for (vector<partition>::iterator i=values.begin(); i != values.end(); ++i) {
             if (i->is_named(name)) return i;
         }
+	return values.end();
     };
 
 };
 
 class matrix_parser {
 public:
-    matrix_parser(istream& input_file, vector<character_vector>& data_matrix, partitions& codes) : file(input_file), matrix(data_matrix), regions(codes), matrix_type("relaxed_phylip") {};
+    matrix_parser(istream& input_file, vector<character_vector>& data_matrix, partitions& codes) : file(input_file), regions(codes), matrix(data_matrix), matrix_type("relaxed_phylip") {};
     void pars () {
         if (!matrix_type.compare("relaxed_phylip")) pars_relaxed_phylip();
     };
@@ -75,7 +83,7 @@ private:
 
 class alphabet_parser {
 public:
-    alphabet_parser(istream& input_file, map<char, bitset<SIZE> >& alphabet_map) : file(input_file), alphabet(alphabet_map), file_type("white space") {};	
+    alphabet_parser(istream& input_file, map<char, bitset<SIZE> >& alphabet_map) : file(input_file), file_type("white space"), alphabet(alphabet_map)  {};	
     void pars () {
 	if (!file_type.compare("white space")) pars_whitespace();
     }

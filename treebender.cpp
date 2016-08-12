@@ -42,7 +42,7 @@ int main (int argc, char *argv []) {
     const int max_trees = 1000;
     char split_criteria('n');
     char split_stop('s');
-    int max_size(0);
+    unsigned int max_size(0);
     bool rooted(false);
     ///
     char tree_source('s');
@@ -385,10 +385,6 @@ int main (int argc, char *argv []) {
 	#ifdef DEBUG
 	cerr << "File name " << file_name << endl;
 	#endif //DEBUG
-	/*if (!input_file.open_file(file_name)) {
-	    cerr << "Could not open file: " << file_name << endl;
-	    return 1;
-	}*/
 	input_file.open(file_name.c_str(),std::ifstream::in);
 	if (input_file.good())
 	    input.file_stream = &input_file;
@@ -399,12 +395,10 @@ int main (int argc, char *argv []) {
     }
     bool print_tree = true;
     map <string,string> taxa_trans;
-    //if (input_stream != &std::cin && file_format.empty())
-	// file_format = support_functions::get_file_type( *input_stream );
     #ifdef DEBUG
     cerr << "File type " << input.get_file_type() << endl;
     #endif //DEBUG
-    if (!file_format.empty())  {
+    if (!file_format.empty()) {
 	input.set_file_type(file_format.c_str());
 	#ifdef DEBUG
 	cerr << "Try to set file type " << file_format << endl;
@@ -415,7 +409,6 @@ int main (int argc, char *argv []) {
 	cerr << "Try to set default file type" << endl;
 	#endif //DEBUG
 	if (!input.set_file_type("newick")) cerr << "Failed to set default file type." << endl;
-	
     }
     #ifdef DEBUG
     cerr << "File type " << input.get_file_type() << endl;
@@ -515,7 +508,7 @@ int main (int argc, char *argv []) {
 	    --n_rand_trees;
 	    ++read_trees;
 	}
-	if (in_tree.back().n_tips() < 2) break;
+	if (in_tree.back().empty()) break; //.n_tips() < 2) break;
 	// Make preparations
 	if (inverse_taxa == 'y') taxastring = in_tree.back().not_present( taxastring );
     
@@ -636,10 +629,10 @@ int main (int argc, char *argv []) {
 		#ifdef DEBUG
 		cerr << "Made split " << split_count << endl;
 		#endif //DEBUG
-		int max=0;
+		unsigned int max=0;
 		double max_br=0;
 		for (vector<tree>::iterator i=in_tree.begin(); i != in_tree.end(); ++i) {
-		    int n = i->n_tips();
+		    unsigned int n = i->n_tips();
 		    if (split_stop == 's')
 			if (n > max_size) cont = true;
 		    //else if (split_stop == 't')

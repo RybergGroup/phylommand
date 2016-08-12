@@ -9,7 +9,8 @@ void seqpair::set_DNA_alphapet() {
     alphabet['c'].set(2);
     alphabet['T'].set(3);
     alphabet['t'].set(3);
-    alphabet['-'].set(0); alphabet['-'].set(1); alphabet['-'].set(2); alphabet['-'].set(3);
+    //alphabet['-'].set(0); alphabet['-'].set(1); alphabet['-'].set(2); alphabet['-'].set(3);
+    alphabet['-'].reset();
     alphabet['R'].set(0); alphabet['R'].set(1);
     alphabet['r'].set(0); alphabet['r'].set(1);
     alphabet['Y'].set(2); alphabet['Y'].set(3);
@@ -43,9 +44,11 @@ void seqpair::set_DNA_alphapet() {
 string seqpair::translate_to_string ( const vector< bitset<SIZE> >& binary ) {
     string sequence;
     for (vector< bitset<SIZE> >::const_iterator i=binary.begin(); i != binary.end(); ++i) {
+	bool flag(false);
 	for (map<char, bitset<SIZE> >::const_iterator j=alphabet.begin(); j!=alphabet.end(); ++j) {
-	    if (*i == j->second) { sequence += j->first; break; }
+	    if (*i == j->second) { sequence += j->first; flag = true; break; }
 	}
+	if (!flag) { cerr << "No translation for " << i->to_string() << endl; }
     }
     return sequence;
 }
@@ -57,6 +60,7 @@ void seqpair::translate_to_binary ( const string& iupac, vector< bitset<SIZE> >&
     #endif //DEBUG
     //vector< bitset<SIZE> > sequence;
     for (int i=1; i<n_bases; ++i) {
+	if (iupac[i] == ' ' || iupac[i] == '\n' || iupac[i] == '\r' || iupac[i] == '\t') continue;
 	map<char, bitset<SIZE> >::const_iterator test = alphabet.find(iupac[i]);
 	if (test != alphabet.end()) {
 	    sequence.push_back(test->second);
@@ -147,7 +151,7 @@ int seqpair::cost( const bitset<SIZE> bp_x, const bitset<SIZE> bp_y ) {
     int value = INT_MIN;
     for (unsigned int i=0; i < SIZE; ++i) {
         if (bp_x[i] || bp_y[i]) {
-            for (int j=i; j < SIZE; ++j) {
+            for (unsigned int j=i; j < SIZE; ++j) {
                 if ( (bp_x[i] && bp_y[j]) || (bp_y[i] && bp_x[j]) ) {
 		    int coord = cost_matrix_coord(i,j);
                     if (cost_matrix[coord] > value) value = cost_matrix[coord];

@@ -60,7 +60,7 @@ class clustertree : public tree {
         void short_br_clust ( const double cut_off ) {
             if (short_br_cluster (root, cut_off)) { print_tips(root); std::cout << endl; }
         };
-        void br_length_clust_max_cout( float cut_off, int max_size );
+        void br_length_clust_max_cout( const float cut_off, const unsigned int max_size );
         void br_length_clust_max_cout( float cut_off );
         void name_clust_cout ( unsigned int name_pos, char separator ) {
             name_clust_cout( name_pos, separator, root );
@@ -82,7 +82,7 @@ class clustertree : public tree {
         }
         #endif /*DATABASE*/
     private:
-        void br_length_clust_max_cout( node *leaf, float cut_off, int max_size );
+        void br_length_clust_max_cout( node *leaf, const float cut_off, const unsigned int max_size );
         void br_length_clust_max_cout ( node* leaf, cluster_struct* clusters, const float cut_off );
         string name_clust_cout ( unsigned int name_pos, char separator, node *leaf ); 
         #ifdef DATABASE

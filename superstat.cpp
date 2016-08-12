@@ -15,7 +15,7 @@ int main ( int argc, char *argv[]) {
             if (!strcmp(argv[i],"-d") || !strcmp(argv[i],"--decisiveness")) {
                 method = 'd';
                 if ( i < argc-1 && argv[i+1][0] != '-') inputstring = argv[++i];
-                if ( i < argc-1 && argv[i+1][0] != '-') n=atoi(argv[++i]);
+                if ( i < argc-1 && argv[i+1][0] != '-') n = atoi(argv[++i]);
             }
             else if (!strcmp(argv[i],"-h") || !strcmp(argv[i],"--help")) {
                 help();

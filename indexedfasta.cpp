@@ -1,11 +1,25 @@
 #include "indexedfasta.h"
 
-void indexedfasta::open ( const char* name ) {
-    file.open(name);
+void indexedfasta::open ( const string& name ) {
+    if (name.empty()) {
+	while (cin) {
+	    char temp;
+	    cin >> noskipws >> temp;
+	    #ifdef DEBUG
+	    cerr << temp;
+	    #endif //DEBUG
+	    cin_holder << temp;
+	}
+	file_stream = &cin_holder;
+    }
+    else {
+	file.open(name.c_str());
+	file_stream = &file;
+    }
     string line;
     string accno;
     unsigned int seqno(0);
-    while (getline(file,line)) {
+    while (getline(*file_stream,line)) {
 	if (line[0] == '>') {
 	    ++seqno;
 	    int length = line.length();
@@ -24,7 +38,7 @@ void indexedfasta::open ( const char* name ) {
 		converter << seqno;
 		accno=converter.str();
 	    }
-	    index[accno] = {taxon_string, 0, 0, file.tellg()};
+	    index[accno] = {taxon_string, 0, 0, file_stream->tellg()};
 	    #ifdef DEBUG
 	    cerr << accno << ' ' << index[accno].taxon_string << ' ' << index[accno].pos << endl;
 	    #endif //DEBUG
@@ -39,19 +53,19 @@ void indexedfasta::open ( const char* name ) {
 	    }
 	}
     }
-    file.clear();
-    file.seekg(0,file.beg);
+    file_stream->clear();
+    file_stream->seekg(0,file_stream->beg);
 };
 
 void indexedfasta::get_sequence ( map<string,set>::iterator seq, string& sequence) {
     sequence.clear();
     if (seq != index.end()) {
-	file.seekg(seq->second.pos,file.beg);
+	file_stream->seekg(seq->second.pos,file_stream->beg);
 	string line;
-	while (getline(file, line)) {
+	while (getline(*file_stream, line)) {
 	    if (line[0] != '>') sequence += line;
 	    else break;
-	    if (file.peek() == EOF) break;
+	    if (file_stream->peek() == EOF) break;
 	}
     }
 }

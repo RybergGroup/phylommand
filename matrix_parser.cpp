@@ -16,6 +16,9 @@ void matrix_parser::pars_relaxed_phylip() {
     unsigned int pos(0);
     while (file) {
 	file.get(character);
+	#ifdef DEBUG
+	cerr << "Read in char: " << character << " (mode: " << read_mode << ")." << endl;
+	#endif //DEBUG
 	if (read_mode == 'n') {
 	    if (character == ' ' && n_taxa > 0) read_mode = 'N';
 	    if (character != ' ') {
@@ -40,7 +43,13 @@ void matrix_parser::pars_relaxed_phylip() {
 	    }
 	}
 	else if (read_mode == 'C') {
+	    #ifdef DEBUG
+	    cerr << "Setting alphabet for pos: " << pos << endl;
+	    #endif // DEBUG
 	    map<char, bitset<SIZE> > alphabet = regions.get_partition_alphabet(pos);
+	    #ifdef DEBUG
+	    cout << "Adding " << character << " to matrix" << endl;
+	    #endif //DEBUG
 	    if ( !row.empty() && (character == '\n' || character == '\r')) {
 		read_mode='T';
 		if (row.n_char() != n_char) std::cerr << "Matrix size missmatch: " << taxon << " differes in " << (row.n_char() - n_char) << " from given number of characters." << std::endl;

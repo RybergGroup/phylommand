@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <string.h>
 #include <stdlib.h>
 #include "seqpair.h"
@@ -13,7 +15,7 @@ int n_threads=4;
 pthread_mutex_t databasemutex;
 #endif /*PTHREAD*/
 
-void pairalign ( istream& infile, const char output, const bool output_names, const bool aligned, const bool matrix );
+void pairalign ( istream* infile, const char output, const bool output_names, const bool aligned, const bool matrix );
 void help();
 
 /********************************************************************
@@ -25,6 +27,10 @@ int main (int argc, char *argv[]) {
    bool quiet = false;
    bool output_names = false;
    bool aligned = false;
+    string file_name;
+    ifstream infile;
+    istream* infile_stream = &std::cin;
+    stringstream stdin_holder;
    // Parse arguments
    for (int i = 1; i < argc; ++i) {
        if ( !strcmp(argv[i],"-a") || !strcmp(argv[i],"--alignments") ) output_mode = 'a';
@@ -50,10 +56,22 @@ int main (int argc, char *argv[]) {
            }
        }
        #endif /* PTHREAD */
+       else if ( !strcmp(argv[i],"-f") || !strcmp(argv[i],"--file") ) {
+	    if (i+1 < argc && argv[i+1][0] != '-') {
+		file_name = argv[++i];
+	    }
+	    else {
+		cerr << "-f/--file needs to be followed by a file name." << endl;
+		return 1;
+	    }
+	}
        else if ( !strcmp(argv[i],"-h") || !strcmp(argv[i],"--help") ) {
            help();
            return 0;
        }
+	else if ( i == argc-1 && argv[i][0] != '-' && file_name.empty() ) {
+	    file_name = argv[i];
+	}
        else if (i < argc) {
            std::cerr << "The program was called with the following command:" << endl;
            for (int j=0; j<argc; ++j) std::cerr << argv[j] << ' ';
@@ -67,6 +85,23 @@ int main (int argc, char *argv[]) {
        for (int i=0; i<argc; ++i) std::cerr << argv[i] << ' ';
        std::cerr << endl << endl;
    }
+    if (!file_name.empty()) {
+	infile.open(file_name.c_str(),std::ifstream::in);
+	if (infile.good())
+	    infile_stream = &infile;
+	else {
+	    cerr << "Could not open: " << file_name << endl;
+	    return 1;
+	}
+    }
+    else {
+	while (*infile_stream) {
+	    char temp;
+	    *infile_stream >> noskipws >> temp;
+	    stdin_holder<< temp;
+	}
+	infile_stream = &stdin_holder;
+    }
    // Check if variables have reasonable values or else quit
    bool error_flag = 0; // flag to indicate if we should quit
    #ifdef PTHREAD
@@ -80,14 +115,14 @@ int main (int argc, char *argv[]) {
        std::cout << "Quitting quietly." << endl;
        return 0;
    }
-   pairalign ( std::cin, output_mode, output_names, aligned, matrix );
+   pairalign ( infile_stream, output_mode, output_names, aligned, matrix );
    return 0; // return normally
 }
 
 /*** Function to print help ***/
 void help() {
     std::cout << "This program will perform pairwise alignment of sequences given in fasta format through standard in." << endl; 
-    std::cout << "alignmentgroups version 0.2 (c) Martin Ryberg" << endl << endl;
+    std::cout << "alignmentgroups (c) Martin Ryberg" << endl << endl;
     std::cout << "Usage:" << endl << "pairalign [arguments] < inputfile.fasta" << endl << endl;
     std::cout << "Arguments:" << endl;
     std::cout << "--aligned / -A                  input file is aligned." << endl;
@@ -106,7 +141,7 @@ void help() {
     #endif /* PTHREAD */
 }
 
-void pairalign ( istream& infile, const char output, const bool output_names, const bool aligned, const bool matrix ) {
+void pairalign ( istream* infile, const char output, const bool output_names, const bool aligned, const bool matrix ) {
     string sequence1;
     string accno1;
     string sequence2;
@@ -116,13 +151,13 @@ void pairalign ( istream& infile, const char output, const bool output_names, co
     char inchar;
     int next_sequence;
     if (matrix && output == 'd') std::cout << "Proportion different/Similarity/Jukes-Cantor distance/Difference between JC and similarity" << endl;
-    while (infile) {
-        infile >> noskipws >> inchar;
-        if (inchar == '>' || infile.peek()==EOF ) {
+    while (*infile) {
+        *infile >> noskipws >> inchar;
+        if (inchar == '>' || infile->peek()==EOF ) {
             if (inchar == '>' && (mode == 'a' || mode == 's')) {
                 mode = 'b';
                 ++n_seq;
-                next_sequence = infile.tellg();
+                next_sequence = infile->tellg();
                 if (matrix) {
                     if (n_seq > 1) std::cout << endl;
                     if (output_names) std::cout << accno1 << ' ';
@@ -188,17 +223,16 @@ void pairalign ( istream& infile, const char output, const bool output_names, co
                 mode = 'b';
             }
             else if (mode == 'n') mode = 'a';
-            if ( infile.peek()==EOF ) {
+            if ( infile->peek()==EOF ) {
                 if (matrix && output_names && (mode == 'a' || mode == 's')) std::cout << endl << accno1 << endl;
                 else if (mode == 'b' || mode == 't') {
                     sequence1.clear();
                     accno1.clear();
                     mode = 'n';
-                    infile.clear();
-                    infile.seekg( next_sequence-1, ios::beg );
+                    infile->clear();
+                    infile->seekg( next_sequence-1, ios::beg );
                 }
             }
-            
         }
         else if ( inchar == '\n' && mode == 'a' ) mode = 's';
         else if ( inchar == '\n' && mode == 'b' ) mode = 't';

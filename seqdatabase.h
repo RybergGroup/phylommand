@@ -13,20 +13,20 @@ using namespace std;
 
 class seqdatabase {
     public:
-    seqdatabase(): databasetype('f'), OPEN(false), previous_taxon("empty"), mode(0) {};
-    seqdatabase(const char* file): databasetype('f'), previous_taxon("empty"), mode(0), databasename(file) {
+    seqdatabase(): databasetype('f'), OPEN(false), mode(0), previous_taxon("empty") {};
+    seqdatabase(const string file): databasename(file), databasetype('f'), mode(0), previous_taxon("empty") {
     	databasetype = 'f';
-	open_fastafile( file );
+	open_fastafile( );
     }
-    seqdatabase(const char* file, const char* type): previous_taxon("empty"), mode(0), databasename(file) {
+    seqdatabase(const string file, const char* type): databasename(file), mode(0), previous_taxon("empty") {
 	if (!strcmp(type,"fasta")){
 	    databasetype = 'f';
-	    open_fastafile( file );
+	    open_fastafile( );
 	}
 	#ifdef DATABASE
 	else if (!strcmp(type,"sqlite")) {
 	    databasetype = 's';
-	    open_sqldatabase( file );
+	    open_sqldatabase( );
 	}
 	#endif //DATABASE
 	else {
@@ -111,7 +111,9 @@ class seqdatabase {
     string get_sequence1() { return sequence1; };
     string get_sequence2() { return sequence2; };
     void print_clusters() {
-	string name = databasename + ".clusters";
+	string name; 
+	if (!databasename.empty()) name = databasename + ".clusters";
+	else name = "sequence.clusters";
 	ofstream output (name.c_str(), ios::out);
 	clusters.print_clusters( output );
 	output.close();
@@ -174,14 +176,16 @@ class seqdatabase {
     string accno2;
     string sequence2;
     //// functions for fasta
-    void open_fastafile( const char* name ) {
-	fst.open(name);
+    void open_fastafile( ) {
+	fst.open(databasename);
 	if (fst.is_open()) OPEN = true;
 	else OPEN = false;
     };
     bool alignment_groups_present_fst() { return alignment_groups.is_open(); };
     bool create_alignment_groups_fst() {
-	string name = databasename + ".alignment_groups";
+	string name; 
+	if (!databasename.empty()) name = databasename + ".alignment_groups";
+	else name = "sequence.alignment_groups";
 	alignment_groups.open(name.c_str());
 	return alignment_groups.is_open();
     };
@@ -190,14 +194,20 @@ class seqdatabase {
 	temp.push_back(databasename);
 	return temp;
     };
-    bool insert_alignment_group_fst (const string& table, const string& group) { alignment_groups << table << "\t" << group << endl; };
+    bool insert_alignment_group_fst (const string& table, const string& group) {
+	if (alignment_groups.good()) {
+	    alignment_groups << table << "\t" << group << endl;
+	    return true;
+	}
+	else return false;
+    };
     void clust_update_fst ( const string accno, const string cluster, const string table, const bool where_accno) {
 	clusters.update( accno, cluster, where_accno );
     };
     string get_cluster_fst( const string accno, const string table ) {
 	return clusters.get_cluster( accno );
     };
-    float get_comp_value_fst ( const string accno, const string table) { fst.get_comp_value( accno ); }; // needs to be written
+    float get_comp_value_fst ( const string accno, const string table) { return fst.get_comp_value( accno ); }; 
     void get_taxon_string_fst ( const string accno, string& return_string ) { fst.get_taxon_string( accno, return_string ); };
     bool initiate_sequence_retrieval_fst () { mode = '0'; return fst.initiate_sequence_retrieval(); };
     void move_to_next_pair_fst ( bool only_lead );
@@ -206,8 +216,8 @@ class seqdatabase {
     sqlite3 *db;
     sqlite3_stmt *statement;
     string query;
-    void open_sqldatabase( const char* name ) {
-	if (sqlite3_open(name, &db) == 0 ) OPEN = true;
+    void open_sqldatabase( ) {
+	if (sqlite3_open(databasename.c_str(), &db) == 0 ) OPEN = true;
 	else OPEN = false;
     };
     bool alignment_groups_present_sql ();

@@ -22,6 +22,7 @@ contact: martin.ryberg@ebc.uu.se
 #include <fstream>
 #include <stdlib.h>
 #include "tree.h"
+#include "decisiveness.h"
 //#include <vector>
 
 using namespace std;
@@ -33,6 +34,8 @@ struct tree_array {
     tree_array* next;
 };
 
+void pars_decisiveness_input( istream* input, string& genestring );
+
 int main (int argc, char *argv []) {
     char method = 'c';
     float cut_off = 0.5;
@@ -42,6 +45,9 @@ int main (int argc, char *argv []) {
     string file_name;
     ifstream input_file;
     istream* input_stream = &std::cin;
+    /////// Variables from superstat
+    string genestring;
+    int n_iterations(100);
     if (argc > 1) {
         for (int i=1; i < argc; ++i) {
             if (!strcmp(argv[i],"-c") || !strcmp(argv[i],"--compare")) {
@@ -60,6 +66,19 @@ int main (int argc, char *argv []) {
                     return 1;
                 }
 	    }
+///// From superstat
+	    else if (!strcmp(argv[i],"-D") || !strcmp(argv[i],"--decisiveness")) {
+                method = 'D';
+                if ( i < argc-1 && argv[i+1][0] != '-') genestring = argv[++i];
+            }
+	    else if (!strcmp(argv[i],"-i") || !strcmp(argv[i],"--iterations")) {
+                if ( i < argc-1 && argv[i+1][0] != '-' ) n_iterations = atoi(argv[++i]);
+		else {
+		    cerr << "-i / --iterations must be followed by an integer number (e.g. -i 1000)." << endl;
+		    return 1;
+		}
+	    }
+////////////////
             else if (!strcmp(argv[i],"-h") || !strcmp(argv[i],"--help")) {
                 help();
                 return 0;
@@ -96,6 +115,22 @@ int main (int argc, char *argv []) {
             cerr << "Could not open file: " << database_name << endl;
             return 1;
         }
+    }
+    if (method == 'D') {
+	if (genestring.empty() && (input_file.good() || input_stream == &std::cin)) {
+	    pars_decisiveness_input( input_stream, genestring );
+	}
+        if (genestring.empty()) {
+            std::cerr << "A string of genes is needed to calculate the decisiveness (--decisiveness/-d), e.g. -d ITS,RPB2|ITS|ITS,RPB2." << endl;
+            return 1;
+        }
+	#ifdef DEBUG
+	cerr << genestring << endl;
+	#endif //DEBUG
+        decisiveness stat(&genestring);
+        stat.on_random_tree( n_iterations );
+        cout << "The gene sampling is decisive for " << stat.get_decisiveness() << " of the trees and " << stat.get_distinguished() << " of the branches." << endl;
+	return 0;
     }
     // Read trees
     tree_array* array = new tree_array;
@@ -207,13 +242,30 @@ void help () {
     std::cout << "Usage:" << endl << "conftree [arguments] < file.trees" << endl << endl;
     std::cout << "Arguments:" << endl;
     std::cout << "--add_to_support / -a                                      add one to the value of internal node for each tree the split is present in." <<endl;
-    std::cout << "--compare / -c [float value]                               output conflicting splits where at least one branch support the conflict with more than given support, e.g. -f 0.7." <<endl;
+    std::cout << "--compare / -c [float value]                               output conflicting splits where at least one branch support the conflict with more than given support," << endl;
+    std::cout << "                                                               e.g. -f 0.7." <<endl;
     std::cout << "--database / -d [file name]                                give a second file of trees to compare agains instead of comparing within the ordinary input." << endl;
-    std::cout << "--file/-f [file name]                                      give file name for trees, e.g. -f file.tree." << endl;
+    std::cout << "--decisiveness/-D                                          calculates proportion of random trees for which given gene sampling is decisive and the mean" << endl;
+    std::cout << "                                                               proportion of branches that are distinguished. The genes for each taxa are given as a" << endl;
+    std::cout << "                                                               comma (,) separated string, the genes of each taxa are separated by a bar (|). The number" << endl;
+    std::cout << "                                                               of random trees are given by a number after the genes, e.g. -D 'ITS,RPB2|ITS|ITS,RPB2|RPB2|RPB2|ITS'," << endl;
+    std::cout << "                                                               or in a file with a comma separated string with the genes for each taxa on a separate row." << endl;
+    std::cout << "--iterations / -i                                          give numbers of iterations to do when calculating decisiveness, e.g. -i 1000" << endl; 
+    std::cout << "--file / -f [file name]                                    give file name for trees or decisiveness, e.g. -f file.tree." << endl;
     std::cout << "--help / -h                                                print this help." << endl;
     std::cout << "--html                                                     give output as tree in html (svg) format with conflicting tips coloured green and red." << endl;
     std::cout << "--non_shared_tips / -t                                     print tip names not present in other tree." << endl;
-    std::cout << "--Robinson–Foulds / -r                                     compute Robinson–Foulds metric between trees." << endl;
+    std::cout << "--Robinson_Foulds / -r                                     compute Robinson-Foulds metric between trees." << endl;
     std::cout << endl;
 }
 
+void pars_decisiveness_input( istream* input, string& genestring ) {
+    while (*input) {
+	string line;
+	*input >> line;
+	if (!line.empty()) {
+	    if (!genestring.empty()) genestring += '|';
+	    genestring += line;
+	}
+    }
+}

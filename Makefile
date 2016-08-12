@@ -11,7 +11,7 @@ WIN = NO # add WIN=YES if compiling on windows using MinGW
 PTHREADS = NO # set to yes to compile using pthreads, PTHREADS=-DPTREADS
 DATABASE = YES # set to compile with database
 
-PHYLOMMAND = treebender clustertree alignmentgroups pairalign superstat contree treeator # anconstruction treesplitter
+PHYLOMMAND = treebender clustertree alignmentgroups pairalign contree treeator # anconstruction treesplitter superstat 
 #CFLAGS
 EXTRAS= # add EXTRAS=-DDEBUG for debug mode
 TREEATORFLAGS = -DNLOPT
@@ -45,8 +45,8 @@ ifeq ($(PTHREADS),YES)
     ALIGNFLAGS = -DPTHREAD
 endif
 PAIRALIGN = pairalign.cpp
-#TREESPLIT = treesplitter.cpp
-SUPER = superstat.cpp
+# TREESPLIT = treesplitter.cpp
+# SUPER = superstat.cpp
 CONTREE = contree.cpp
 TREEATOR = treeator.cpp
 #ANCON = anconstruction.cpp
@@ -65,8 +65,8 @@ OCLUSTTREE = clustertree.o tree.o clustertree_main.o string_tree.o matrix_parser
 OALIGNMENT = seqpair.o align_group.o seqdatabase.o indexedfasta.o alignmentgroups.o $(SQLITEO)
 OPAIRALIGN = seqpair.o pairalign.o
 #OSPLIT = tree.o treesplitter.o string_tree.o matrix_parser.o # support_functions.o
-OSUPER = superstat.o tree.o decisiveness.o string_tree.o matrix_parser.o # support_functions.o
-OCONTREE = contree.o tree.o string_tree.o matrix_parser.o # support_functions.o
+#OSUPER = superstat.o tree.o decisiveness.o string_tree.o matrix_parser.o # support_functions.o
+OCONTREE = contree.o tree.o decisiveness.o string_tree.o matrix_parser.o # support_functions.o
 OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o matrix_parser.o $(TREEATORLINKFLAGS) # support_functions.o
 
 # treeator.cpp tree.cpp string_tree.cpp nj_tree.cpp
@@ -88,8 +88,8 @@ pairalign: $(OPAIRALIGN)
 #treesplitter: $(OSPLIT)
 #	$(PP) -o treesplitter $(OSPLIT)
 
-superstat: $(OSUPER)
-	$(PP) -o superstat $(OSUPER)
+#superstat: $(OSUPER)
+#	$(PP) -o superstat $(OSUPER)
 
 contree: $(OCONTREE)
 	$(PP) -o contree $(OCONTREE)
@@ -113,8 +113,8 @@ pairalign.o: $(PAIRALIGN)
 #treesplitter.o: $(TREESPLIT)
 #	$(PP) -c $(TREESPLIT) $(EXTRAS)
 
-superstat.o: $(SUPER)
-	$(PP) -c $(SUPER) $(EXTRAS)
+#superstat.o: $(SUPER)
+#	$(PP) -c $(SUPER) $(EXTRAS)
 
 contree.o: $(CONTREE)
 	$(PP) -c $(CONTREE) $(EXTRAS)

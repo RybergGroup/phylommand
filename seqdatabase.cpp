@@ -44,7 +44,7 @@ void seqdatabase::move_to_next_pair_fst (bool only_lead) {
 #ifdef DATABASE
 bool seqdatabase::alignment_groups_present_sql() {
     if (OPEN) {
-	sqlite3_stmt* statment;
+	sqlite3_stmt* statement;
 	const char query[] = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;";
 	bool flag = 0;
 	if(sqlite3_prepare_v2(db, query, -1, &statement, 0) == SQLITE_OK) {
@@ -163,10 +163,10 @@ void seqdatabase::move_to_next_pair_sql (bool only_lead) {
 bool seqdatabase::insert_alignment_group_sql (const string& table, const string& group) {
     if (OPEN) {
 	if (group.compare("empty")) { // if something in alignment groups
-	    sqlite3_stmt* statment;
+	    //sqlite3_stmt* statement;
     	    string taxon;
 	    char alignable;
-	    for (int i=0; i < group.length(); ++i) {
+	    for (unsigned int i=0; i < group.length(); ++i) {
 		if (group[i] == ';') {
 		    sqlite3_stmt *statement;
 		    string insert = "INSERT INTO alignment_groups (gene, taxon, alignable) VALUES ('";
@@ -193,6 +193,7 @@ bool seqdatabase::insert_alignment_group_sql (const string& table, const string&
 		else taxon += group[i];
 	    }
 	}
+	return true;
     }
     else return false;
 }

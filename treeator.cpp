@@ -76,13 +76,18 @@ int main (int argc, char *argv []) {
     set<int> fixed_parameters;
     vector<double> model_parameters;
     char print_tree = 'x';
-    //////////////////////////
+    ///////////
     if (argc > 1) {
         for (int i=1; i < argc; ++i) {
             if (!strcmp(argv[i],"-L") || !strcmp(argv[i],"--no_lable")) lables = false;
             else if (!strcmp(argv[i],"-d") || !strcmp(argv[i],"--data_file")) {
-                if ( i < argc-1 && argv[i+1][0] != '-' )
-                    data_file_name = argv[++i];
+                if ( i < argc-1 && argv[i+1][0] != '-' ) {
+		    ++i;
+		    if (data_file_name.empty())
+			data_file_name = argv[i];
+		    else
+			cerr << "Data file already given (" << data_file_name << "). Will ignore " << argv[i] << "." << endl;
+		}
                 else {
                     std::cerr << "-d/--data_file require a file name as next argument" << endl;
                     return 1;
@@ -94,9 +99,6 @@ int main (int argc, char *argv []) {
             else if (!strcmp(argv[i],"-p") || !strcmp(argv[i],"--parsimony")) {
 		method = 'p';
 	    }
-            //else if (!strcmp(argv[i],"-l") || !strcmp(argv[i],"--likelihood")) {
-	//	method = 'l';
-	  //  }
 	    else if (!strcmp(argv[i],"-s") || !strcmp(argv[i],"--step_wise")) {
 		method = 's';
 	    }
@@ -105,9 +107,13 @@ int main (int argc, char *argv []) {
                 return 0;
             }
 	    else if (!strcmp(argv[i],"-t") || !strcmp(argv[i],"--tree_file")) {
-		//if (indata == '0') indata = 'd';
-                if ( i < argc-1 && argv[i+1][0] != '-' )
-                    tree_file_name = argv[++i];
+                if ( i < argc-1 && argv[i+1][0] != '-' ) {
+		    ++i;
+		    if (tree_file_name.empty())
+			tree_file_name = argv[i];
+		    else
+			cerr << "Tree file already given (" << tree_file_name << "). Will ignore " << argv[i] << '.' << endl;
+		}
                 else {
                     std::cerr << "-t/--tree_file require a file name as next argument" << endl;
                     return 1;
@@ -120,6 +126,9 @@ int main (int argc, char *argv []) {
                     std::cerr << "-a/--alphabet_file require a file name as next argument" << endl;
                     return 1;
                 }
+		#ifdef DEBUG
+		cerr << "Got which file holds the alphabet: " << alphabet_file_name << endl;
+		#endif //DEBUG
             }
 	    else if (!strcmp(argv[i],"-r") || !strcmp(argv[i],"--random")) {
                 random = true;
@@ -154,8 +163,6 @@ int main (int argc, char *argv []) {
                 }
                 else {
 		    method = 'o';
-                    //std::cerr << "-e/--method require the name of the method as next argument." << endl;
-                    //return 1;
                 }
             }
             else if (!strcmp(argv[i],"-R") || !strcmp(argv[i],"--rate_mod")) {
@@ -178,7 +185,7 @@ int main (int argc, char *argv []) {
 		print_state_on_nodelable = true;
 	    }
 ////////////////////////
-            else if (i == argc-1 && argv[i][0] != '-' ) {
+            else if ((i == argc-1 && argv[i][0] != '-') || ((!strcmp(argv[i],"-f") || !strcmp(argv[i],"--file")) && i < argc-1 && argv[i+1][0] != '-' && ++i) ) {
 		if (data_file_name.empty()) data_file_name = argv[i];
                 else if (tree_file_name.empty()) tree_file_name = argv[i];
 		else {
@@ -202,6 +209,9 @@ int main (int argc, char *argv []) {
         }
     }
     if (!data_file_name.empty()) {
+	#ifdef DEBUG
+	cerr << data_file_name << endl;
+	#endif //DEBUG
         data_file.open(data_file_name.c_str(),std::ifstream::in);
         if (data_file.good())
             data_stream = &data_file;
@@ -210,7 +220,13 @@ int main (int argc, char *argv []) {
             return 1;
         }
     }
-    if (method == 'n') {
+    #ifdef DEBUG
+    if (*tree_stream == cin) cerr << "Possible trees read from standard in." << endl;
+    else cerr << "Possible trees read from " << tree_file_name << endl;
+    if (*data_stream == cin) cerr << "Possible data read from standard in." << endl;
+    else cerr << "Possible data read from " << data_file_name << endl;
+    #endif //DEBUG
+    if (method == 'n') { // Neigbour Joining
 	njtree tree;
 	tree.read_distance_matrix(*data_stream, lables);
 	//tree.print_node_and_distance_array();
@@ -218,9 +234,8 @@ int main (int argc, char *argv []) {
 	tree.print_newick(print_br_length);
 	return 0;
     }
-    if (method == 'p' || method == 's' || method == 'o' || method == 't') {
+    if (method == 'p' || method == 's' || method == 'o' || method == 't') { // ML or parsimony
 	vector<character_vector> characters;
-////////////////////
 	map<char, bitset<SIZE> > alphabet;
 	alphabet::set_alphabet_binary(alphabet);
 	if (!alphabet_file_name.empty()) {
@@ -238,6 +253,9 @@ int main (int argc, char *argv []) {
 	partitions regions;
 	regions.add_alphabet("first",alphabet);
 	regions.add_partition(0,0,"default","first");
+	#ifdef DEBUG
+	cerr << "prepaired partitions." << endl;
+	#endif //DEBUG
 	matrix_parser data_parser(*data_stream, characters, regions);
 	data_parser.pars();
 	#ifdef DEBUG

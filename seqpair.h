@@ -20,7 +20,6 @@ contact: kryberg@utk.edu
 #include <iostream>
 #include <string.h>
 #include <vector>
-//#include <pair>
 #include <map>
 #include <bitset>
 #include <fstream>

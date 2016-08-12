@@ -55,7 +55,7 @@ void clustertree::br_length_clust_max_cout ( node* leaf, cluster_struct* cluster
     if (leaf->branchlength > cut_off) clusters->move_to_parent();
 }
 
-void clustertree::br_length_clust_max_cout ( float cut_off, int max_size ) { // fully functionel old function that is not in use anymore, can give strange results on 'unrooted' trees
+void clustertree::br_length_clust_max_cout ( const float cut_off, const unsigned int max_size ) { // fully functionel old function that is not in use anymore, can give strange results on 'unrooted' trees
     if ( (root->left->branchlength + root->right->branchlength) > cut_off ) {
         if ( n_sub_tips(root->left) <= n_sub_tips(root->right) && n_sub_tips(root->left) < max_size) {
             print_tips( root->left );
@@ -78,7 +78,7 @@ void clustertree::br_length_clust_max_cout ( float cut_off, int max_size ) { // 
     }
 }
 
-void clustertree::br_length_clust_max_cout( node *leaf, float cut_off, int max_size ) { // support above function
+void clustertree::br_length_clust_max_cout( node *leaf, const float cut_off, const unsigned int max_size ) { // support above function
     if ( leaf != 0 ) {
         if ( leaf->parent != root && leaf->branchlength > cut_off && n_sub_tips( leaf ) <= max_size ) {
             print_tips ( leaf );

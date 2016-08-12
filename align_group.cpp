@@ -53,7 +53,7 @@ void align_group::find_node_insert_value ( string taxon, float value, node *leaf
     string heighest_taxon;
     string next_taxon;
     string rest;
-    int i=0;
+    unsigned int i(0);
     while (taxon[i] != ';' && i < taxon.length()) heighest_taxon += taxon[i++];
     ++i;
     while (taxon[i] != ';' && i < taxon.length()) next_taxon += taxon[i++];

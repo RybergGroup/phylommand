@@ -9,8 +9,8 @@ using namespace std;
 
 class indexedfasta {
     public:
-    bool is_open() { return file.is_open() && !index.empty(); };
-    void open( const char* name );
+    bool is_open() { return file_stream->good() && !index.empty(); };
+    void open( const string& name );
     float get_comp_value(const string accno) { return float(index[accno].nonN-index[accno].N); }; // return number of non N char in float format
     void get_taxon_string(const string& accno, string& taxon) {
 	taxon = index[accno].taxon_string;
@@ -56,5 +56,7 @@ class indexedfasta {
     map<string,set>::iterator seq1;
     map<string,set>::iterator seq2;
     ifstream file;
+    istream* file_stream;
+    stringstream cin_holder;
     void get_sequence( map<string,set>::iterator seq, string& sequence);
 };

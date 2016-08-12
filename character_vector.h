@@ -13,9 +13,15 @@ class parsimony_character_vector;
 class character_vector {
 public:
     void add_character (bitset<SIZE> character) {
+	#ifdef DEBUG
+	cerr << "Trying to add " << character << endl;
+	#endif // DEBUG
 	characters.push_back(character);
     };
     void add_character (const unsigned int pos, bitset<SIZE>& character) {
+	#ifdef DEBUG
+	cerr << "Trying to add " << character << " at pos " << pos << endl;
+	#endif // DEBUG
 	unsigned int vector_size = characters.size();
 	if (pos == vector_size) characters.push_back(character);
 	else if (pos < vector_size) characters[pos] = character;
@@ -46,7 +52,7 @@ public:
     unsigned int max_n_char() { return characters.max_size(); };
     string& get_taxon() { return taxon; };
     void set_taxon ( const string& name ) { taxon = name; };
-    unsigned int highest_char_state() { highest_char_state(0,characters.size()-1); }
+    unsigned int highest_char_state() { return highest_char_state(0,characters.size()-1); }
     unsigned int highest_char_state(unsigned int start, unsigned int end) {
 	unsigned int higest_state(0);
 	for (unsigned int i=start; i <= end && i < characters.size(); ++i)

@@ -38,7 +38,7 @@ void *pthread_align_pair (void *threadarg);
 
 void align_pair ( sequence_package *two_sequences );
 void cluster ( seqdatabase& db, const string table, const float cut_off, const int min_length, bool only_lead );
-void cluster_each_table ( const char* file, const char* databasetype, const string cut_off, const int min_length, bool only_lead, bool perform_clustering );
+void cluster_each_table ( const string& file, const char* databasetype, const string cut_off, const int min_length, bool only_lead, bool perform_clustering );
 void help();
 
 /********************************************************************
@@ -53,6 +53,7 @@ int main (int argc, char *argv[]) {
     int min_length = 100;
     bool only_lead = 0;
     bool perform_clustering = true;
+    string filename;
     char db_type[7] = "fasta"; // alternative fasta
     std::cout << "The program was called with the following command:" << endl;
     for (int i=0; i<argc; ++i) std::cout << argv[i] << ' ';
@@ -121,7 +122,18 @@ int main (int argc, char *argv[]) {
            help();
            return 0;
        }
-       else if (i < argc-1) {
+	else if ( !strcmp(argv[i],"-f") || !strcmp(argv[i],"--file") ) {
+	    if (i+1 < argc && argv[i+1][0] != '-') {
+		filename = argv[++i];
+	    }
+	    else {
+		cerr << "-f / --file require a file name as next argument." << endl;
+		return 1;
+	    }
+	}
+	else if (i == argc-1 && argv[i][0] != '-' && filename.empty())
+	    filename = argv[i];
+       else if (i < argc) {
            std::cout << "Argument " << argv[i] << " not recognized. For available arguments give -h or --help." << endl;
            return 0;
        }
@@ -140,10 +152,10 @@ int main (int argc, char *argv[]) {
    #endif /* PTHREAD */
     #ifdef DATABASE
    // If database can not be opened, give instructions then quit
-   std::cout << "Using database: " << argv[argc-1] << '.' << endl;
+   std::cout << "Using database: " << filename << '.' << endl;
    sqlite3 *db;
-   if ( sqlite3_open(argv[argc-1], &db) != 0 ) {
-       std::cout << "Could not open " << argv[argc-1] << ". Last argument has to be a sqlite database." << endl;
+   if ( sqlite3_open(filename.c_str(), &db) != 0 ) {
+       std::cout << "Could not open " << filename << ". Last argument has to be a sqlite database." << endl;
        error_flag = 1;
    }
    sqlite3_close(db);
@@ -156,7 +168,7 @@ int main (int argc, char *argv[]) {
 
    std::cout << "Started at:" << endl << asctime( timeinfo );
    // Execute clustering, last argument is interpreted as the database file
-   cluster_each_table ( argv[argc-1], db_type, cut_off, min_length, only_lead, perform_clustering );
+   cluster_each_table ( filename, db_type, cut_off, min_length, only_lead, perform_clustering );
    // Calculate end time
    rawtime = time(0);
    timeinfo = localtime( &rawtime );
@@ -176,23 +188,24 @@ void help() {
     std::cout << "alignmentgroups version 0.3 (c) Martin Ryberg" << endl << endl;
     std::cout << "Usage:" << endl << "alignmentgroups [arguments] databasefile" << endl << endl;
     std::cout << "Arguments:" << endl;
-    std::cout << "--cut_off / -c [0-1]          Sets the cut off value in pairwise similarity for clustering of each gene. Should be" << endl;
+    std::cout << "--cut_off / -c [0-1]          sets the cut off value in pairwise similarity for clustering of each gene. Should be" << endl;
     std::cout << "                                  comma separated string with gene name first and value second. If all genes should" << endl;
     std::cout << "                                  have same cut off 'all' could be given as gene. E.g. -c all,0.99 or ITS,0.97,LSU,0.99." << endl;
     #ifdef DATABASE
-    std::cout << "-D / --db_type [sqlite/fasta] Sets if the database is in sqlite or fasta format." << endl;
+    std::cout << "-D / --db_type [sqlite/fasta] sets if the database is in sqlite or fasta format." << endl;
     #endif // DATABASE
-    std::cout << "--help / -h                   Print this this help text." << endl;
-    std::cout << "--min_length / -m [1+]        Sets the minimum length of sequences to consider for clustering, e.g. -m 100." << endl;
-    std::cout << "--no_cluster / -n             Turn clustering off. Only calculating alignment groups." << endl;
-    std::cout << "--previous_clusters / -p      Only sequences with cluster marked as 'lead' will be considered for further clustering." << endl;
+    std::cout << "--file /- f                   give the file name." << endl;
+    std::cout << "--help / -h                   print this this help text." << endl;
+    std::cout << "--min_length / -m [1+]        sets the minimum length of sequences to consider for clustering, e.g. -m 100." << endl;
+    std::cout << "--no_cluster / -n             turn clustering off. Only calculating alignment groups." << endl;
+    std::cout << "--previous_clusters / -p      only sequences with cluster marked as 'lead' will be considered for further clustering." << endl;
     #ifdef PTHREAD
-    std::cout << "--threads / -T [1+]           Set the number of threads additional to the controling thread, e.g. -T 4." << endl;
+    std::cout << "--threads / -T [1+]           set the number of threads additional to the controling thread, e.g. -T 4." << endl;
     #endif /* PTHREAD */
 }
 
 /*** Function to cluster each table ***/
-void cluster_each_table ( const char* file, const char* databasetype, const string cut_off, const int min_length, bool only_lead, bool perform_clustering ) {
+void cluster_each_table ( const string& file, const char* databasetype, const string cut_off, const int min_length, bool only_lead, bool perform_clustering ) {
     seqdatabase database(file,databasetype);
     if (!database.alignment_groups_present())
 	if (!database.create_alignment_groups()) return;
@@ -249,7 +262,7 @@ void cluster( seqdatabase& db, const string table, const float cut_off, const in
     sequence_package two_sequences;
     #endif /* PTHREAD */
     align_group deviations;
-    char mode='1';
+    //char mode='1';
     stringstream converter;
     converter << min_length;
     string char_min_length(converter.str());
