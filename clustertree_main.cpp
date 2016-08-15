@@ -21,21 +21,25 @@ contact: kryberg@utk.edu
 #include <string.h>
 #include <fstream>
 #include <stdlib.h>
+#include <map>
 #include "clustertree.h"
+#include "file_parser.h"
 
 using namespace std;
 
 void help ();
 
 int main (int argc, char *argv []) {
-    char method = '0'; //what method to use for clustering, default branch length over certain distance
+    char method = '0'; //what method to use for clustering
     float cut_off = 1.00;
 //    unsigned int max_size = 1;
     unsigned int name_position = 1;
     char separator = ' ';
+    map <string,string> taxa_trans;
     string file_name;
     ifstream infile;
-    istream* instream = &std::cin;
+    file_parser input(&cin);
+    string file_format;
     #ifdef DATABASE
     string database_data;
     #endif /*DATABASE*/
@@ -68,11 +72,48 @@ int main (int argc, char *argv []) {
 		return 1;
 	    }
 	}
+	else if (!strcmp(argv[i],"--format")) {
+    	    if ( i < argc-1 && argv[i+1][0] != '-' ) {
+		++i;
+		if (!strcmp(argv[i],"nexus")) file_format = "nexus";
+		else if (!strcmp(argv[i],"newick")) file_format = "newick";
+		else {
+		    std::cerr << "Do not recognize format " << argv[i] << "." << endl;
+		    return 1;
+		}
+	    }
+	    else std::cerr << "--format require nexus or newick as additional argument" << endl;
+	}
         else if (!strcmp(argv[i],"-h") || !strcmp(argv[i],"--help")) { help(); return 0; }
 	else if (i == argc -1 && argv[i][0] != '-' && file_name.empty()) file_name = argv[++i];
 	else {
 	    cerr << "Do not recognize argument: " << argv[i] << endl;
 	    return 1;
+	}
+    }
+    if (!file_name.empty()) {
+	infile.open(file_name.c_str(), std::ifstream::in);
+	if (infile.good())
+	    input.file_stream = &infile;
+	else {
+	    cerr << "Could not open file: " << file_name << endl;
+	    return 1;
+	}
+    }
+    if (!file_format.empty()) {
+	input.set_file_type(file_format.c_str());
+    }
+    else if (!input.set_file_type()) {
+	input.set_file_type("newick");
+    }
+    char nexus_command = nexus_command::NON;
+    if (input.test_file_type("nexus")) {
+	if (input.move_to_next_X_block( nexus_block::TREES )) {
+	    nexus_command = input.read_next_nexus_command();
+	    if (nexus_command==nexus_command::TRANSLATE) {
+		input.read_translate_parameters(taxa_trans);
+		nexus_command = input.read_next_nexus_command();
+	    }
 	}
     }
     if (method == '0') {
@@ -109,21 +150,20 @@ int main (int argc, char *argv []) {
         if (!quiet) cerr << argv[0] << " only accept positive cut off values." << endl;
         return 1;
     }
-    if (!file_name.empty()) {
-	infile.open(file_name.c_str(), std::ifstream::in);
-	if (infile.good())
-	    instream = &infile;
-	else {
-	    cerr << "Could not open file: " << file_name << endl;
-	    return 1;
-	}
-    }
     unsigned int n_read(0);
     while (1) {
 	clustertree tree;
-	tree.tree_file_parser( *instream ); //std::cin );
-	if (tree.empty()) break;
-	++n_read;
+	if (input.test_file_type("nexus") || input.test_file_type("newick")) {
+	    if (input.test_file_type("nexus")) {
+		if (n_read != 0) nexus_command = input.read_next_nexus_command();
+    		if (!(nexus_command==nexus_command::TREE && input.move_to_start_of_tree()))
+		    break;
+	    }
+	    tree.tree_file_parser( *(input.file_stream) ); //std::cin );
+    	    if (tree.empty()) break;
+    	    ++n_read;
+	}
+	else { std::cerr << "Do not recognize tree format" << std::endl; return 1; }
 	cout << "### tree " << n_read << " ###" << endl;
 	if (method == 'l') tree.br_length_clust_max_cout( cut_off );
 	else if (method == 'b') tree.short_br_clust ( cut_off );
@@ -144,15 +184,17 @@ void help () {
     std::cout << "--cut_off / -c                the cut off to use when clustering." << endl;
     #ifdef DATABASE
     std::cout << "--database / -d               cluster based on annotations available in SQLite database. Need to be followed by a comma separated string" << endl;
-    std::cout << "                                   with the database, table, column for tree tip annotation, and column used for clustering given, e.g." << endl;
-    std::cout << "                                   -d database,table,accno_column,species_column" << endl;
+    std::cout << "                                  with the database, table, column for tree tip annotation, and column used for clustering given, e.g." << endl;
+    std::cout << "                                  -d database,table,accno_column,species_column" << endl;
     #endif /*DATABASE*/
     std::cout << "--file / -f [file_name]       give name of file, e.g. -f file.tree." << endl;
+    std::cout << "--format [newick/nexus]       give format of input, e.g. --format nexus. If no format is given and the input is a file treebender will try to" << endl;
+    std::cout << "                                  guess the format, if it is through standard in it will assume newick format." << endl;
     std::cout << "--help / -h                   print this help." << endl;
     std::cout << "--long_branch / -l            returns taxa in clades on branches longer than cut off." << endl;
 //    std::cout << "--max_size / -m               the maximum cluster size (the number of taxa in the tree is the default) not yet in use." << endl;
     std::cout << "--tip_name / -t               cluster taxa based on taxon annotation. Should be followed by a single character that separates different" << endl;
-    std::cout << "                                   parts of the taxon name (default ' ') and a number giving which position in the name should be used" << endl;
-    std::cout << "                                   for clustering, (default 1), e.g. -t '|' 5" << endl;
+    std::cout << "                                  parts of the taxon name (default ' ') and a number giving which position in the name should be used" << endl;
+    std::cout << "                                  for clustering, (default 1), e.g. -t '|' 5" << endl;
     std::cout << "--quiet / -q                  suppresses some error messages and output." << endl;
 }

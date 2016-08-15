@@ -21,8 +21,10 @@ contact: martin.ryberg@ebc.uu.se
 #include <string.h>
 #include <fstream>
 #include <stdlib.h>
+#include <map>
 #include "tree.h"
 #include "decisiveness.h"
+#include "file_parser.h"
 //#include <vector>
 
 using namespace std;
@@ -44,7 +46,13 @@ int main (int argc, char *argv []) {
     ifstream database_file;
     string file_name;
     ifstream input_file;
-    istream* input_stream = &std::cin;
+    file_parser input(&cin);
+    file_parser db_input(&cin);
+    //istream* input_stream = &std::cin;
+    map <string,string> taxa_trans;
+    string file_format;
+    map <string,string> db_taxa_trans;
+    string db_file_format;
     /////// Variables from superstat
     string genestring;
     int n_iterations(100);
@@ -54,10 +62,35 @@ int main (int argc, char *argv []) {
                 method = 'c';
                 if ( i < argc-1 && argv[i+1][0] != '-') cut_off = atof(argv[++i]);
             }
-            else if (!strcmp(argv[i],"-r") || !strcmp(argv[i],"--Robinson–Foulds")) method = 'r';
+            else if (!strcmp(argv[i],"-r") || !strcmp(argv[i],"--robinson_foulds")) method = 'r';
             else if (!strcmp(argv[i],"-t") || !strcmp(argv[i],"--non_shared_tips")) method = 't';
 	    else if (!strcmp(argv[i],"-a") || !strcmp(argv[i],"--add_to_support")) method = 'a';
             else if (!strcmp(argv[i],"--html")) html = true;
+            else if (!strcmp(argv[i],"--format")) {
+		if ( i < argc-1 && argv[i+1][0] != '-' ) {
+		    ++i;
+		    string first; string second;
+		    string* taking_it = &first;
+		    for (unsigned int j=0; argv[i][j] != '\0'; ++j) {
+			if (argv[i][j] == ',') taking_it = &second;
+			*taking_it += argv[i][j];
+		    }
+		    if (!first.compare("nexus")) file_format = "nexus";
+		    else if (!first.compare("newick")) file_format = "newick";
+		    else {
+			std::cerr << "Do not recognize format " << argv[i] << "." << endl;
+			return 1;
+		    }
+		    if (second.empty()) db_file_format = file_format;
+		    else if (!second.compare("nexus")) db_file_format = "nexus";
+		    else if (!second.compare("newick")) db_file_format = "newick";
+		    else {
+			std::cerr << "Do not recognize format " << second << "." << endl;
+			return 1;
+		    }
+		}
+		else std::cerr << "--format require nexus or newick as additional argument" << endl;
+	    }
 	    else if (!strcmp(argv[i],"-d") || !strcmp(argv[i],"--database")) {
 		if ( i < argc-1 && argv[i+1][0] != '-' )
 		    database_name = argv[++i];
@@ -103,7 +136,7 @@ int main (int argc, char *argv []) {
     if (!file_name.empty()) {
         input_file.open(file_name.c_str(),std::ifstream::in);
         if (input_file.good())
-            input_stream = &input_file;
+            input.file_stream = &input_file;
         else {
             cerr << "Could not open file: " << file_name << endl;
             return 1;
@@ -115,10 +148,17 @@ int main (int argc, char *argv []) {
             cerr << "Could not open file: " << database_name << endl;
             return 1;
         }
+	else db_input.file_stream = &database_file;
+	if (!db_file_format.empty()) {
+    	    db_input.set_file_type(db_file_format.c_str());
+	}
+	else if (!db_input.set_file_type()) {
+	    if (!db_input.set_file_type("newick")) cerr << "Failed to set default file type." << endl;
+	}
     }
     if (method == 'D') {
-	if (genestring.empty() && (input_file.good() || input_stream == &std::cin)) {
-	    pars_decisiveness_input( input_stream, genestring );
+	if (genestring.empty() && (input_file.good() || input.file_stream == &std::cin)) {
+	    pars_decisiveness_input( input.file_stream, genestring );
 	}
         if (genestring.empty()) {
             std::cerr << "A string of genes is needed to calculate the decisiveness (--decisiveness/-d), e.g. -d ITS,RPB2|ITS|ITS,RPB2." << endl;
@@ -132,18 +172,54 @@ int main (int argc, char *argv []) {
         cout << "The gene sampling is decisive for " << stat.get_decisiveness() << " of the trees and " << stat.get_distinguished() << " of the branches." << endl;
 	return 0;
     }
+    if (!file_format.empty()) {
+	input.set_file_type(file_format.c_str());
+    }
+    else if (!input.set_file_type()) {
+	if (!input.set_file_type("newick")) cerr << "Failed to set default file type." << endl;
+    }
+    char nexus_command = nexus_command::NON;
+    if (input.test_file_type("nexus")) {
+	if (input.move_to_next_X_block( nexus_block::TREES )) {
+	    nexus_command = input.read_next_nexus_command();
+	    if (nexus_command==nexus_command::TRANSLATE) {
+		input.read_translate_parameters(taxa_trans);
+		nexus_command = input.read_next_nexus_command();
+	    }
+	}
+    }
+    char db_nexus_command = nexus_command::NON;
+    if (db_input.test_file_type("nexus")) {
+	if (db_input.move_to_next_X_block( nexus_block::TREES )) {
+	    db_nexus_command = db_input.read_next_nexus_command();
+	    if (db_nexus_command==nexus_command::TRANSLATE) {
+		db_input.read_translate_parameters(db_taxa_trans);
+		db_nexus_command = db_input.read_next_nexus_command();
+	    }
+	}
+    }
     // Read trees
     tree_array* array = new tree_array;
     array->next = 0;
     tree_array* array_start = array;
+    unsigned int read_trees(0);
     while (1) {
-        array->phylo.tree_file_parser( *input_stream );
-        if (array->phylo.n_tips() < 2) break;
-        else {
-            array->next = new tree_array;
-            array = array->next;
-            array->next = 0;
-        }
+	if (input.test_file_type("nexus") || input.test_file_type("newick")) {
+    	    if (input.test_file_type("nexus")) {
+		if (read_trees != 0) nexus_command = input.read_next_nexus_command();
+		if (!(nexus_command==nexus_command::TREE && input.move_to_start_of_tree()))
+		    break;
+	    }
+	    array->phylo.tree_file_parser( *(input.file_stream), taxa_trans, false );
+	    ++read_trees;
+	    if (array->phylo.empty()) break;
+	    else {
+		array->next = new tree_array;
+		array = array->next;
+		array->next = 0;
+	    }
+	}
+	else { cerr << "Unrecognized file format." << endl; return 1; }
     }
     array = array_start;
     // Beginning messages for the different methods
@@ -187,7 +263,7 @@ int main (int argc, char *argv []) {
 		std::cerr << "Database file given." << std::endl;
 		#endif //DEBUG
 		tree_j = new tree;
-		tree_j->tree_file_parser( database_file );
+		tree_j->tree_file_parser( *(db_input.file_stream), db_taxa_trans, false );
 		if (tree_j->empty()) {
 		    delete tree_j;
 		    break;
@@ -202,7 +278,7 @@ int main (int argc, char *argv []) {
 		array->phylo.print_conflict_clades_reduced( tree_j, cut_off, html );
 	    }
 	    else if (method == 'r') {
-		std::cout << "Robinson–Foulds metric between tree " << i << " and tree " << j << " (per internal node): ";
+		std::cout << "Robinson-Foulds metric between tree " << i << " and tree " << j << " (per internal node): ";
 		unsigned int n_shared_taxa = array->phylo.shared_tips( tree_j );
 		if (n_shared_taxa == 0) std::cout << "0 (No shared taxa)" << endl;
 		if (n_shared_taxa < 4) std::cout << "0 (Less than 4 taxa in common)" << endl;
@@ -221,7 +297,7 @@ int main (int argc, char *argv []) {
 	    if (database_name.empty()) comp_tree = comp_tree->next;
 	    else delete tree_j;
 	}
-	if (method == 'r') std::cout << "Sum of Robinson–Foulds metric for tree " << i << " (per internal node, and number of comparisons): " << sum << " (" << normalized_sum << ", " << n_comp << ')' << std::endl;
+	if (method == 'r') std::cout << "Sum of Robinson-Foulds metric for tree " << i << " (per internal node, number of comparisons): " << sum << " (" << normalized_sum << ", " << n_comp << ')' << std::endl;
 	if (method == 'a') array->phylo.print_newick();
 	array = array->next;
     }
@@ -236,7 +312,7 @@ int main (int argc, char *argv []) {
 }
 
 void help () {
-    std::cout << "Conftree is a command line program for comparing trees." << endl;
+    std::cout << "Contree is a command line program for comparing trees." << endl;
     std::cout << "The program take two trees in newick format as indata through standard in." << endl;
     std::cout << "(c) Martin Ryberg 2015." << endl << endl;
     std::cout << "Usage:" << endl << "conftree [arguments] < file.trees" << endl << endl;
@@ -252,10 +328,12 @@ void help () {
     std::cout << "                                                               or in a file with a comma separated string with the genes for each taxa on a separate row." << endl;
     std::cout << "--iterations / -i                                          give numbers of iterations to do when calculating decisiveness, e.g. -i 1000" << endl; 
     std::cout << "--file / -f [file name]                                    give file name for trees or decisiveness, e.g. -f file.tree." << endl;
+    std::cout << "--format [newick/nexus]                                    give format of input, e.g. --format nexus. If no format is given and the input is a file treebender will try to" << endl;
+    std::cout << "                                                               guess the format, if it is through standard in it will assume newick format." << endl;
     std::cout << "--help / -h                                                print this help." << endl;
     std::cout << "--html                                                     give output as tree in html (svg) format with conflicting tips coloured green and red." << endl;
     std::cout << "--non_shared_tips / -t                                     print tip names not present in other tree." << endl;
-    std::cout << "--Robinson_Foulds / -r                                     compute Robinson-Foulds metric between trees." << endl;
+    std::cout << "--robinson_foulds / -r                                     compute Robinson-Foulds metric between trees." << endl;
     std::cout << endl;
 }
 

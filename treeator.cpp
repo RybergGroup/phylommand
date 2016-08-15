@@ -30,6 +30,7 @@ contact: kryberg@utk.edu
 #include "tree.h"
 #include "nj_tree.h"
 #include "character_vector.h"
+#include "file_parser.h"
 #include "matrix_parser.h"
 #include "simpleML.h"
 
@@ -57,13 +58,18 @@ int main (int argc, char *argv []) {
     bool random = false;
     bool print_br_length(true);
     bool print_state_on_nodelable(false);
+    bool quiet(false);
     string tree_file_name;
     ifstream tree_file;
-    istream* tree_stream = &std::cin;
+    file_parser tree_input(&cin);
+    //istream* tree_stream = &std::cin;
     string data_file_name;
     ifstream data_file;
-    istream* data_stream = &std::cin;
+    file_parser data_input(&cin);
+    //istream* data_stream = &std::cin;
     string alphabet_file_name;
+    string tree_file_format;
+    string data_file_format("fasta");
     ///// Variables for ancon
     #ifdef NLOPT
     bool optimize_param = true;
@@ -184,6 +190,35 @@ int main (int argc, char *argv []) {
 	    else if (!strcmp(argv[i],"--get_state_at_nodes")) {
 		print_state_on_nodelable = true;
 	    }
+            else if (!strcmp(argv[i],"--format")) {
+		if ( i < argc-1 && argv[i+1][0] != '-' ) {
+		    ++i;
+		    string first; string second;
+		    string* taking_it = &first;
+		    for (unsigned int j=0; argv[i][j] != '\0'; ++j) {
+			if (argv[i][j] == ',') taking_it = &second;
+			*taking_it += argv[i][j];
+		    }
+		    if (!first.compare("nexus")) data_file_format = "nexus";
+		    else if (!first.compare("fasta")) data_file_format = "fasta";
+		    else if (!first.compare("phylip")) data_file_format = "relaxed_phylip";
+		    else {
+			std::cerr << "Do not recognize format " << argv[i] << "." << endl;
+			return 1;
+		    }
+		    if (second.empty()) {
+			if (!first.compare("fasta") || !first.compare("phylip")) tree_file_format = "newick";
+			else if (!first.compare("nexus")) tree_file_format = "nexus";
+		    }
+		    else if (!second.compare("nexus")) tree_file_format = "nexus";
+		    else if (!second.compare("newick")) tree_file_format = "newick";
+		    else {
+			std::cerr << "Do not recognize format " << second << "." << endl;
+			return 1;
+		    }
+		}
+		else std::cerr << "--format require nexus or newick as additional argument" << endl;
+	    }
 ////////////////////////
             else if ((i == argc-1 && argv[i][0] != '-') || ((!strcmp(argv[i],"-f") || !strcmp(argv[i],"--file")) && i < argc-1 && argv[i+1][0] != '-' && ++i) ) {
 		if (data_file_name.empty()) data_file_name = argv[i];
@@ -202,7 +237,7 @@ int main (int argc, char *argv []) {
     if (!tree_file_name.empty()) {
         tree_file.open(tree_file_name.c_str(),std::ifstream::in);
         if (tree_file.good())
-            tree_stream = &tree_file;
+            tree_input.file_stream = &tree_file;
         else {
             cerr << "Could not open file: " << tree_file_name << endl;
             return 1;
@@ -214,21 +249,21 @@ int main (int argc, char *argv []) {
 	#endif //DEBUG
         data_file.open(data_file_name.c_str(),std::ifstream::in);
         if (data_file.good())
-            data_stream = &data_file;
+            data_input.file_stream = &data_file;
         else {
             cerr << "Could not open file: " << data_file_name << endl;
             return 1;
         }
     }
     #ifdef DEBUG
-    if (*tree_stream == cin) cerr << "Possible trees read from standard in." << endl;
+    if (*tree_input.file_stream == cin) cerr << "Possible trees read from standard in." << endl;
     else cerr << "Possible trees read from " << tree_file_name << endl;
-    if (*data_stream == cin) cerr << "Possible data read from standard in." << endl;
+    if (*data_input.file_stream == cin) cerr << "Possible data read from standard in." << endl;
     else cerr << "Possible data read from " << data_file_name << endl;
     #endif //DEBUG
     if (method == 'n') { // Neigbour Joining
 	njtree tree;
-	tree.read_distance_matrix(*data_stream, lables);
+	tree.read_distance_matrix(*data_input.file_stream, lables);
 	//tree.print_node_and_distance_array();
 	tree.build_nj_tree();
 	tree.print_newick(print_br_length);
@@ -244,7 +279,9 @@ int main (int argc, char *argv []) {
 	    alphabet.clear();
 	    alphabet_parser parser(alphabet_file,alphabet);
 	    parser.pars();
+	    if (!quiet) cerr << "Setting alphabet from file " << alphabet_file_name << "." << endl;
 	}
+	else if (!quiet) cerr << "Using default alphabet (binary)." << endl;
 	#ifdef DEBUG
 	cerr << "Number of different characters: " << alphabet.size() << endl;
 	for (map<char,bitset<SIZE> >::const_iterator i = alphabet.begin(); i != alphabet.end(); ++i)
@@ -256,24 +293,27 @@ int main (int argc, char *argv []) {
 	#ifdef DEBUG
 	cerr << "prepaired partitions." << endl;
 	#endif //DEBUG
-	matrix_parser data_parser(*data_stream, characters, regions);
+	matrix_parser data_parser(*data_input.file_stream, characters, regions, data_file_format);
 	data_parser.pars();
+	if (!quiet)
+	    std::cerr << "Number of taxa: " << characters.size() << "." << endl;
 	#ifdef DEBUG
-	std::cerr << "Number of taxa: " << characters.size() << endl;
 	std::cerr << "Max number of characters: " << characters.begin()->max_n_char() << std::endl;
 	#endif //DEBUG
         if (data_file.is_open()) data_file.close();
 /////////////////////////////////
 	if (method == 'p') {
+	    if (!quiet) cerr << "Calculating parsimony scores:" << endl;
 	    while (1) {
 		tree tree;
-		tree.tree_file_parser( *tree_stream );
+		tree.tree_file_parser( *tree_input.file_stream );
 		if (tree.empty()) break;
 		std::cout << tree.fitch_parsimony( characters, print_state_on_nodelable, print_br_length, alphabet ) << std::endl;
 		if (print_br_length) tree.print_newick(print_br_length);
 	    }
 	}
 	else if (method == 's') {
+	    if (!quiet) cerr << "Performing stepwise addition." << endl;
 	    tree tree;
 	    if (random) random_shuffle(characters.begin(),characters.end());
 	    tree.stepwise_addition(characters);
@@ -331,7 +371,7 @@ int main (int argc, char *argv []) {
 	    while (1) {
 		stringstream model_out;
 		simpleML tree;
-		tree.tree_file_parser( *tree_stream );
+		tree.tree_file_parser( *tree_input.file_stream );
 		if (tree.empty()) break;
 		tree.init(n_states); // need to fix this
 		for (vector<character_vector>::iterator i=characters.begin(); i!=characters.end(); ++i)

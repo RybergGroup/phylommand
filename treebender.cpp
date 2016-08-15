@@ -487,17 +487,13 @@ int main (int argc, char *argv []) {
 	in_tree.push_back(tree());
 	// Get tree
 	if (tree_source == 's') {
-	    //if (input_format == 'w' || input_format == 'x') {
 	    if (input.test_file_type("nexus") || input.test_file_type("newick")) {
-		//if (input_format == 'x') {
 		if (input.test_file_type("nexus")) {
-		    if (read_trees != 0) nexus_command = input.read_next_nexus_command();//nexus_support::read_tree_block_command(*input_stream);
-		    //if (!(nexus_command==nexus_support::TREE && nexus_support::move_to_start_of_tree(*input_stream)))
+		    if (read_trees != 0) nexus_command = input.read_next_nexus_command();
 		    if (!(nexus_command==nexus_command::TREE && input.move_to_start_of_tree()))
 			break;
 		}
 		in_tree.back().tree_file_parser( *(input.file_stream), taxa_trans, read_figtree_annotations );
-		//in_tree.back().tree_file_parser( *input_stream, taxa_trans, read_figtree_annotations );
 		++read_trees;
 	    }
 	    else { std::cerr << "Do not recognize tree format" << std::endl; return 1; }

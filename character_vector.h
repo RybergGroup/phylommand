@@ -46,8 +46,9 @@ public:
     };
     void reset_char() { characters.clear(); };
     void reset_taxon() { taxon.clear(); };
-    void reset() { characters.clear(); taxon.clear(); }
-    bool empty() { return characters.empty() && taxon.empty(); }
+    void reset() { characters.clear(); taxon.clear(); };
+    void clear () { reset(); };
+    bool empty() { return characters.empty() && taxon.empty(); };
     unsigned int n_char() { return characters.size(); };
     unsigned int max_n_char() { return characters.max_size(); };
     string& get_taxon() { return taxon; };

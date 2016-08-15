@@ -69,9 +69,11 @@ private:
 
 class matrix_parser {
 public:
-    matrix_parser(istream& input_file, vector<character_vector>& data_matrix, partitions& codes) : file(input_file), regions(codes), matrix(data_matrix), matrix_type("relaxed_phylip") {};
+    matrix_parser(istream& input_file, vector<character_vector>& data_matrix, partitions& codes) : file(input_file), regions(codes), matrix(data_matrix), matrix_type("fasta") {};
+    matrix_parser(istream& input_file, vector<character_vector>& data_matrix, partitions& codes, string type) : file(input_file), regions(codes), matrix(data_matrix), matrix_type(type) {};
     void pars () {
-        if (!matrix_type.compare("relaxed_phylip")) pars_relaxed_phylip();
+        if (!matrix_type.compare("fasta")) pars_fasta();
+        else if (!matrix_type.compare("relaxed_phylip")) pars_relaxed_phylip();
     };
 private:
     istream& file;
@@ -79,6 +81,7 @@ private:
     vector<character_vector>& matrix;
     string matrix_type;
     void pars_relaxed_phylip();
+    void pars_fasta();
 };
 
 class alphabet_parser {

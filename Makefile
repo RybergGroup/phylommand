@@ -61,13 +61,13 @@ SEQDB = seqdatabase.cpp
 INDEXEDFST = indexedfasta.cpp
 
 OTREE = tree.o treebender.o string_tree.o file_parser.o matrix_parser.o # support_functions.o
-OCLUSTTREE = clustertree.o tree.o clustertree_main.o string_tree.o matrix_parser.o $(SQLITEO) # support_functions.o
+OCLUSTTREE = clustertree.o tree.o clustertree_main.o string_tree.o matrix_parser.o file_parser.o $(SQLITEO) # support_functions.o
 OALIGNMENT = seqpair.o align_group.o seqdatabase.o indexedfasta.o alignmentgroups.o $(SQLITEO)
 OPAIRALIGN = seqpair.o pairalign.o
 #OSPLIT = tree.o treesplitter.o string_tree.o matrix_parser.o # support_functions.o
 #OSUPER = superstat.o tree.o decisiveness.o string_tree.o matrix_parser.o # support_functions.o
-OCONTREE = contree.o tree.o decisiveness.o string_tree.o matrix_parser.o # support_functions.o
-OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o matrix_parser.o $(TREEATORLINKFLAGS) # support_functions.o
+OCONTREE = contree.o tree.o decisiveness.o string_tree.o matrix_parser.o file_parser.o # support_functions.o
+OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o matrix_parser.o file_parser.o $(TREEATORLINKFLAGS) # support_functions.o
 
 # treeator.cpp tree.cpp string_tree.cpp nj_tree.cpp
 
