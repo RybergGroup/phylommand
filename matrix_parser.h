@@ -74,6 +74,7 @@ public:
     void pars () {
         if (!matrix_type.compare("fasta")) pars_fasta();
         else if (!matrix_type.compare("relaxed_phylip")) pars_relaxed_phylip();
+	else if (!matrix_type.compare("nexus")) pars_nexus();
     };
 private:
     istream& file;
@@ -82,6 +83,7 @@ private:
     string matrix_type;
     void pars_relaxed_phylip();
     void pars_fasta();
+    void pars_nexus();
 };
 
 class alphabet_parser {

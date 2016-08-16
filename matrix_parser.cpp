@@ -67,7 +67,7 @@ void matrix_parser::pars_relaxed_phylip() {
 	    }
 	}
     }
-    if (matrix.size() != n_taxa) std::cerr << "Matrix size missmatch: there is a difference of " << (matrix.size() - n_taxa) << " between given number of taxa and number of read taxa." << std::endl;
+    if ( matrix.size() != n_taxa) std::cerr << "Matrix size missmatch: there is a difference of " << (matrix.size() - n_taxa) << " between given number of taxa and number of read taxa." << std::endl;
 }
 
 void matrix_parser::pars_fasta() {
@@ -110,6 +110,92 @@ void matrix_parser::pars_fasta() {
     if (!row.empty()) {
 	matrix.push_back(row);
     }
+}
+void matrix_parser::pars_nexus() {
+    #ifdef DEBUG
+    cerr << "Parsing nexus DATA block." << endl;
+    #endif //DEBUG
+    char character;
+    locale loc;
+    string taxon;
+    bitset<SIZE> trait;
+    character_vector row;
+    unsigned int n_char(0);
+    unsigned int n_taxa(0);
+    char read_mode('0');
+    unsigned int pos(0);
+    while (file) {
+	file.get(character);
+	#ifdef DEBUG
+	cerr << "Read in char: " << character << " (mode: " << read_mode << ")." << endl;
+	#endif //DEBUG
+	if (read_mode == '0') {
+	    if (character == ' ' || character == ';' || character == '=' || character == '\n' || character == '\r') {
+	       	if (!taxon.empty()) {
+		    for (unsigned int i=0; i < taxon.length(); ++i) taxon[i] = tolower(taxon[i],loc);
+		    if (!taxon.compare("matrix")) {
+			read_mode = 'T';
+			if (n_taxa == 0) cerr << "Did not find the number of taxa in the data." << endl;
+			if (n_char == 0) cerr << "Did not find the number of characters in the data." << endl;
+		    }
+		    else if (!taxon.compare("ntax")) read_mode = 'n';
+		    else if (!taxon.compare("nchar")) read_mode = 'N';
+		    taxon.clear();
+		}
+	    }
+	    else taxon += character;
+	}
+	else if (read_mode == 'n') {
+	    if (character == ' ' || character == '\n' || character == '\r' || character == '\t' || character == ';') { if (n_taxa > 0) read_mode = '0'; }
+	    else {
+		n_taxa *= 10;
+		n_taxa += character - '0';
+	    }
+	}
+	else if (read_mode == 'N') {
+	    if (character == ' ' || character == '\n' || character == '\r' || character == '\t' || character == ';') { if (n_char > 0) read_mode = '0'; }
+	    else {
+		n_char *= 10;
+		n_char += character - '0';
+	    }
+	}
+	else if (read_mode == 'T') {
+	    if (character == ';') break;
+	    else if (character != ' ' && character != '\n' && character != '\r' && character != '\t') taxon += character;
+	    else if (!taxon.empty() && character == ' ') {
+		row.set_taxon(taxon);
+		taxon.clear();
+		read_mode = 'C';
+		pos = 0;
+	    }
+	}
+	else if (read_mode == 'C') {
+	    if (character == ';') break;
+	    #ifdef DEBUG
+	    cerr << "Setting alphabet for pos: " << pos << endl;
+	    #endif // DEBUG
+	    map<char, bitset<SIZE> > alphabet = regions.get_partition_alphabet(pos);
+	    #ifdef DEBUG
+	    cout << "Adding " << character << " to matrix" << endl;
+	    #endif //DEBUG
+	    if ( !row.empty() && (character == '\n' || character == '\r') ) {
+		read_mode='T';
+		if (n_char != 0 && row.n_char() != n_char) std::cerr << "Matrix size missmatch: " << taxon << " differes in " << (row.n_char() - n_char) << " from given number of characters." << std::endl;
+		matrix.push_back(row);
+		row.reset();
+	    }
+	    else if (!row.get_taxon().empty() && alphabet.find(character) != alphabet.end()) {
+		trait |= alphabet[character];
+		row.add_character(trait);
+		#ifdef DEBUG
+		std::cerr << "Set " << row.get_taxon() << " to " << trait << std::endl;
+		#endif //DEBUG
+		trait.reset();
+		++pos;
+	    }
+	}
+    }
+    if (n_taxa != 0 && matrix.size() != n_taxa) std::cerr << "Matrix size missmatch: there is a difference of " << (matrix.size() - n_taxa) << " between given number of taxa and number of read taxa." << std::endl;
 }
 
 void alphabet_parser::pars_whitespace() {

@@ -69,7 +69,7 @@ int main (int argc, char *argv []) {
     //istream* data_stream = &std::cin;
     string alphabet_file_name;
     string tree_file_format;
-    string data_file_format("fasta");
+    string data_file_format;
     ///// Variables for ancon
     #ifdef NLOPT
     bool optimize_param = true;
@@ -282,17 +282,30 @@ int main (int argc, char *argv []) {
 	    if (!quiet) cerr << "Setting alphabet from file " << alphabet_file_name << "." << endl;
 	}
 	else if (!quiet) cerr << "Using default alphabet (binary)." << endl;
-	#ifdef DEBUG
-	cerr << "Number of different characters: " << alphabet.size() << endl;
-	for (map<char,bitset<SIZE> >::const_iterator i = alphabet.begin(); i != alphabet.end(); ++i)
-	    cerr << i->first << " - " << i->second << endl;
-	#endif //DEBUG
+	if (!quiet) {
+	    bitset<SIZE> all_possible_char;
+	    for (map<char,bitset<SIZE> >::const_iterator i = alphabet.begin(); i != alphabet.end(); ++i)
+		all_possible_char |= i->second;
+	    cerr << "Alphabet include " << all_possible_char.count() << " distinct traits, given by " << alphabet.size() << " characters." << endl;
+	}
 	partitions regions;
 	regions.add_alphabet("first",alphabet);
 	regions.add_partition(0,0,"default","first");
 	#ifdef DEBUG
 	cerr << "prepaired partitions." << endl;
 	#endif //DEBUG
+    	if (!data_file_format.empty()) {
+    	    data_input.set_file_type(data_file_format.c_str());
+	}
+	else if (!data_input.set_file_type()) {
+	    if (!data_input.set_file_type("fasta")) cerr << "Failed to set default file type." << endl;
+	}
+	if (data_input.test_file_type("nexus")) {
+	    if (!data_input.move_to_next_X_block( nexus_block::DATA )) {
+		cerr << "Could not find DATA block in NEXUS file." << endl;
+		return 1;
+	    }
+	}
 	matrix_parser data_parser(*data_input.file_stream, characters, regions, data_file_format);
 	data_parser.pars();
 	if (!quiet)
