@@ -214,13 +214,16 @@ int tree::print_newick_subtree( ostream& output, node *leaf, int n, bool include
             ++n;
         }
 	else if (leaf->nodelabel!=0 ) {
+	    #ifdef DEBUG
+	    cerr << "Trying to translate " << *leaf->nodelabel << endl;
+	    #endif //DEBUG
 	    string name;
 	    size_t comment_pos = leaf->nodelabel->find("[");
 	    if (comment_pos < leaf->nodelabel->length())
 		name = leaf->nodelabel->substr(0,comment_pos);
 	    else name = *leaf->nodelabel;
-	    cerr << name << endl;
-	    for (map<string,string>::iterator i = translate_taxa.begin(); i!=translate_taxa.end();++i)
+	    //cerr << name << endl;
+	    for (map<string,string>::iterator i = translate_taxa.begin(); i!=translate_taxa.end(); ++i)
 		if (!i->second.compare(name)) { output << i->first; break; }
 	    if (comment_pos < leaf->nodelabel->length())
 		output << leaf->nodelabel->substr(leaf->nodelabel->find("["));

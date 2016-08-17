@@ -26,6 +26,7 @@ contact: kryberg@utk.edu
 #include <limits.h>
 #include "tree.h"
 #include "file_parser.h"
+#include "clustertree.h"
 //#include "supmar/support_functions.h"
 
 using namespace std;
@@ -83,6 +84,16 @@ int main (int argc, char *argv []) {
     ifstream input_file;
     //istream* input_stream = &std::cin;
     file_parser input(&cin);
+    /// from clustertree
+    char cluster_method = '0';
+    //float cut_off = 1.00;
+    unsigned int name_position = 1;
+    //char separator = ' ';
+    #ifdef DATABASE
+    string database_data;
+    #endif /*DATABASE*/
+    bool quiet(false);
+    ///
     if (argc > 1) {
         for (int i=1; i < argc; ++i) {
             if (!strcmp(argv[i],"-m") || !strcmp(argv[i],"--mid_point_root")) method = 'm';
@@ -149,7 +160,45 @@ int main (int argc, char *argv []) {
 		    cerr << "--split_stop require a criterion for stopping splitting the tree, see help for further instructions (--help)." << endl;
 		}
 	    }
-	    ///////////////
+	    ///////////////a
+	    //////// Implement functionality previously in clustertree
+	    else if (!strcmp(argv[i],"--cluster")) {
+		method = 'C';
+		if ( i < argc-1 && argv[i+1][0] != '-') {
+		    ++i;
+		    if (!strcmp(argv[i],"long_branch")) cluster_method = 'l';
+		    else if (!strcmp(argv[i],"name")) {
+			cluster_method = 't';
+	    		if (i < argc-1 && argv[i+1][0] != '-') {
+			    separator = argv[++i][0];
+			    if (i < argc-1 && argv[i+1][0] != '-') {
+				name_position = atoi(argv[++i]);
+			    }
+			}
+		    }
+		    else if (!strcmp(argv[i],"branch_length")) cluster_method = 'b';
+		    #ifdef DATABASE
+		    else if (!strcmp(argv[i],"database") {
+			cluster_method = 'd';
+			if (i < argc-1 && argv[i+1][0] != '-') database_data = argv[++i];
+			else {
+			    cerr << "database clustering require a database file name as next argument." << endl;
+			    return 1;
+			}
+		    }
+		    #endif //DATABASE
+		    else {
+			cerr << "Unknown clustering method: " << argv[i] << endl;
+			return 1;
+		    }
+		}
+		else {
+		    cerr << "--cluster require a clustering method as next argument." << endl;
+		}
+	    }
+	    else if (!strcmp(argv[i],"--cut_off")) cut_off = atof(argv[++i]);
+    	    else if (!strcmp(argv[i],"-q") || !strcmp(argv[i],"--quiet")) quiet = true;
+	    ////////////////
 	    else if (!strcmp(argv[i],"-R") || !strcmp(argv[i],"--rooted")) rooted=true;
 	    ///////////////
             else if (!strcmp(argv[i],"-a") || !strcmp(argv[i],"--branch_lengths")) {
@@ -271,7 +320,7 @@ int main (int argc, char *argv []) {
                 if ( i < argc-1 && argv[i+1][0] != '-') value = atof(argv[++i]);
             }
             else if (!strcmp(argv[i],"--aMPL")) {
-                method = 'C';
+                method = 'A';
                 if ( i < argc-1 && argv[i+1][0] != '-') taxastring = pars_ARGV_string( argv[++i]); //argv[++i];
             }
             else if (!strcmp(argv[i],"--nni")) {
@@ -413,7 +462,7 @@ int main (int argc, char *argv []) {
     #ifdef DEBUG
     cerr << "File type " << input.get_file_type() << endl;
     #endif //DEBUG
-    if (method=='C' && !taxastring.compare("nexus")) { // If doing aMPL and nexus is given
+    if (method=='A' && !taxastring.compare("nexus")) { // If doing aMPL and nexus is given
 	read_phylomand_block = true;
 	taxastring.clear();
     }
@@ -445,7 +494,7 @@ int main (int argc, char *argv []) {
 		    }
 		    else input.move_to_end_of_command();
 		}
-		if (method=='C') {
+		if (method=='A') {
 		    #ifdef DEBUG
 	    	    cerr << "N fixed nodes = " << ages.size() << " N taxon sets = " << taxon_set.size() << endl;
     		    #endif //DEBUG
@@ -472,7 +521,7 @@ int main (int argc, char *argv []) {
 	}
     }
     char nexus_command = nexus_command::NON;
-    if (input.test_file_type("nexus")) { //!file_format.compare("nexus")) {
+    if (input.test_file_type("nexus")) {
 	if (input.move_to_next_X_block( nexus_block::TREES )) {
 	    nexus_command = input.read_next_nexus_command();
 	    if (nexus_command==nexus_command::TRANSLATE) {
@@ -481,7 +530,66 @@ int main (int argc, char *argv []) {
 	    }
 	}
     }
-    unsigned int read_trees = 0;
+    unsigned int read_trees(0);
+////// Cluster tree ///////
+    #ifdef DATABASE
+    string database;
+    string table;
+    string key;
+    string column;
+    if (cluster_method == 'd' && database_data.empty()) {
+	if (!quiet) cerr << "If clustering using database entries the database, table, column for tree tip annotation, and column used for clustering must be given" << endl;
+	if (!quiet) cerr << "    as a comma separated string, e.g. database,table,accno_column,species_column" << endl;
+	return 1;
+    }
+    else if (cluster_method == 'd') {
+	unsigned int k=0;
+	//unsigned int j=0;
+	for (unsigned int i=0; i < database_data.length(); ++i) {
+	    if (database_data[i] == ',') ++k;
+	    else if (k == 0) database += database_data[i];
+	    else if (k == 1) table += database_data[i];
+	    else if (k == 2) key += database_data[i];
+	    else if (k == 3) column += database_data[i];
+	}
+    }
+    #endif /*DATABASE*/
+    /*if ( cluster_method != 'l' && method != 't' && method != 'd' && method != 'b') {
+	if (!quiet) cerr << argv[0] << " only accept the method b, d, l and t at the moment." << endl;
+	return 1;
+    }*/
+    if (cut_off < 0) {
+	if (!quiet) cerr << argv[0] << " only accept positive cut off values." << endl;
+	return 1;
+    }
+    //unsigned int n_read(0);
+/*	while (1) {
+	    clustertree tree;
+	    if (input.test_file_type("nexus") || input.test_file_type("newick")) {
+		if (input.test_file_type("nexus")) {
+		    if (read_trees != 0) nexus_command = input.read_next_nexus_command();
+		    if (!(nexus_command==nexus_command::TREE && input.move_to_start_of_tree()))
+			break;
+		}
+		tree.tree_file_parser( *(input.file_stream) ); //std::cin );
+		if (tree.empty()) break;
+		++read_trees;
+	    }
+	    else { std::cerr << "Do not recognize tree format" << std::endl; return 1; }
+	    cout << "### tree " << read_trees << " ###" << endl;
+	    if (cluster_method == 'l') tree.br_length_clust_max_cout( cut_off );
+	    else if (cluster_method == 'b') tree.short_br_clust ( cut_off );
+	    else if (cluster_method == 't') tree.name_clust_cout( name_position, separator);
+	    #ifdef DATABASE
+	    else if (cluster_method == 'd') {
+		cout << "[" << database << ", " << table << ", " << key << ", " << column << "]" << endl;
+		tree.db_clust_cout( database.c_str(), table, key, column);
+	    }
+	    #endif //DATABASE
+	}
+	return 0;
+    }*/
+///////////////////////////////////////
     while (1) {
 	vector<tree> in_tree;
 	in_tree.push_back(tree());
@@ -493,7 +601,26 @@ int main (int argc, char *argv []) {
 		    if (!(nexus_command==nexus_command::TREE && input.move_to_start_of_tree()))
 			break;
 		}
-		in_tree.back().tree_file_parser( *(input.file_stream), taxa_trans, read_figtree_annotations );
+		if (method == 'C') { // clustertree
+		    clustertree tree;
+		    tree.tree_file_parser( *(input.file_stream) ); //std::cin );
+		    ++read_trees;
+    		    if (tree.empty()) break;
+		    cout << "### tree " << read_trees << " ###" << endl;
+		    if (cluster_method == 'l') tree.br_length_clust_max_cout( cut_off );
+		    else if (cluster_method == 'b') tree.short_br_clust ( cut_off );
+		    else if (cluster_method == 't') tree.name_clust_cout( name_position, separator[0]);
+		    #ifdef DATABASE
+		    else if (cluster_method == 'd') {
+			cout << "[" << database << ", " << table << ", " << key << ", " << column << "]" << endl;
+			tree.db_clust_cout( database.c_str(), table, key, column);
+		    }
+		    #endif /*DATABASE*/
+		    continue;
+		}
+		else {
+		    in_tree.back().tree_file_parser( *(input.file_stream), taxa_trans, read_figtree_annotations );
+		}
 		++read_trees;
 	    }
 	    else { std::cerr << "Do not recognize tree format" << std::endl; return 1; }
@@ -504,7 +631,7 @@ int main (int argc, char *argv []) {
 	    --n_rand_trees;
 	    ++read_trees;
 	}
-	if (in_tree.back().empty()) break; //.n_tips() < 2) break;
+	if (in_tree.back().empty()) break;
 	// Make preparations
 	if (inverse_taxa == 'y') taxastring = in_tree.back().not_present( taxastring );
     
@@ -576,7 +703,7 @@ int main (int argc, char *argv []) {
 	    std::cout << in_tree.back().n_supported(value) << endl;
 	    print_tree = false;
 	}
-       	else if (method == 'C') {
+       	else if (method == 'A') {
 	    if (taxastring.empty()) taxastring="root:1";
 	    #ifdef DEBUG
 	    cerr << taxastring << endl;
@@ -715,6 +842,18 @@ void help () {
     std::cout << "                                                               effected by changes made earlier in the list, e.g. -c 'taxon1|new1,new1|new2' will change the name of" << endl;
     std::cout << "                                                               taxon1 to new2." << endl;
     std::cout << "--clocklikness                                             gives the Z value that the two clades descending from each node have the same molecular clock." << endl;
+    std::cout << "--cluster [method]                                         get clusters based on method, e.g. --cluster branch_length. Available methods:" << endl;
+    std::cout << "                                                               branch_length - separate clusters by single link clustering based on phylogenetic distance." << endl;
+    #ifdef DATABASE
+    std::cout << "                                                               database - cluster based on annotations available in SQLite database. Need to be followed by a comma" << endl;
+    std::cout << "                                                                          separated string with the database, table, column for tree tip annotation, and column used for" << endl;
+    std::cout << "                                                                          clustering given, e.g.:  --cluster database database_file,table,accno_column,species_column" << endl;
+    #endif /*DATABASE*/
+    std::cout << "                                                               long_branch - returns taxa in clades on branches longer than cut off." << endl;
+    std::cout << "                                                               tip_name - cluster taxa based on taxon annotation. Should be followed by a single character that separates" << endl;
+    std::cout << "                                                                          different parts of the taxon name (default ' ') and a number giving which position in the name" << endl;
+    std::cout << "                                                                          should be used for clustering, (default 1), e.g. -t '|' 5" << endl;
+    std::cout << "--cut_off                                                  the cut off to use when clustering." << endl;
     std::cout << "--depth / -D                                               get the distance from the root to the tip furthest away." << endl;
     std::cout << "--distances_to_root / -z [value_separator row_separator]   output the number of nodes and branch length distance to the root for each taxa. The separator between taxa" << endl;
     std::cout << "                                                               name and value can be specified, e.g. -p , \" | \" (dafault is newline and tab)." << endl;
@@ -757,6 +896,7 @@ void help () {
     std::cout << "--patristic_distances / -p [value_separator row_separator] get the total patristic distance to all other taxa in the tree for each taxon, the separator between different" << endl;
     std::cout << "                                                               taxa, and the separator between taxon name and value can be specified, e.g. -p , \" | \" (default is new" << endl;
     std::cout << "                                                               line and tab)." << endl;
+    std::cout << "--quiet / -q                                               suppresses some error messages and output." << endl;
     std::cout << "--random_tree / -r                                         get a random topology (no branch lengths) with given number of taxa, e.g. -r 20 (default 0)." << endl;
     std::cout << "--read_figtree_annotations                                 will read annotations in FigTree/treeanotator format (e.g. [&rate=1.0,height=3.0])" << endl;
     std::cout << "--relaxed_outgroup_root [taxon_string]                     will root on the group defined as for --get_relaxed_outgroup." << endl;

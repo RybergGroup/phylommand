@@ -48,6 +48,7 @@ int main (int argc, char *argv []) {
     ifstream input_file;
     file_parser input(&cin);
     file_parser db_input(&cin);
+    char print_format='w';
     //istream* input_stream = &std::cin;
     map <string,string> taxa_trans;
     string file_format;
@@ -65,6 +66,8 @@ int main (int argc, char *argv []) {
             else if (!strcmp(argv[i],"-r") || !strcmp(argv[i],"--robinson_foulds")) method = 'r';
             else if (!strcmp(argv[i],"-t") || !strcmp(argv[i],"--non_shared_tips")) method = 't';
 	    else if (!strcmp(argv[i],"-a") || !strcmp(argv[i],"--add_to_support")) method = 'a';
+	    else if (!strcmp(argv[i],"-w") || !strcmp(argv[i],"--newick")) print_format = 'w';
+	    else if (!strcmp(argv[i],"-x") || !strcmp(argv[i],"--nexus")) print_format = 'x';
             else if (!strcmp(argv[i],"--html")) html = true;
             else if (!strcmp(argv[i],"--format")) {
 		if ( i < argc-1 && argv[i+1][0] != '-' ) {
@@ -298,9 +301,20 @@ int main (int argc, char *argv []) {
 	    else delete tree_j;
 	}
 	if (method == 'r') std::cout << "Sum of Robinson-Foulds metric for tree " << i << " (per internal node, number of comparisons): " << sum << " (" << normalized_sum << ", " << n_comp << ')' << std::endl;
-	if (method == 'a') array->phylo.print_newick();
+	if (method == 'a') {
+	    if (print_format == 'w') array->phylo.print_newick();
+	    else if (print_format == 'x') {
+		if (read_trees == 1) array->phylo.print_nexus_tree_intro(taxa_trans);
+		stringstream ss;
+		ss << "tree" << read_trees;
+		ss << '_' << read_trees;
+		string tree_name(ss.str());
+		array->phylo.print_tree_to_nexus( tree_name, true, true, taxa_trans );
+	    }
+	}
 	array = array->next;
     }
+    if (method == 'a' && print_format == 'x') cout << "End;" << endl;
     if (html) std::cout << "</body>" << endl << "</html>" << endl;
     array=array_start;
     tree_array* array_next;
@@ -332,6 +346,8 @@ void help () {
     std::cout << "                                                               guess the format, if it is through standard in it will assume newick format." << endl;
     std::cout << "--help / -h                                                print this help." << endl;
     std::cout << "--html                                                     give output as tree in html (svg) format with conflicting tips coloured green and red." << endl;
+    std::cout << "--newick / -w                                              output tree in newick format (default)." << endl;
+    std::cout << "--nexus / -x                                               output tree in nexus format." << endl;
     std::cout << "--non_shared_tips / -t                                     print tip names not present in other tree." << endl;
     std::cout << "--robinson_foulds / -r                                     compute Robinson-Foulds metric between trees." << endl;
     std::cout << endl;

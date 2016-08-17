@@ -11,7 +11,7 @@ WIN = NO # add WIN=YES if compiling on windows using MinGW
 PTHREADS = NO # set to yes to compile using pthreads, PTHREADS=-DPTREADS
 DATABASE = YES # set to compile with database
 
-PHYLOMMAND = treebender clustertree alignmentgroups pairalign contree treeator # anconstruction treesplitter superstat 
+PHYLOMMAND = treebender alignmentgroups pairalign contree treeator #clustertree anconstruction treesplitter superstat 
 #CFLAGS
 EXTRAS= # add EXTRAS=-DDEBUG for debug mode
 TREEATORFLAGS = -DNLOPT
@@ -60,8 +60,8 @@ MATRIXPARS = matrix_parser.cpp
 SEQDB = seqdatabase.cpp
 INDEXEDFST = indexedfasta.cpp
 
-OTREE = tree.o treebender.o string_tree.o file_parser.o matrix_parser.o # support_functions.o
-OCLUSTTREE = clustertree.o tree.o clustertree_main.o string_tree.o matrix_parser.o file_parser.o $(SQLITEO) # support_functions.o
+OTREE = tree.o treebender.o string_tree.o file_parser.o matrix_parser.o clustertree.o $(SQLITEO) # support_functions.o
+#OCLUSTTREE = clustertree.o tree.o clustertree_main.o string_tree.o matrix_parser.o file_parser.o $(SQLITEO) # support_functions.o
 OALIGNMENT = seqpair.o align_group.o seqdatabase.o indexedfasta.o alignmentgroups.o $(SQLITEO)
 OPAIRALIGN = seqpair.o pairalign.o
 #OSPLIT = tree.o treesplitter.o string_tree.o matrix_parser.o # support_functions.o
@@ -76,8 +76,8 @@ all: $(PHYLOMMAND)
 treebender: $(OTREE)
 	$(PP) -o treebender $(OTREE)
 
-clustertree: $(OCLUSTTREE)
-	$(PP) -o clustertree $(OCLUSTTREE) $(SQLOFLAGS)
+#clustertree: $(OCLUSTTREE)
+#	$(PP) -o clustertree $(OCLUSTTREE) $(SQLOFLAGS)
 
 alignmentgroups: $(OALIGNMENT)
 	$(PP) -o alignmentgroups $(OALIGNMENT) $(SQLOFLAGS)
@@ -100,8 +100,8 @@ treeator: $(OTREEATOR)
 treebender.o: $(TREEB)
 	$(PP) -c $(TREEB) $(EXTRAS)
 
-clustertree_main.o: $(CLUSTTREE)
-	$(PP) $(DATABASEFLAG) -c $(CLUSTTREE) $(EXTRAS)
+#clustertree_main.o: $(CLUSTTREE)
+#	$(PP) $(DATABASEFLAG) -c $(CLUSTTREE) $(EXTRAS)
 
 alignmentgroups.o: $(ALIGNMENT)
 	$(PP) $(DATABASEFLAG) $(ALIGNFLAGS) -c $(ALIGNMENT) $(EXTRAS)

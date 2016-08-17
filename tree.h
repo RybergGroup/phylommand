@@ -80,6 +80,8 @@ class tree {
         //parses a newik formated file and stores it in the tree (object)
 	void tree_file_parser( istream& infile, map<string,string> label_translation, bool read_extra_node_annotation );
         void tree_file_parser( istream& infile ) { map<string,string> label_translation; tree_file_parser(infile,label_translation, false); };
+        void tree_file_parser( istream& infile, map<string,string> label_translation ) { tree_file_parser(infile,label_translation, false); };
+	void tree_file_parser( istream& infile, bool read_extra_node_annotation ) { map<string,string> label_translation; tree_file_parser(infile,label_translation, read_extra_node_annotation); };
 	bool empty() {
 	    if (root->left == 0 && root->right == 0) return true;
 	    else return false;
@@ -99,15 +101,19 @@ class tree {
         };
 	void print_nexus_tree_intro( ostream& output, map<string,string>& translate_taxa ) { print_nexus_tree_head(output, root, translate_taxa); };
 	void print_nexus_tree_intro( map<string,string>& translate_taxa ) { print_nexus_tree_intro(cout, translate_taxa); };
-	void print_tree_to_nexus( ostream& output, string& name, bool include_br_length, bool int_node_label, map<string,string>& translate_taxa ) { print_tree_to_nexus_stream( output, root, name, include_br_length, int_node_label, translate_taxa); };
+	void print_tree_to_nexus( ostream& output, string& name, bool include_br_length, bool int_node_label, map<string,string>& translate_taxa ) {
+	    print_tree_to_nexus_stream( output, root, name, include_br_length, int_node_label, translate_taxa);
+	};
 	void print_tree_to_nexus( ostream& output, string& name, bool include_br_length, bool int_node_label) {
 	    map<string,string> translate_taxa;
 	    print_tree_to_nexus_stream( output, root, name, include_br_length, int_node_label, translate_taxa);
 	};
-	void print_tree_to_nexus( string& name, bool include_br_length, bool int_node_label, map<string,string>& translate_taxa ) { print_tree_to_nexus( cout, name, include_br_length, int_node_label); };
+	void print_tree_to_nexus( string& name, bool include_br_length, bool int_node_label, map<string,string>& translate_taxa ) {
+	    print_tree_to_nexus_stream( cout, root, name, include_br_length, int_node_label, translate_taxa);
+	};
 	void print_tree_to_nexus( string& name, bool include_br_length, bool int_node_label) {
 	    map<string,string> translate_taxa;
-	    print_tree_to_nexus( cout, name, include_br_length, int_node_label, translate_taxa);
+	    print_tree_to_nexus_stream( cout, root, name, include_br_length, int_node_label, translate_taxa);
 	};
 	void print_nexus_tree_end( ostream& output ) { output << "End;" << endl; }
 	void print_nexus_tree_end( ) { print_nexus_tree_end(cout); }
@@ -290,6 +296,12 @@ class tree {
         };
         void print_nexus_tree_head( ostream& output, node *leaf, map<string,string>& translate_taxa );
 	void print_tree_to_nexus_stream( ostream& output, node* leaf, string& name, bool include_br_length, bool int_node_label, map<string,string>& translate_taxa) {
+	    #ifdef DEBUG
+	    cerr << "#######################" << endl << "Translations:" << endl;
+	    for (map<string,string>::iterator i = translate_taxa.begin(); i!=translate_taxa.end(); ++i)
+		cerr << i->first << " - " << i->second << endl;
+	    cerr << "#######################" << endl; 
+	    #endif //DEBUG
 	    output << "tree " << name << " = ";
 	    print_newick_subtree(output, leaf, 1, include_br_length, int_node_label, translate_taxa);
 	    output << ";" << endl;

@@ -32,7 +32,6 @@ bool file_parser::set_file_type (const char* type) {
 
 char file_parser::move_to_next_block(){
     if (file_type != 'N') return nexus_block::ERROR;
-    //streampos start = file_stream->tellg();
     locale loc;
     string word;
     while (*file_stream) {
@@ -50,10 +49,6 @@ char file_parser::move_to_next_block(){
 	    }
 	}
     }
-    /*if (file_stream != &cin) {
-	if (file_stream->eof()) file_stream->clear(ios::eofbit);
-	file_stream->seekg(start);
-    }*/
     return nexus_block::NON;
 }
 
