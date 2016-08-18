@@ -1,0 +1,1 @@
+When clustering in tree bender on a nexus file, names are not translated from numbers to acctual names.

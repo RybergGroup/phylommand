@@ -105,6 +105,8 @@ class seqdatabase {
 	else if (databasetype == 's') move_to_next_pair_sql ( only_lead );
 	#endif //DATABASE
     };
+    bool at_new_first() { if (mode == '0' || mode == '1') return true; else return false; }
+    bool end_of_round() { if (mode == '0' || mode == '9') return true; else return false; }
     bool all_pairs() { if(mode == '9') return true; else return false; };
     string get_accno1() { return accno1; };
     string get_accno2() { return accno2; };

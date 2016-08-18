@@ -11,7 +11,7 @@ WIN = NO # add WIN=YES if compiling on windows using MinGW
 PTHREADS = NO # set to yes to compile using pthreads, PTHREADS=-DPTREADS
 DATABASE = YES # set to compile with database
 
-PHYLOMMAND = treebender alignmentgroups pairalign contree treeator #clustertree anconstruction treesplitter superstat 
+PHYLOMMAND = treebender pairalign contree treeator #clustertree anconstruction treesplitter superstat alignmentgroups 
 #CFLAGS
 EXTRAS= # add EXTRAS=-DDEBUG for debug mode
 TREEATORFLAGS = -DNLOPT
@@ -39,7 +39,7 @@ ifeq ($(DATABASE),NO)
     SQLITEO =
     SQLITEFLAGS =
 endif
-ALIGNMENT = alignmentgroups.cpp
+#ALIGNMENT = alignmentgroups.cpp
 ALIGNFLAGS =
 ifeq ($(PTHREADS),YES)
     ALIGNFLAGS = -DPTHREAD
@@ -63,7 +63,7 @@ INDEXEDFST = indexedfasta.cpp
 OTREE = tree.o treebender.o string_tree.o file_parser.o matrix_parser.o clustertree.o $(SQLITEO) # support_functions.o
 #OCLUSTTREE = clustertree.o tree.o clustertree_main.o string_tree.o matrix_parser.o file_parser.o $(SQLITEO) # support_functions.o
 OALIGNMENT = seqpair.o align_group.o seqdatabase.o indexedfasta.o alignmentgroups.o $(SQLITEO)
-OPAIRALIGN = seqpair.o pairalign.o
+OPAIRALIGN = seqpair.o pairalign.o align_group.o seqdatabase.o indexedfasta.o $(SQLITEO)
 #OSPLIT = tree.o treesplitter.o string_tree.o matrix_parser.o # support_functions.o
 #OSUPER = superstat.o tree.o decisiveness.o string_tree.o matrix_parser.o # support_functions.o
 OCONTREE = contree.o tree.o decisiveness.o string_tree.o matrix_parser.o file_parser.o # support_functions.o
@@ -79,11 +79,11 @@ treebender: $(OTREE)
 #clustertree: $(OCLUSTTREE)
 #	$(PP) -o clustertree $(OCLUSTTREE) $(SQLOFLAGS)
 
-alignmentgroups: $(OALIGNMENT)
-	$(PP) -o alignmentgroups $(OALIGNMENT) $(SQLOFLAGS)
+#alignmentgroups: $(OALIGNMENT)
+#	$(PP) -o alignmentgroups $(OALIGNMENT) $(SQLOFLAGS)
 
 pairalign: $(OPAIRALIGN)
-	$(PP) -o pairalign $(OPAIRALIGN)
+	$(PP) -o pairalign $(OPAIRALIGN) $(SQLOFLAGS)
 
 #treesplitter: $(OSPLIT)
 #	$(PP) -o treesplitter $(OSPLIT)
@@ -103,12 +103,12 @@ treebender.o: $(TREEB)
 #clustertree_main.o: $(CLUSTTREE)
 #	$(PP) $(DATABASEFLAG) -c $(CLUSTTREE) $(EXTRAS)
 
-alignmentgroups.o: $(ALIGNMENT)
-	$(PP) $(DATABASEFLAG) $(ALIGNFLAGS) -c $(ALIGNMENT) $(EXTRAS)
+#alignmentgroups.o: $(ALIGNMENT)
+#	$(PP) $(DATABASEFLAG) $(ALIGNFLAGS) -c $(ALIGNMENT) $(EXTRAS)
 #	$(PP) $(DATABASEFLAG) -c $(ALIGNMENT) $(EXTRAS)
 
 pairalign.o: $(PAIRALIGN)
-	$(PP) -c $(PAIRALIGN) $(EXTRAS)
+	$(PP) $(ALIGNFLAGS) $(DATABASEFLAG) -c $(PAIRALIGN) $(EXTRAS)
 
 #treesplitter.o: $(TREESPLIT)
 #	$(PP) -c $(TREESPLIT) $(EXTRAS)

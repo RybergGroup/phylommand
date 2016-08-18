@@ -60,7 +60,7 @@ int main (int argc, char *argv []) {
     bool print_br_length(true);
     bool print_state_on_nodelable(false);
     char print_tree = 'w';
-    bool quiet(false);
+    bool quiet(true);
     string tree_file_name;
     ifstream tree_file;
     file_parser tree_input(&cin);
@@ -111,6 +111,7 @@ int main (int argc, char *argv []) {
 	    else if (!strcmp(argv[i],"-s") || !strcmp(argv[i],"--step_wise")) {
 		method = 's';
 	    }
+    	    else if (!strcmp(argv[i],"-v") || !strcmp(argv[i],"--verbose")) quiet = false;
             else if (!strcmp(argv[i],"-h") || !strcmp(argv[i],"--help")) {
                 help();
                 return 0;
@@ -160,8 +161,8 @@ int main (int argc, char *argv []) {
                 }
             }
             else if (!strcmp(argv[i],"-N") || !strcmp(argv[i],"--no_optim")) optimize_param = false;
-	    else if (!strcmp(argv[i],"-w") || !strcmp(argv[i],"--newick")) print_tree = 'w';
-	    else if (!strcmp(argv[i],"-x") || !strcmp(argv[i],"--nexus")) print_tree = 'x';
+	    //else if (!strcmp(argv[i],"-w") || !strcmp(argv[i],"--newick")) print_tree = 'w';
+	    //else if (!strcmp(argv[i],"-x") || !strcmp(argv[i],"--nexus")) print_tree = 'x';
             else if (!strcmp(argv[i],"-l") || !strcmp(argv[i],"--likelihood")) {
                 if ( i < argc-1 && argv[i+1][0] != '-' ) {
                     string method_name = argv[++i];
@@ -223,6 +224,18 @@ int main (int argc, char *argv []) {
 		    }
 		}
 		else std::cerr << "--format require nexus or newick as additional argument" << endl;
+	    }
+            else if (!strcmp(argv[i],"--output")) {
+		if ( i < argc-1 && argv[i+1][0] != '-' ) {
+		    ++i;
+		    if (!strcmp(argv[i],"nexus") || !strcmp(argv[i],"nex") || (argv[i][0] == 'x' && argv[i][1] == '\0')) print_tree = 'x';
+		    else if (!strcmp(argv[i],"newick") || !strcmp(argv[i],"new") || (argv[i][0] == 'w' && argv[i][1] == '\0')) print_tree = 'w';
+		    else {
+			std::cerr << "Do not recognize format " << argv[i] << "." << endl;
+			return 1;
+		    }
+		}
+		else std::cerr << "--output require nexus(nex or x) or newick (new or w) as additional argument" << endl;
 	    }
 ////////////////////////
             else if ((i == argc-1 && argv[i][0] != '-') || ((!strcmp(argv[i],"-f") || !strcmp(argv[i],"--file")) && i < argc-1 && argv[i+1][0] != '-' && ++i) ) {
@@ -601,14 +614,15 @@ void help () {
     std::cout << "--model/-m [space separated string of integer numbers]     give the model by numbering the rate parameters for different transition, e.g. -m 0,1,0,2,1,2" << endl;
     std::cout << "--neighbour_joining / -n                                   compute neighbour joining tree for given data. The data should be" << std::endl;
     std::cout << "                                                           a left triangular similarity matrix." << std::endl;
-    std::cout << "--newick / -w                                              output tree in newick format (default)." << endl;
-    std::cout << "--nexus / -x                                               output tree in nexus format." << endl;
+//    std::cout << "--newick / -w                                              output tree in newick format (default)." << endl;
+//    std::cout << "--nexus / -x                                               output tree in nexus format." << endl;
     std::cout << "--no_branch_length / -0                                    do not print branch lengths and do not calculate branch lengths for" << std::endl;
     std::cout << "                                                               parsimony trees" << endl;
     std::cout << "--no_lable / -l                                            will tell treeator that there are no taxon labels in the matrix." << endl;
     #ifdef NLOPT
     std::cout << "--no_optim/-n                                              calculate likelihood for given parameters. No optimization." << endl;
     #endif //NLOPT
+    std::cout << "--output [newick/nexus]                                    give tree format for output, nexus (nex or x for short) or newick (new or w for short), e.g --output x. (default w)." << endl; 
     std::cout << "--parameters/-P [space separated string of real numbers]   give corresponding parameter values for parameters. If optimizing these will be starting values," << endl;
     std::cout << "                                                               e.g. -p 0.1 0.01 0.05" << endl;
     std::cout << "--parsimony / -p                                           calculate parsimony score for given tree and data." << std::endl;
@@ -617,6 +631,7 @@ void help () {
     std::cout << "--time/-T [real number]                                    give branch length distance from root where change in rate occur, e.g. -t 10. Default: 0" << endl;
     std::cout << "--tree_file / -t [file name]                               give tree file name" << std::endl;
     std::cout << "--step_wise / -s                                           do parsimony stepwise addition." << std::endl;
+    std::cout << "--verbose / -v                                             get additional output." << endl;
     std::cout << endl;
 }
 

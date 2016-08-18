@@ -57,6 +57,7 @@ int main (int argc, char *argv []) {
     /////// Variables from superstat
     string genestring;
     int n_iterations(100);
+    bool quiet(true);
     if (argc > 1) {
         for (int i=1; i < argc; ++i) {
             if (!strcmp(argv[i],"-c") || !strcmp(argv[i],"--compare")) {
@@ -66,8 +67,8 @@ int main (int argc, char *argv []) {
             else if (!strcmp(argv[i],"-r") || !strcmp(argv[i],"--robinson_foulds")) method = 'r';
             else if (!strcmp(argv[i],"-t") || !strcmp(argv[i],"--non_shared_tips")) method = 't';
 	    else if (!strcmp(argv[i],"-a") || !strcmp(argv[i],"--add_to_support")) method = 'a';
-	    else if (!strcmp(argv[i],"-w") || !strcmp(argv[i],"--newick")) print_format = 'w';
-	    else if (!strcmp(argv[i],"-x") || !strcmp(argv[i],"--nexus")) print_format = 'x';
+	    //else if (!strcmp(argv[i],"-w") || !strcmp(argv[i],"--newick")) print_format = 'w';
+	    //else if (!strcmp(argv[i],"-x") || !strcmp(argv[i],"--nexus")) print_format = 'x';
             else if (!strcmp(argv[i],"--html")) html = true;
             else if (!strcmp(argv[i],"--format")) {
 		if ( i < argc-1 && argv[i+1][0] != '-' ) {
@@ -94,6 +95,18 @@ int main (int argc, char *argv []) {
 		}
 		else std::cerr << "--format require nexus or newick as additional argument" << endl;
 	    }
+            else if (!strcmp(argv[i],"--output")) {
+		if ( i < argc-1 && argv[i+1][0] != '-' ) {
+		    ++i;
+		    if (!strcmp(argv[i],"nexus") || !strcmp(argv[i],"nex") || (argv[i][0] == 'x' && argv[i][1] == '\0')) print_format = 'x';
+		    else if (!strcmp(argv[i],"newick") || !strcmp(argv[i],"new") || (argv[i][0] == 'w' && argv[i][1] == '\0')) print_format = 'w';
+		    else {
+			std::cerr << "Do not recognize format " << argv[i] << "." << endl;
+			return 1;
+		    }
+		}
+		else std::cerr << "--output require nexus(nex or x) or newick (new or w) as additional argument" << endl;
+	    }
 	    else if (!strcmp(argv[i],"-d") || !strcmp(argv[i],"--database")) {
 		if ( i < argc-1 && argv[i+1][0] != '-' )
 		    database_name = argv[++i];
@@ -114,6 +127,7 @@ int main (int argc, char *argv []) {
 		    return 1;
 		}
 	    }
+    	    else if (!strcmp(argv[i],"-v") || !strcmp(argv[i],"--verbose")) quiet = false;
 ////////////////
             else if (!strcmp(argv[i],"-h") || !strcmp(argv[i],"--help")) {
                 help();
@@ -135,6 +149,11 @@ int main (int argc, char *argv []) {
                 return 1;
             }
         }
+    }
+    if (!quiet) {
+       std::cerr << "The program was called with the following command:" << endl;
+       for (int i=0; i<argc; ++i) std::cerr << argv[i] << ' ';
+       std::cerr << endl << endl;
     }
     if (!file_name.empty()) {
         input_file.open(file_name.c_str(),std::ifstream::in);
@@ -346,10 +365,12 @@ void help () {
     std::cout << "                                                               guess the format, if it is through standard in it will assume newick format." << endl;
     std::cout << "--help / -h                                                print this help." << endl;
     std::cout << "--html                                                     give output as tree in html (svg) format with conflicting tips coloured green and red." << endl;
-    std::cout << "--newick / -w                                              output tree in newick format (default)." << endl;
-    std::cout << "--nexus / -x                                               output tree in nexus format." << endl;
+//    std::cout << "--newick / -w                                              output tree in newick format (default)." << endl;
+//    std::cout << "--nexus / -x                                               output tree in nexus format." << endl;
     std::cout << "--non_shared_tips / -t                                     print tip names not present in other tree." << endl;
+    std::cout << "--output [newick/nexus]                                    give tree format for output, nexus (nex or x for short) or newick (new or w for short), e.g --output x. (default w)." << endl; 
     std::cout << "--robinson_foulds / -r                                     compute Robinson-Foulds metric between trees." << endl;
+    std::cout << "--verbose / -v                                             get additional output." << endl;
     std::cout << endl;
 }
 

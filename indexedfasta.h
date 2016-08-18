@@ -45,6 +45,18 @@ class indexedfasta {
     string get_accno2() { return seq2->first; };
     void get_sequence1 ( string& sequence ) { get_sequence (seq1, sequence); };
     void get_sequence2 ( string& sequence ) { get_sequence (seq2, sequence); };
+    bool seq1_is_last_seq() {
+	map<string,set>::iterator temp = seq1;
+	++temp;
+	if (seq1 == index.end() || temp == index.end()) return true;
+	else return false;
+    };
+    bool seq2_is_last_seq() {
+	map<string,set>::iterator temp = seq2;
+	++temp;
+	if (seq2 == index.end() || temp == index.end()) return true;
+	else return false;
+    };
     private:
     struct set {
 	string taxon_string;

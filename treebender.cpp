@@ -92,7 +92,7 @@ int main (int argc, char *argv []) {
     #ifdef DATABASE
     string database_data;
     #endif /*DATABASE*/
-    bool quiet(false);
+    bool quiet(true);
     ///
     if (argc > 1) {
         for (int i=1; i < argc; ++i) {
@@ -197,7 +197,7 @@ int main (int argc, char *argv []) {
 		}
 	    }
 	    else if (!strcmp(argv[i],"--cut_off")) cut_off = atof(argv[++i]);
-    	    else if (!strcmp(argv[i],"-q") || !strcmp(argv[i],"--quiet")) quiet = true;
+    	    else if (!strcmp(argv[i],"-v") || !strcmp(argv[i],"--verbose")) quiet = false;
 	    ////////////////
 	    else if (!strcmp(argv[i],"-R") || !strcmp(argv[i],"--rooted")) rooted=true;
 	    ///////////////
@@ -366,6 +366,18 @@ int main (int argc, char *argv []) {
 		    }
 		}
 		else std::cerr << "--format require nexus or newick as additional argument" << endl;
+	    }
+            else if (!strcmp(argv[i],"--output")) {
+		if ( i < argc-1 && argv[i+1][0] != '-' ) {
+		    ++i;
+		    if (!strcmp(argv[i],"nexus") || !strcmp(argv[i],"nex") || (argv[i][0] == 'x' && argv[i][1] == '\0')) output_format = 'x';
+		    else if (!strcmp(argv[i],"newick") || !strcmp(argv[i],"new") || (argv[i][0] == 'w' && argv[i][1] == '\0')) file_format = 'w';
+		    else {
+			std::cerr << "Do not recognize format " << argv[i] << "." << endl;
+			return 1;
+		    }
+		}
+		else std::cerr << "--output require nexus(nex or x) or newick (new or w) as additional argument" << endl;
 	    }
             else if (!strcmp(argv[i],"-g") || !strcmp(argv[i],"--svg")) {
 		output_format = 's';
@@ -884,8 +896,8 @@ void help () {
     std::cout << "                                                               with ':' or ';'. E.g. 3:Taxon_1,Taxon_2:Taxon_3,Taxon_4." << endl;
     std::cout << "--multiply_branch_lengths_until / -U [cut off,value]       multiply branches in tree up until cut off value distance from root with given value, e.g. 40,2 (default 0.0,1.0)." << endl;
     std::cout << "--n_supported [value]                                      get the number of nodes with higher support than given value. Should be followed by value, e.g. --n_supported 70.0" << endl;
-    std::cout << "--newick / -w                                              output tree in newick format (default)." << endl;
-    std::cout << "--nexus / -x                                               output tree in nexus format." << endl;
+//    std::cout << "--newick / -w                                              output tree in newick format (default)." << endl;
+//    std::cout << "--nexus / -x                                               output tree in nexus format." << endl;
     std::cout << "--nni [integer/all]                                        perform nearest neighbor interchange. If a integer is given as extra argument the interchange will be done on that" << endl;
     std::cout << "                                                               branch (use --get_branch_numbers to get branch numbers). If 0 or no extra argument is given a branch will be" << std::endl;
     std::cout << "                                                               selected. If 'all' is given NNI will be performed for all branches, e.g. --nni 4 or --nni all." << std::endl;
@@ -893,10 +905,11 @@ void help () {
     std::cout << "                                                               branches in the out tree. This argument override this and print no branch lengths." << endl;
     std::cout << "--number_of_taxa / -n                                      get the number of tips/taxa in the tree." << endl;
     std::cout << "--outgroup_root / -o [taxon_string]                        root using most recent common ancestor of given taxa, e.g. -o taxa1,taxa2." << endl;
+    std::cout << "--output [newick/nexus]                                    give tree format for output, nexus (nex or x for short) or newick (new or w for short), e.g --output x. (default w)." << endl; 
     std::cout << "--patristic_distances / -p [value_separator row_separator] get the total patristic distance to all other taxa in the tree for each taxon, the separator between different" << endl;
     std::cout << "                                                               taxa, and the separator between taxon name and value can be specified, e.g. -p , \" | \" (default is new" << endl;
     std::cout << "                                                               line and tab)." << endl;
-    std::cout << "--quiet / -q                                               suppresses some error messages and output." << endl;
+//    std::cout << "--quiet / -q                                               suppresses some error messages and output." << endl;
     std::cout << "--random_tree / -r                                         get a random topology (no branch lengths) with given number of taxa, e.g. -r 20 (default 0)." << endl;
     std::cout << "--read_figtree_annotations                                 will read annotations in FigTree/treeanotator format (e.g. [&rate=1.0,height=3.0])" << endl;
     std::cout << "--relaxed_outgroup_root [taxon_string]                     will root on the group defined as for --get_relaxed_outgroup." << endl;
@@ -916,6 +929,7 @@ void help () {
     std::cout << "                                                               the branches; 'fontsize' sets the size of the font used; 'font' sets which font to use; and 'tipcolor' sets the" << endl;
     std::cout << "                                                               of the tip labels given in parenthesis directly behind the color. 'width' and 'height' are mandatory if you want to set" << endl;
     std::cout << "                                                               any other parameter than tip color. E.g. --svg 'width:300&height:400&tipcolor:red(taxon1,taxon2,taxon3)green(taxon4)'." << endl;
+    std::cout << "--verbose / -v                                             get additional output." << endl;
     std::cout << endl;
 
 }

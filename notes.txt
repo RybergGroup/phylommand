@@ -4,7 +4,7 @@ Put treesplitter in treebender - done
 Moved superstat to contree - done
 Make alignmentgroups independent of sqlite - done
 Move alignmentgroups into pairalign?
-Move clustertree to treebender?
+Move clustertree to treebender - done
 Take care of warnings -Wall - done
 Make every program pipable and also able to read from file, with file given as last argument
 	Done:
@@ -12,15 +12,22 @@ Make every program pipable and also able to read from file, with file given as l
 	pairalign - reads cin input into memory
 	treebender
 	contree
-	clustertree
+	#clustertree
 	alignmentgroups reads into string stream if cin and fasta
 Make sure they can use -f to read files - done
 Look into what file formats can be read:
 	treebender - newick, nexus
-	clustertree - newick, nexus
+	#clustertree - newick, nexus
 	contree - newik, nexus
-	Make treeator able to read more file formats
+	treeator - fasta, phylip, nexus, newick, (for NJ only left upper triangle)
+	pairalign - fasta
+	alignmentgroups - fasta
 Look at which format and how files are printed
+	treebender - newick, nexus, clusters, svg 
+	treeator - newick, nexus
+	pairalign - fasta, plus many non standard (including left upper triangle)
+	contree - newick and nexus for support, text and html for conflicts, text for decisivness
+--nexus/--newick to --output nexus/newick
 Add checks and warnings
 	treeator if no alphabet
 Add prograss reports and quiet options

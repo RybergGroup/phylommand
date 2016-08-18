@@ -14,7 +14,7 @@ void seqdatabase::move_to_next_pair_fst (bool only_lead) {
 		if (!fst.initiate_sequence_retrieval()) mode = '9'; // set to quit is we fail to initiate
 	    }
 	    if (mode != 9) {
-		fst.set_seq2_to_seq1(); //set seq 2 to to be same as seq 1
+		fst.set_seq2_to_seq1(); //set seq 2 to to be same as seq 1 i.e. previous taxon
 		accno2.clear();
 		sequence2.clear();
 		accno1 = fst.get_accno1(); // get accno
@@ -30,7 +30,10 @@ void seqdatabase::move_to_next_pair_fst (bool only_lead) {
 	    if (fst.next_seq2()) { // if able to read next sequence
 		accno2 = fst.get_accno2(); // get accno
 		fst.get_sequence2(sequence2); // get sequence
-		if (mode == '1') mode = '2'; // we have now read a second sequence
+		if (mode == '1') {
+		    if (fst.seq2_is_last_seq()) mode = '9'; // if at last seq quit
+		    else mode = '2'; // we have now read a second sequence
+		}
 		#ifdef DEBUG
 		cerr << "New second seq: " << accno2 << endl;
 		#endif //DEBUG
