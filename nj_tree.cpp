@@ -10,50 +10,76 @@ int njtree::n_taxa_node_and_distance_array ( node_and_distance_array* array) {
 }
 
 void njtree::build_nj_tree ( ) {
+    #ifdef DEBUG
+    print_node_and_distance_array(cerr);
+    #endif //DEBUG
     int r = n_taxa_node_and_distance_array(distance_matrix);
     while (r>2) {
         node_and_distance_array* present=distance_matrix;
         int n=0;
-        // Step 1: calculate sum of distances for each taxa
+	#ifdef DEBUG
+        cerr << "Step 1: calculate sum of distances for each taxa" << endl;
+	#endif //DEBUG
+	//#ifdef DEBUG
+	//print_node_and_distance_array(cerr);
+	//#endif //DEBUG
         while (present!=0) {
-           node_and_distance_array* previous = distance_matrix;
-           present->S = 0;
-           int n_taxa=1;
-           // Before reaching row for the taxa the distances
-           // are summarized for, find the distance to the taxa
-           // for which row we are in
-           while (previous != present) {
-               distance_array* cell=previous->distances;
-               for (int i=0; i<n-n_taxa; ++i) cell=cell->next;
-               present->S += cell->distance;
-               previous=previous->next;
-               ++n_taxa;
-           }
-           // Once we reach the row for the taxa the distances
-           // are summarized for the rest of the distances are
-           //  in that row
-           distance_array* cell=present->distances;
-           while (cell!=0) {
-               present->S += cell->distance;
-               cell=cell->next;
-           }
-           ++n;
-           present=present->next;
-        }
-        // Step 2: calculate pair with smallest M
+	    #ifdef DEBUG
+	    if (present != 0 && present->child != 0)
+		cerr << "calculating for: " << *(present->child->nodelabel) << " (" << present << ";" << present->next << ")" << endl;
+	    else cerr << "No matrix." << endl;
+	    #endif //DEBUG
+	    node_and_distance_array* previous = distance_matrix;
+	    present->S = 0;
+	    int n_taxa=1;
+	    // Before reaching row for the taxa the distances
+	    // are summarized for, find the distance to the taxa
+	    // for which row we are in
+	    while (previous != present ) {
+		distance_array* cell=previous->distances;
+		for (int i=0; i<n-n_taxa; ++i) cell=cell->next;
+		present->S += cell->distance;
+		previous=previous->next;
+		++n_taxa;
+	    }
+	    // Once we reach the row for the taxa the distances
+	    // are summarized for the rest of the distances are
+	    //  in that row
+	    distance_array* cell=present->distances;
+	    while (cell!=0 && n_taxa-n > 0) {
+		present->S += cell->distance;
+		cell=cell->next;
+	    }
+	    ++n;
+	    present=present->next;
+	}
+	#ifdef DEBUG
+        cerr <<  "Step 2: calculate pair with smallest M" << endl;
+	#endif //DEBUG
         float M=0; // values in Q matrix
         int i=0;
         int j=0;
         n=0;
         present=distance_matrix;
+	//#ifdef DEBUG
+	//print_node_and_distance_array(cerr);
+	//#endif //DEBUG
         while (present != 0) {
+	    #ifdef DEBUG
+	    cerr << "calculating for: " << *(present->child->nodelabel) << " (" << present << ";" << present->next << ")" << endl;
+	    print_distance_array( present->distances, cerr );
+	    cerr << endl;
+	    #endif //DEBUG
             distance_array* cell=present->distances;
             int n_taxa=0;
-            while (cell!=0) {
+            while (cell!=0 && n_taxa-n > 0) {
                 //float Sj;
                 node_and_distance_array* j_node = present->next;
                 for (int x=0; x<n_taxa; ++x) j_node = j_node->next;
-                float value=(r-2)*cell->distance -present->S - j_node->S;
+                float value=(r-2)*cell->distance - present->S - j_node->S;
+		#ifdef DEBUG
+		cerr << value << " (" << cell->distance << ";" << cell << ";" << cell->next << ") ";
+		#endif //DEBUG
                 if (value < M) { // No need to save all values just find lowest
                     M=value;
                     i=n;         // note the first
@@ -62,10 +88,16 @@ void njtree::build_nj_tree ( ) {
                 ++n_taxa;
                 cell=cell->next;
             }
+    	    #ifdef DEBUG
+	    cerr << endl;
+	    #endif //DEBUG
             ++n;
             present=present->next;
         }
-        // Step 3-4: Create a node joining selected taxa
+	#ifdef DEBUG
+	cerr << endl;
+        cerr << "Step 3-4: Create a node joining selected taxa" << endl;
+	#endif //DEBUG
         node* new_node = new node;
         node_and_distance_array* join_node1 = distance_matrix;
         for (int x=0; x<i; ++x) join_node1 = join_node1->next;
@@ -73,6 +105,10 @@ void njtree::build_nj_tree ( ) {
         join_node1->child=0;
         node_and_distance_array* join_node2 = join_node1->next;
         for (int x=0; x<j; ++x) join_node2 = join_node2->next;
+	#ifdef DEBUG
+	if (join_node1->child != 0 && join_node2->child != 0) 
+	    cerr << "Creating node to join " <<  join_node1->child->nodelabel << " and " << join_node2->child->nodelabel << endl;
+	#endif //DEBUG
         new_node->right = join_node2->child;
         join_node2->child=0;
         float length;
@@ -83,7 +119,9 @@ void njtree::build_nj_tree ( ) {
         new_node->right->branchlength=length-new_node->left->branchlength;
         new_node->left->parent=new_node;
         new_node->right->parent=new_node;
-        // Step 5: calculate new distance matrix
+	#ifdef DEBUG
+        cerr << "Step 5: calculate new distance matrix" << endl;
+	#endif //DEBUG
         // create a new row
         node_and_distance_array* new_distance_node = new node_and_distance_array;
         new_distance_node->child=new_node; // point it to new node
@@ -103,7 +141,7 @@ void njtree::build_nj_tree ( ) {
                 cell_i=present->distances;
                 for (int x=0; x <i-taxa-1; ++x)  cell_i=cell_i->next;
             }
-            else { // otherwise it is in is row
+            else { // otherwise it is in its row
                 if (taxa==i) {
                     cell_i=present->distances;
                     present=present->next;
@@ -175,16 +213,6 @@ void njtree::build_nj_tree ( ) {
     root->right->branchlength=distance_matrix->distances->distance;
     root->right->parent=root;
     distance_matrix->next->child=0;
-/*
-    root->left=distance_matrix->child;
-    root->left->branchlength=(distance_matrix->distances->distance/2)+(distance_matrix->S-distance_matrix->next->S)/2;
-    root->left->parent=root;
-    distance_matrix->child=0;
-    root->right=distance_matrix->next->child;
-    root->right->branchlength=(distance_matrix->distances->distance/2)+(distance_matrix->next->S-distance_matrix->S)/2;
-    root->right->parent=root;
-    distance_matrix->next->child=0;
-*/    
     delete_node_and_distance_array(distance_matrix);
 }
 
@@ -249,7 +277,7 @@ void njtree::read_distance_matrix( istream& infile, bool lables) {
         /*if ((temp=='\n' || temp=='\r') && !new_row) { // if finding newline and not at start of row
             new_row=true;
         }*/
-        if (temp == ' ' || (temp=='\n' || temp=='\r') || temp=='\t' || infile.peek() == EOF) { // if finished reading value
+        if (temp == ' ' || temp=='\n' || temp=='\r' || temp=='\t' || infile.peek() == EOF) { // if finished reading value
             if (!value.empty()) { //if acctualy have value
                 if (new_row) { // if at start of row
                     // if not in first row first collumn
@@ -295,7 +323,7 @@ void njtree::read_distance_matrix( istream& infile, bool lables) {
         }
         if (temp=='\n' || temp=='\r') new_row=true;
     }
-    if (present->distances != 0) {
+    if (present->distances != 0) { // last taxa in the array should not have any distances since they are accounted for in above rows, so if last ataxa has distances add another taxa
         present->next = new node_and_distance_array;
         present->next->next=0;
         present->next->S=0;
@@ -312,18 +340,18 @@ void njtree::read_distance_matrix( istream& infile, bool lables) {
     }
 }
 
-void njtree::print_node_and_distance_array ( node_and_distance_array* start_node ) {
+void njtree::print_node_and_distance_array ( node_and_distance_array* start_node, ostream& output ) {
     while ( start_node !=0 ) {
-        if (start_node->child!=0) std::cout << *start_node->child->nodelabel << ' ';
-        if (start_node->distances!=0) print_distance_array( start_node->distances );
-        std::cout << endl;
+        if (start_node->child!=0) output << *start_node->child->nodelabel << ' ';
+        if (start_node->distances!=0) print_distance_array( start_node->distances, output );
+        output << endl;
         start_node = start_node->next;
     }
 }
 
-void njtree::print_distance_array ( distance_array* start_node ) {
+void njtree::print_distance_array ( distance_array* start_node, ostream& output ) {
     while ( start_node !=0 ) {
-        std::cout << start_node->distance << ' ';
+        output << start_node->distance << ' ';
         start_node = start_node->next;
     }
 }
@@ -336,5 +364,14 @@ void njtree::add_to_distance_array ( float value, distance_array* start_node ) {
         start_node->next->distance=value;
     }
 }
-
-
+/*
+unsigned int njtree::n_nodes_in_array() {
+    unsigned int n(0);
+    node_and_distance_array* present = distance_matrix;
+    while (present != 0) {
+	present = present->next;
+	n++;
+    }
+    return n;
+}
+*/

@@ -3,7 +3,7 @@ g++ -o anconstruction anconstruction.cpp tree.cpp simpleML.cpp string_tree.cpp m
 Put treesplitter in treebender - done
 Moved superstat to contree - done
 Make alignmentgroups independent of sqlite - done
-Move alignmentgroups into pairalign?
+Move alignmentgroups into pairalign - done
 Move clustertree to treebender - done
 Take care of warnings -Wall - done
 Make every program pipable and also able to read from file, with file given as last argument
@@ -13,21 +13,21 @@ Make every program pipable and also able to read from file, with file given as l
 	treebender
 	contree
 	#clustertree
-	alignmentgroups reads into string stream if cin and fasta
+	#alignmentgroups reads into string stream if cin and fasta
 Make sure they can use -f to read files - done
 Look into what file formats can be read:
 	treebender - newick, nexus
 	#clustertree - newick, nexus
 	contree - newik, nexus
 	treeator - fasta, phylip, nexus, newick, (for NJ only left upper triangle)
-	pairalign - fasta
-	alignmentgroups - fasta
+	pairalign - fasta, sqlite
+	#alignmentgroups - fasta
 Look at which format and how files are printed
-	treebender - newick, nexus, clusters, svg 
+	treebender - newick, nexus, clusters, svg, text/number 
 	treeator - newick, nexus
 	pairalign - fasta, plus many non standard (including left upper triangle)
 	contree - newick and nexus for support, text and html for conflicts, text for decisivness
---nexus/--newick to --output nexus/newick
+--nexus/--newick to --output nexus/newick - done
 Add checks and warnings
 	treeator if no alphabet
 Add prograss reports and quiet options

@@ -568,12 +568,14 @@ void cluster( seqdatabase& db, const string table, const float cut_off, const in
     else cerr << "Could not initiate sequence retrieval. No aligning done for " << table << "." << endl;
     #ifdef PTHREAD
     pthread_attr_destroy(&attr);
-    for (int i=0; i < n_threads; ++i) {
-        int thread_code = pthread_join(thread[i], &status);
-        if (thread_code) {
-            std::cerr << "ERROR!!! Return code from pthread_join() is: " << thread_code << endl;
-            exit (-1);
-        }
+    if (n_threads > 1) {
+	for (int i=0; i < n_threads; ++i) {
+	    int thread_code = pthread_join(thread[i], &status);
+	    if (thread_code) {
+		std::cerr << "ERROR!!! Return code from pthread_join() is: " << thread_code << endl;
+		exit (-1);
+	    }
+	}
     }
     #endif /* PTHREAD */
     if (!quiet) cerr << endl;

@@ -5,10 +5,13 @@ using namespace std;
 bool file_parser::set_file_type( ) {
     if (file_stream == &cin) return false;
     #ifdef DEBUG
-    cerr << "Input streem is from file" << endl;
+    cerr << "Input stream is from file" << endl;
     #endif //DEBUG
     bool return_value = false;
     streampos start = file_stream->tellg();
+    #ifdef DEBUG
+    cerr << "File start pos: " << file_stream->tellg() << endl;
+    #endif //DEBUG
     locale loc;
     string word;
     *file_stream >> word;
@@ -17,8 +20,15 @@ bool file_parser::set_file_type( ) {
 	//std::cerr << word << endl;
 	if (!word.compare("#nexus")) { file_type = 'N'; return_value = true; }
 	else if (word[0]=='>') { file_type = 'f'; return_value = true; }
+	else if (word[0]=='(') { file_type = 'n'; return_value = true; }
+	else if (word[0] == '1' || word[0] == '2' || word[0] == '3' || word[0] == '4' ||
+		word[0] == '5' || word[0] == '6' || word[0] == '7' || word[0] == '8' ||
+		word[0] == '9') { file_type = 'p'; return_value = true; }
     }
     file_stream->seekg(start);
+    #ifdef DEBUG
+    cerr << "File pos when finished guessing file format: " << file_stream->tellg() << endl;
+    #endif //DEBUG
     return return_value;
 }
 

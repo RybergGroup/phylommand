@@ -71,6 +71,9 @@ void matrix_parser::pars_relaxed_phylip() {
 }
 
 void matrix_parser::pars_fasta() {
+    #ifdef DEBUG
+    cerr << "Parsing fasta." << endl;
+    #endif //DEBUG
     char character;
     string taxon;
     bitset<SIZE> trait;
@@ -80,6 +83,9 @@ void matrix_parser::pars_fasta() {
     unsigned int n_taxa(0);
     while (file) {
 	file.get(character);
+	#ifdef DEBUG
+	cerr << "Read in char: " << character << " (mode: " << read_mode << ")." << endl;
+	#endif //DEBUG
 	if (character == '>') read_mode = 't';
 	else if (read_mode == 't' && (character == '\n' || character == '\r') ) {
 	    if (!row.empty()) {

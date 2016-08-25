@@ -56,7 +56,7 @@ int main (int argc, char *argv []) {
     #endif //DEBUG
     bool lables = true;
     char method = 'p';
-    bool random = false;
+    //bool random = false;
     bool print_br_length(true);
     bool print_state_on_nodelable(false);
     char print_tree = 'w';
@@ -141,7 +141,7 @@ int main (int argc, char *argv []) {
 		#endif //DEBUG
             }
 	    else if (!strcmp(argv[i],"-r") || !strcmp(argv[i],"--random")) {
-                random = true;
+                method = 'r';
             }
             else if (!strcmp(argv[i],"-0") || !strcmp(argv[i],"--no_branch_length")) print_br_length = false;
 ///////////// From ancon
@@ -257,6 +257,7 @@ int main (int argc, char *argv []) {
 	#ifdef DEBUG
 	cerr << data_file_name << endl;
 	#endif //DEBUG
+	if (!quiet) cerr << "Reading data from: " << data_file_name << endl;
         data_file.open(data_file_name.c_str(),std::ifstream::in);
         if (data_file.good())
             data_input.file_stream = &data_file;
@@ -271,14 +272,18 @@ int main (int argc, char *argv []) {
     #endif //DEBUG
     if (method == 'n') { // Neigbour Joining
 	njtree tree;
+	if (!quiet) cerr << "Reading distance matrix." << endl;
 	tree.read_distance_matrix(*data_input.file_stream, lables);
+	if (!quiet) cerr << "Read distances for " << tree.n_nodes_in_array() << " taxa." << endl;
+	if (!quiet) tree.print_node_and_distance_array(cerr);
 	//tree.print_node_and_distance_array();
+	if (!quiet) cerr << "creating NJ tree." << endl;
 	tree.build_nj_tree();
 	if (print_tree == 'w') tree.print_newick(print_br_length);
 	else if (print_tree == 'x') tree.print_nexus(print_br_length);
 	return 0;
     }
-    if (method == 'p' || method == 's' || method == 'o' || method == 't') { // ML or parsimony
+    if (method == 'p' || method == 's' || method == 'r' || method == 'o' || method == 't') { // ML or parsimony
 	vector<character_vector> characters;
 	map<char, bitset<SIZE> > alphabet;
 	alphabet::set_alphabet_binary(alphabet);
@@ -309,13 +314,14 @@ int main (int argc, char *argv []) {
 	else if (!data_input.set_file_type()) {
 	    if (!data_input.set_file_type("fasta")) cerr << "Failed to set default file type." << endl;
 	}
+	if (!quiet) cerr << "Data file format: " << data_input.get_file_type() << endl;
 	if (data_input.test_file_type("nexus")) {
 	    if (!data_input.move_to_next_X_block( nexus_block::DATA )) {
 		cerr << "Could not find DATA block in NEXUS file." << endl;
 		return 1;
 	    }
 	}
-	matrix_parser data_parser(*data_input.file_stream, characters, regions, data_file_format);
+	matrix_parser data_parser(*data_input.file_stream, characters, regions, data_input.get_file_type() );
 	data_parser.pars();
 	if (!quiet)
 	    std::cerr << "Number of taxa: " << characters.size() << "." << endl;
@@ -335,6 +341,7 @@ int main (int argc, char *argv []) {
 	else if (!tree_input.set_file_type()) {
 	    if (!tree_input.set_file_type("newick")) cerr << "Failed to set default file type." << endl;
 	}
+	if (!quiet) cerr << "Tree file format: " << tree_input.get_file_type() << endl;
 	if (!tree_file_name.empty()) {
 	    tree_file.open(tree_file_name.c_str(),std::ifstream::in);
 	    if (tree_file.good())
@@ -395,10 +402,10 @@ int main (int argc, char *argv []) {
 		cout << "End;" << endl;
 	    }
 	}
-	else if (method == 's') {
+	else if (method == 's' || method == 'r') {
 	    if (!quiet) cerr << "Performing stepwise addition." << endl;
 	    tree tree;
-	    if (random) random_shuffle(characters.begin(),characters.end());
+	    if (method == 'r') random_shuffle(characters.begin(),characters.end());
 	    tree.stepwise_addition(characters);
 	    if (print_br_length) tree.fitch_parsimony( characters, print_br_length );
 	    if (print_tree == 'w') tree.print_newick(print_br_length);
@@ -618,7 +625,7 @@ void help () {
 //    std::cout << "--nexus / -x                                               output tree in nexus format." << endl;
     std::cout << "--no_branch_length / -0                                    do not print branch lengths and do not calculate branch lengths for" << std::endl;
     std::cout << "                                                               parsimony trees" << endl;
-    std::cout << "--no_lable / -l                                            will tell treeator that there are no taxon labels in the matrix." << endl;
+    std::cout << "--no_lable / -L                                            will tell treeator that there are no taxon labels in the matrix." << endl;
     #ifdef NLOPT
     std::cout << "--no_optim/-n                                              calculate likelihood for given parameters. No optimization." << endl;
     #endif //NLOPT

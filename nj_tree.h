@@ -40,10 +40,12 @@ class njtree : public tree {
             node *child;
             node_and_distance_array *next;
         };
+	unsigned int n_nodes_in_array() { n_taxa_node_and_distance_array(distance_matrix); }
         void read_distance_matrix( istream& infile, bool lables);
         void build_nj_tree ();
-        void print_node_and_distance_array() {
-            print_node_and_distance_array ( distance_matrix );
+        void print_node_and_distance_array() { print_node_and_distance_array ( distance_matrix, cout ); };
+        void print_node_and_distance_array( ostream& output) {
+            print_node_and_distance_array ( distance_matrix, output );
         }
     private:
         node_and_distance_array* distance_matrix;
@@ -52,8 +54,8 @@ class njtree : public tree {
         void delete_node_and_distance_array_node(node_and_distance_array* delete_node, node_and_distance_array* previous_node);
         void delete_distance_array_node ( distance_array* delete_node, distance_array* previous_node, node_and_distance_array* father );
         void delete_distance_array ( distance_array* start_node );
-        void print_node_and_distance_array ( node_and_distance_array* start_node );
-        void print_distance_array ( distance_array* start_node );
+        void print_node_and_distance_array ( node_and_distance_array* start_node, ostream& output );
+        void print_distance_array ( distance_array* start_node, ostream& output );
         void add_to_distance_array ( float value, distance_array* start_node );
 };
 
