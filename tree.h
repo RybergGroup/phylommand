@@ -147,6 +147,12 @@ class tree {
         string tip_names( string separator ) {
             return tip_names( root, separator );
         };
+	void clear_internal_node_labels ( ) {
+	    clear_internal_node_labels(root);
+	};
+	double log_clade_credibility ( ) {
+	    return log_clade_credibility( root );
+	};
         void midpoint_root ( );
         void outgroup_root ( const string taxa ){
 	    node *present = most_recent_common_ancestor (taxa);
@@ -189,6 +195,9 @@ class tree {
         void set_br_length (const float value) {
             set_br_length_subtree ( root, value );
         };
+	void null_short_branches( const double value ) {
+	    null_short_branches(root, value);
+	};
         double sum_br_length ( ) {
             return sum_br_length( root );
         };
@@ -316,6 +325,15 @@ class tree {
             if (leaf->left == 0 && leaf->right == 0 ) { return 1; }
             return n_sub_tips(leaf->left) + n_sub_tips(leaf->right);
         };
+	void clear_internal_node_labels( node *leaf ) {
+	    if (leaf != 0) {
+		if (leaf->left != 0) clear_internal_node_labels(leaf->left);
+		if (leaf->right != 0) clear_internal_node_labels(leaf->right);
+		if (leaf->left !=0 || leaf->right != 0) leaf->nodelabel = 0;
+	    }
+	};
+	double log_clade_credibility( node* leaf ); 
+	void null_short_branches( node* leaf, const double value );
 	unsigned int get_internal_node_by_number(node* leaf, node*& tip, unsigned int node_no); // leaft is node 1, then node number increase by one as they occure in a newick tree
 	node* get_internal_branch_by_number_unrooted(unsigned int branch_no);
 	unsigned int get_tip_by_number(node* leaf, node*& tip, unsigned int tip_no); // tips are numbered from the left as they occure in the tree, a pointer to the tip will be placed in tip

@@ -9,7 +9,6 @@ void seqpair::set_DNA_alphapet() {
     alphabet['c'].set(2);
     alphabet['T'].set(3);
     alphabet['t'].set(3);
-    //alphabet['-'].set(0); alphabet['-'].set(1); alphabet['-'].set(2); alphabet['-'].set(3);
     alphabet['-'].reset();
     alphabet['R'].set(0); alphabet['R'].set(1);
     alphabet['r'].set(0); alphabet['r'].set(1);

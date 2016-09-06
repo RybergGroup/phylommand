@@ -119,6 +119,9 @@ void tree::tree_file_parser( istream& infile, map<string,string> label_translati
 		present_node->nodelabel = nodelabels.add_string(label_string + extra_label_string);
 		label_string.clear();
 		extra_label_string.clear();
+		#ifdef DEBUG
+		cerr << *present_node->nodelabel << endl;
+		#endif //DEBUG
 	    }
 	    if (!branch_length_annotation.empty()) {
 		present_node->branchlength = atof(branch_length_annotation.c_str());
@@ -147,6 +150,7 @@ void tree::tree_file_parser( istream& infile, map<string,string> label_translati
         }
         //if right bracket move back to parent node
         else if ( temp == ')' ) {
+	    read_mode = 'l';
             if (!label_string.empty() || !extra_label_string.empty()) {
 		if (!label_translation.empty()) {
 		    map<string,string>::const_iterator translation = label_translation.find(label_string);
@@ -155,6 +159,9 @@ void tree::tree_file_parser( istream& infile, map<string,string> label_translati
     		present_node->nodelabel = nodelabels.add_string(label_string + extra_label_string);
     		label_string.clear();
 		extra_label_string.clear();
+		#ifdef DEBUG
+		cerr << *present_node->nodelabel << endl;
+		#endif //DEBUG
             }
 	    if (!branch_length_annotation.empty()) {
 		present_node->branchlength = atof(branch_length_annotation.c_str());
@@ -165,7 +172,23 @@ void tree::tree_file_parser( istream& infile, map<string,string> label_translati
         //if colon read branch length
         else if ( temp == ':') read_mode = 'b';
         else if ( temp == ';' ) {
-            if (present_node == root ) {break;} //check so we are back at root, if so we happily finish
+            if (present_node == root ) { //check so we are back at root, if so we happily finish
+		if (!label_string.empty() || !extra_label_string.empty()) {
+		    if (!label_translation.empty()) {
+			map<string,string>::const_iterator translation = label_translation.find(label_string);
+			if (translation != label_translation.end()) label_string = translation->second;
+		    }
+		    present_node->nodelabel = nodelabels.add_string(label_string + extra_label_string);
+		    #ifdef DEBUG
+		    cerr << *present_node->nodelabel << endl;
+		    #endif //DEBUG
+		}
+		if (!branch_length_annotation.empty()) {
+		    present_node->branchlength = atof(branch_length_annotation.c_str());
+		    branch_length_annotation.clear();
+		}
+		break;
+	    }
             else { //if we are not back at the root something is wrong
                 std::cerr << "Right and left brackets not balanced in tree file, removing tree." << endl; //print error massage
                 destroy_tree(root); //destroy what we have built
@@ -174,23 +197,9 @@ void tree::tree_file_parser( istream& infile, map<string,string> label_translati
         }
 	else if (read_mode == 'b') {
 	    branch_length_annotation += temp;
-            /*int i=0; //counter
-            char number[100]; //branch length can be max 99 digits
-                infile >> temp; //read next character
-            while ( (temp == '0' || temp == '1' || temp == '2' || temp == '3' || temp == '4' ||
-                    temp == '5' || temp == '6' || temp == '7' || temp == '8' || temp == '9' ||
-                    temp == '.' || temp == 'e' || temp == 'E' || temp == '-') && i < 99 ) { //if a digit store it up to 99 digits
-                number[i] = temp; //store digit
-                number[++i] = '\0'; //increase counter and set next slot to end of string
-                infile >> temp; //read next character
-            }
-            //if (present_node == root) continue;
-            present_node->branchlength = atof(number); //when done reading branch length in store it
-            continue; //we have already read the next character so skip that
-	    */
         }
         //if we read semicolon we have reached the end of the tree
-        else if (read_mode=='l')/*if ( present_node != root )*/ {
+        else if (read_mode=='l') {
             label_string += temp;
         }
         infile >> temp; //read next character for next loop
@@ -2418,3 +2427,25 @@ unsigned int tree::parsimony_score_if_tip_added_to_branch (const unsigned int br
     #endif //DEBUG
     return score;
 }
+
+double tree::log_clade_credibility( node* leaf ) {
+    double credibility(0.0);
+    if (leaf != 0) {
+	if (leaf->nodelabel != 0 && leaf->left != 0 && leaf->right != 0) {
+	    credibility = atof(leaf->nodelabel->c_str());
+	    if (credibility != 0.0) credibility = log(credibility);
+	}
+	if (leaf->left != 0) credibility += log_clade_credibility(leaf->left);
+	if (leaf->right != 0) credibility += log_clade_credibility(leaf->right);
+    }
+    return credibility;
+}
+
+void tree::null_short_branches( node* leaf, const double value ) {
+    if (leaf != 0) {
+	if (leaf->left != 0) null_short_branches( leaf->left, value);
+	if (leaf->right != 0) null_short_branches( leaf->right, value);
+	if (leaf->branchlength < value) leaf->branchlength = 0.0;
+    }
+}
+

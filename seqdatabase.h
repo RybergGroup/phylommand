@@ -105,7 +105,7 @@ class seqdatabase {
 	else if (databasetype == 's') move_to_next_pair_sql ( only_lead );
 	#endif //DATABASE
     };
-    bool at_new_first() { if (mode == '0' || mode == '1') return true; else return false; }
+    bool at_new_first() { if (mode == '0' || mode == '1' || mode == '2' || mode == '9') return true; else return false; }
     bool end_of_round() { if (mode == '0' || mode == '9') return true; else return false; }
     bool all_pairs() { if(mode == '9') return true; else return false; };
     string get_accno1() { return accno1; };
@@ -231,7 +231,7 @@ class seqdatabase {
     float get_comp_value_sql ( const string accno, const string table);
     void get_taxon_string_sql ( string accno, string& taxon_string );
     bool initiate_sequence_retrieval_sql( const string table, string min_length);
-    void move_to_next_pair_sql () { move_to_next_pair(false); };
+    void move_to_next_pair_sql () { move_to_next_pair_sql(false); };
     void move_to_next_pair_sql ( bool only_lead );
     #endif //DATABASE
 };

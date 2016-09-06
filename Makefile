@@ -9,7 +9,7 @@ CC=gcc
 NLOPT= YES # if NLOPT set to NO set TREEATORFLAGS = -DNOLNLOPT
 WIN = NO # add WIN=YES if compiling on windows using MinGW
 PTHREADS = NO # set to yes to compile using pthreads, PTHREADS=-DPTREADS
-DATABASE = YES # set to compile with database
+DATABASE = NO # set to compile with database
 
 PHYLOMMAND = treebender pairalign contree treeator #clustertree anconstruction treesplitter superstat alignmentgroups 
 #CFLAGS
@@ -32,7 +32,7 @@ DECISIVE = decisiveness.cpp
 SQLITE = sqlite3.c
 SQLITEO = sqlite3.o
 TREEB = treebender.cpp
-CLUSTTREE = clustertree_main.cpp
+#CLUSTTREE = clustertree_main.cpp
 DATABASEFLAG = -DDATABASE
 ifeq ($(DATABASE),NO)
     DATABASEFLAG =
@@ -56,25 +56,26 @@ SIMPLEML = simpleML.cpp
 MARTH = marth/marth.cpp
 #SUPPORTFUNCTIONS = support_functions.cpp
 FILE_PARSER = file_parser.cpp
+ARGV_PARSER = argv_parser.cpp
 MATRIXPARS = matrix_parser.cpp
 SEQDB = seqdatabase.cpp
 INDEXEDFST = indexedfasta.cpp
 
-OTREE = tree.o treebender.o string_tree.o file_parser.o matrix_parser.o clustertree.o $(SQLITEO) # support_functions.o
+OTREE = tree.o treebender.o string_tree.o file_parser.o argv_parser.o matrix_parser.o clustertree.o $(SQLITEO) # support_functions.o
 #OCLUSTTREE = clustertree.o tree.o clustertree_main.o string_tree.o matrix_parser.o file_parser.o $(SQLITEO) # support_functions.o
-OALIGNMENT = seqpair.o align_group.o seqdatabase.o indexedfasta.o alignmentgroups.o $(SQLITEO)
+//OALIGNMENT = seqpair.o align_group.o seqdatabase.o indexedfasta.o alignmentgroups.o $(SQLITEO)
 OPAIRALIGN = seqpair.o pairalign.o align_group.o seqdatabase.o indexedfasta.o $(SQLITEO)
 #OSPLIT = tree.o treesplitter.o string_tree.o matrix_parser.o # support_functions.o
 #OSUPER = superstat.o tree.o decisiveness.o string_tree.o matrix_parser.o # support_functions.o
 OCONTREE = contree.o tree.o decisiveness.o string_tree.o matrix_parser.o file_parser.o # support_functions.o
-OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o matrix_parser.o file_parser.o $(TREEATORLINKFLAGS) # support_functions.o
+OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o matrix_parser.o file_parser.o argv_parser.o $(TREEATORLINKFLAGS) # support_functions.o
 
 # treeator.cpp tree.cpp string_tree.cpp nj_tree.cpp
 
 all: $(PHYLOMMAND)
 
 treebender: $(OTREE)
-	$(PP) -o treebender $(OTREE)
+	$(PP) -o treebender $(OTREE) $(SQLOFLAGS)
 
 #clustertree: $(OCLUSTTREE)
 #	$(PP) -o clustertree $(OCLUSTTREE) $(SQLOFLAGS)
@@ -98,7 +99,7 @@ treeator: $(OTREEATOR)
 	$(PP) -o treeator $(OTREEATOR) $(TREEATORFLAGS)
 
 treebender.o: $(TREEB)
-	$(PP) -c $(TREEB) $(EXTRAS)
+	$(PP) $(DATABASEFLAG) -c $(TREEB) $(EXTRAS)
 
 #clustertree_main.o: $(CLUSTTREE)
 #	$(PP) $(DATABASEFLAG) -c $(CLUSTTREE) $(EXTRAS)
@@ -162,6 +163,9 @@ marth.o: $(MARTH)
 
 file_parser.o: $(FILE_PARSER)
 	$(PP) -c $(FILE_PARSER) $(EXTRAS)
+
+argv_parser.o: $(ARGV_PARSER)
+	$(PP) -c $(ARGV_PARSER) $(EXTRAS)
 
 matrix_parser.o: $(MATRIXPARS)
 	$(PP) -c $(MATRIXPARS) $(EXTRAS)

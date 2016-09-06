@@ -39,6 +39,9 @@ struct tree_array {
 void pars_decisiveness_input( istream* input, string& genestring );
 
 int main (int argc, char *argv []) {
+    #if DEBUG
+    cerr << "Debugging version!!!" << endl;
+    #endif //DEBUG
     char method = 'c';
     float cut_off = 0.5;
     bool html = false;
@@ -59,6 +62,7 @@ int main (int argc, char *argv []) {
     int n_iterations(100);
     bool quiet(true);
     if (argc > 1) {
+	/// Read arguments ///
         for (int i=1; i < argc; ++i) {
             if (!strcmp(argv[i],"-c") || !strcmp(argv[i],"--compare")) {
                 method = 'c';
@@ -108,7 +112,7 @@ int main (int argc, char *argv []) {
 		else std::cerr << "--output require nexus(nex or x) or newick (new or w) as additional argument" << endl;
 	    }
 	    else if (!strcmp(argv[i],"-d") || !strcmp(argv[i],"--database")) {
-		if ( i < argc-1 && argv[i+1][0] != '-' )
+		if ( i < argc-1 && (argv[i+1][0] != '-' || (argv[i+1][0] && argv[i+1][1] == '\0')))
 		    database_name = argv[++i];
                 else {
                     std::cerr << "-d/--database require a file name as next argument" << endl;
@@ -155,6 +159,7 @@ int main (int argc, char *argv []) {
        for (int i=0; i<argc; ++i) std::cerr << argv[i] << ' ';
        std::cerr << endl << endl;
     }
+    /// Open files ///
     if (!file_name.empty()) {
         input_file.open(file_name.c_str(),std::ifstream::in);
         if (input_file.good())
@@ -163,23 +168,52 @@ int main (int argc, char *argv []) {
             cerr << "Could not open file: " << file_name << endl;
             return 1;
         }
+	if (!quiet) {
+	    cerr << "Trees will be read from " << file_name << "." << endl;
+	}
     }
+    else if (!quiet) cerr << "Trees will be read from standard in." << endl;
+    if (!file_format.empty()) {
+	input.set_file_type(file_format.c_str());
+    }
+    else if (!input.set_file_type()) {
+	if (!input.set_file_type("newick")) cerr << "Failed to set default file type." << endl;
+    }
+    if (!quiet) cerr << "Format of trees to compare is " << input.get_file_type() << "." << endl;
     if (!database_name.empty()) {
-        database_file.open(database_name.c_str(),std::ifstream::in);
-        if (!database_file.good()) {
-            cerr << "Could not open file: " << database_name << endl;
-            return 1;
-        }
-	else db_input.file_stream = &database_file;
+	if (!database_name.compare("-")) {
+	    if (input.file_stream == &cin) {
+		cerr << "Tree input must be from file if database is taken from standard in." << endl;
+		return 1;
+	    }
+	    db_input.file_stream = &cin;
+	    if (!quiet) {
+		cerr << "Trees that will be compared against (database), will be read from stdin." << endl;
+	    }
+	}
+	else {
+	    database_file.open(database_name.c_str(),std::ifstream::in);
+	    if (!database_file.good()) {
+		cerr << "Could not open file: " << database_name << endl;
+		return 1;
+	    }
+	    else db_input.file_stream = &database_file;
+	    if (!quiet) {
+		cerr << "Trees that will be compared against (database), will be read from " << file_name << "." << endl;
+	    }
+	}
 	if (!db_file_format.empty()) {
     	    db_input.set_file_type(db_file_format.c_str());
 	}
 	else if (!db_input.set_file_type()) {
 	    if (!db_input.set_file_type("newick")) cerr << "Failed to set default file type." << endl;
 	}
+	if (!quiet) cerr << "Format of trees to compare against (database) is " << db_input.get_file_type() << "." << endl;
     }
+    /// Do calculation of decisiveness if that is what to be done
     if (method == 'D') {
 	if (genestring.empty() && (input_file.good() || input.file_stream == &std::cin)) {
+	    if (!quiet) cerr << "Parsing data for decisiveness estimation." << endl;
 	    pars_decisiveness_input( input.file_stream, genestring );
 	}
         if (genestring.empty()) {
@@ -189,17 +223,13 @@ int main (int argc, char *argv []) {
 	#ifdef DEBUG
 	cerr << genestring << endl;
 	#endif //DEBUG
+	if (!quiet) cerr << "Starting to estimate decisiveness." << endl; 
         decisiveness stat(&genestring);
         stat.on_random_tree( n_iterations );
         cout << "The gene sampling is decisive for " << stat.get_decisiveness() << " of the trees and " << stat.get_distinguished() << " of the branches." << endl;
 	return 0;
     }
-    if (!file_format.empty()) {
-	input.set_file_type(file_format.c_str());
-    }
-    else if (!input.set_file_type()) {
-	if (!input.set_file_type("newick")) cerr << "Failed to set default file type." << endl;
-    }
+    /// Prepare to read nexus file
     char nexus_command = nexus_command::NON;
     if (input.test_file_type("nexus")) {
 	if (input.move_to_next_X_block( nexus_block::TREES )) {
@@ -220,11 +250,12 @@ int main (int argc, char *argv []) {
 	    }
 	}
     }
-    // Read trees
+    /// Read trees
     tree_array* array = new tree_array;
     array->next = 0;
     tree_array* array_start = array;
     unsigned int read_trees(0);
+    if (!quiet) cerr << "Reading trees ";
     while (1) {
 	if (input.test_file_type("nexus") || input.test_file_type("newick")) {
     	    if (input.test_file_type("nexus")) {
@@ -242,15 +273,17 @@ int main (int argc, char *argv []) {
 	    }
 	}
 	else { cerr << "Unrecognized file format." << endl; return 1; }
+	if (!quiet) cerr << '.';
     }
+    if (!quiet) cerr << endl << "Starting to compare trees." << endl;
     array = array_start;
-    // Beginning messages for the different methods
+    /// Beginning messages for the different methods
     if (method == 'c' && html) {
 	std::cout << "<!DOCTYPE html>" <<  endl << "<html>" << endl << "<body>" << endl;
 	std::cout << "<h1>Conflicts between trees</h1>" << endl;
 	std::cout << "<p>Tips in green are supported as monophyletic in the first tree, while tips in red are supported as nested within the green in the second tree.</p>" << endl;
     }
-    //Loop over trees
+    /// Loop over trees
     int i=0;
     while (array != 0 && array->phylo.n_tips() > 1) {
 	unsigned int sum = 0;
@@ -264,7 +297,7 @@ int main (int argc, char *argv []) {
 	int n_comp = 0;
 	database_file.clear();
 	database_file.seekg(0,database_file.beg);
-	// Loop over trees to compare to
+	/// Loop over trees to compare to
 	while (1) {
 	    ++j;
 	    convert.clear();
@@ -345,32 +378,57 @@ int main (int argc, char *argv []) {
 }
 
 void help () {
-    std::cout << "Contree is a command line program for comparing trees." << endl;
-    std::cout << "The program take two trees in newick format as indata through standard in." << endl;
-    std::cout << "(c) Martin Ryberg 2015." << endl << endl;
-    std::cout << "Usage:" << endl << "conftree [arguments] < file.trees" << endl << endl;
+    std::cout << "Contree is a command line program for comparing trees. It can compare trees in" << endl;
+    std::cout << "one file/input against each other or compare the trees in one file/input to the"<< endl;
+    std::cout << "trees in another file/input." << endl;
+    std::cout << "(c) Martin Ryberg 2016." << endl << endl;
+    std::cout << "Usage:" << endl << "contree [arguments] file.trees" << endl << endl;
     std::cout << "Arguments:" << endl;
-    std::cout << "--add_to_support / -a                                      add one to the value of internal node for each tree the split is present in." <<endl;
-    std::cout << "--compare / -c [float value]                               output conflicting splits where at least one branch support the conflict with more than given support," << endl;
-    std::cout << "                                                               e.g. -f 0.7." <<endl;
-    std::cout << "--database / -d [file name]                                give a second file of trees to compare agains instead of comparing within the ordinary input." << endl;
-    std::cout << "--decisiveness/-D                                          calculates proportion of random trees for which given gene sampling is decisive and the mean" << endl;
-    std::cout << "                                                               proportion of branches that are distinguished. The genes for each taxa are given as a" << endl;
-    std::cout << "                                                               comma (,) separated string, the genes of each taxa are separated by a bar (|). The number" << endl;
-    std::cout << "                                                               of random trees are given by a number after the genes, e.g. -D 'ITS,RPB2|ITS|ITS,RPB2|RPB2|RPB2|ITS'," << endl;
-    std::cout << "                                                               or in a file with a comma separated string with the genes for each taxa on a separate row." << endl;
-    std::cout << "--iterations / -i                                          give numbers of iterations to do when calculating decisiveness, e.g. -i 1000" << endl; 
-    std::cout << "--file / -f [file name]                                    give file name for trees or decisiveness, e.g. -f file.tree." << endl;
-    std::cout << "--format [newick/nexus]                                    give format of input, e.g. --format nexus. If no format is given and the input is a file treebender will try to" << endl;
-    std::cout << "                                                               guess the format, if it is through standard in it will assume newick format." << endl;
-    std::cout << "--help / -h                                                print this help." << endl;
-    std::cout << "--html                                                     give output as tree in html (svg) format with conflicting tips coloured green and red." << endl;
-//    std::cout << "--newick / -w                                              output tree in newick format (default)." << endl;
-//    std::cout << "--nexus / -x                                               output tree in nexus format." << endl;
-    std::cout << "--non_shared_tips / -t                                     print tip names not present in other tree." << endl;
-    std::cout << "--output [newick/nexus]                                    give tree format for output, nexus (nex or x for short) or newick (new or w for short), e.g --output x. (default w)." << endl; 
-    std::cout << "--robinson_foulds / -r                                     compute Robinson-Foulds metric between trees." << endl;
-    std::cout << "--verbose / -v                                             get additional output." << endl;
+    std::cout << "--add_to_support / -a           add one to the value of the internal node for" << endl;
+    std::cout << "                                each tree that that split is present in." <<endl;
+    std::cout << "--compare / -c [float value]    output conflicting splits where at least one" << endl;
+    std::cout << "                                branch support the conflict with more than given" << endl;
+    std::cout << "                                support, e.g. -f 0.7." << endl;
+    std::cout << "--database / -d [file name]     give a second file of trees to compare against" << endl;
+    std::cout << "                                instead of comparing within the ordinary input." << endl;
+    std::cout << "                                If - is given input will be taken from standard" << endl;
+    std::cout << "                                in instead of file, e.g. -d -. In that case the" << endl;
+    std::cout << "                                input compared to must  be given in a file (by" << endl;
+    std::cout << "                                -f or as last argument)." << endl;
+    std::cout << "--decisiveness / -D             calculates proportion of random trees for which" << endl;
+    std::cout << "                                given gene sampling is decisive and the mean" << endl;
+    std::cout << "                                proportion of branches that are distinguished." << endl;
+    std::cout << "                                The genes for each taxon are given as a comma" << endl;
+    std::cout << "                                (,) separated string, the genes of each taxon" << endl;
+    std::cout << "                                are separated by a bar (|). The number of random" << endl;
+    std::cout << "                                trees are given by a number after the genes," << endl;
+    std::cout << "                                e.g. -D 'ITS,RPB2|ITS|ITS,RPB2|RPB2|RPB2|ITS'," << endl;
+    std::cout << "                                or in a file (given by -f or as last argument)" << endl;
+    std::cout << "                                with a comma separated string with the genes for" << endl;
+    std::cout << "                                each taxa on a separate row." << endl;
+    std::cout << "--iterations / -i               give numbers of iterations to do when" << endl;
+    std::cout << "                                calculating decisiveness, e.g. -i 1000." << endl; 
+    std::cout << "--file / -f [file name]         give file name for trees, or decisiveness, e.g." << endl;
+    std::cout << "                                -f file.tree." << endl;
+    std::cout << "--format [newick/nexus]         give format of input, e.g. --format nexus. If no" << endl;
+    std::cout << "                                format is given and the input is a file contree" << endl;
+    std::cout << "                                will try to guess the format, if it is through" << endl;
+    std::cout << "                                standard in it will assume newick format. A" << endl;
+    std::cout << "                                separate file format can be given for the" << endl;
+    std::cout << "                                database file after a ',', e.g. --format" << endl;
+    std::cout << "                                newick,nexus. If only one format is given, it" << endl;
+    std::cout << "                                will be used for both tree files/inputs." << endl;
+    std::cout << "--help / -h                     print this help." << endl;
+    std::cout << "--html                          give output as tree in html (svg) format with" << endl;
+    std::cout << "                                conflicting tips coloured green and red." << endl;
+//    std::cout << "--newick / -w                 output tree in newick format (default)." << endl;
+//    std::cout << "--nexus / -x                  output tree in nexus format." << endl;
+    std::cout << "--non_shared_tips / -t          print tip names not present in other tree." << endl;
+    std::cout << "--output [newick/nexus]         give tree format for output, nexus (nex or x for" << endl;
+    std::cout << "                                short) or newick (new or w for short), e.g" << endl;
+    std::cout << "                                --output x. (default w)." << endl;
+    std::cout << "--robinson_foulds / -r          compute Robinson-Foulds metric between trees." << endl;
+    std::cout << "--verbose / -v                  get additional output." << endl;
     std::cout << endl;
 }
 

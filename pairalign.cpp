@@ -54,6 +54,9 @@ void cluster_each_table ( const string& file, const char* databasetype, const st
  **** MAIN FUNCTION, parse arguments and execute cluster function ****
 ********************************************************************/
 int main (int argc, char *argv[]) {
+    #if DEBUG
+    cerr << "Debugging version!!!" << endl;
+    #endif //DEBUG
     char output_mode = 'a';
     bool matrix = false;
     bool quiet(true);
@@ -261,52 +264,78 @@ int main (int argc, char *argv[]) {
 
 /*** Function to print help ***/
 void help() {
-    std::cout << "This program will perform pairwise alignment of sequences given in fasta format through standard in." << endl; 
-    std::cout << "alignmentgroups (c) Martin Ryberg" << endl << endl;
-    std::cout << "Usage:" << endl << "pairalign [arguments] < inputfile.fasta" << endl << endl;
+    std::cout << "This program will perform pairwise alignment of sequences given in fasta format" << endl; 
+    std::cout << "through standard in." << endl << endl;
+    std::cout << "Usage:" << endl << "pairalign [arguments] < inputfile.fasta" << endl << "pairalign [arguments] inputfile.fasta" << endl << endl;
     std::cout << "Arguments:" << endl;
-    std::cout << "--aligned / -A                  input file is aligned." << endl;
-    std::cout << "--alignment_groups              this option will cluster sequences that are similar and find the most inclusive taxa in a" << endl; 
-    std::cout << "                                    hierarchy that are alignable. It need the taxonomy given after a (the first) | in the" << endl;
-    std::cout << "                                    sequence name. Each taxa in the hierarchy should be separated by a semicolon, with the" << endl;
-    std::cout << "                                    highest rank first and then increasingly nested levels until the lowest known level for" << endl;
-    std::cout << "                                    the sequence.";
+    std::cout << "--aligned / -A                  input file is already aligned." << endl;
+    std::cout << "--alignment_groups              this option will cluster sequences that are" << endl;
+    std::cout << "                                similar and find the most inclusive taxa in a" << endl; 
+    std::cout << "                                hierarchy that are alignable according to MAD" << endl;
+    std::cout << "                                (Smith et al. 2009, BMC evol. Biol. 9:37). It" << endl;
+    std::cout << "                                need the taxonomy given after a (the first) | in" << endl;
+    std::cout << "                                the sequence name. Each taxa in the hierarchy" << endl;
+    std::cout << "                                should be separated by a semicolon, with the" << endl;
+    std::cout << "                                highest rank first and then increasingly nested" << endl;
+    std::cout << "                                levels until the lowest known level for the" << endl;
+    std::cout << "                                sequence.";
     #ifdef DATABASE
-    std::cout << " Alternatively it require a SQLite database file with one table named gb_data" << endl;
-    std::cout << "                                    that have a column named accno that contain accession numbers for each sequence, and" << endl; 
-    std::cout << "                                    one column named taxon_string that contain the taxonomic hierarchy for the sequence" << endl;
-    std::cout << "                                    as given above.It should also have a table for each gene region to be tested. Each" << endl;
-    std::cout << "                                    of these tables should have a column named accno with the accession for each sequence," << endl;
-    std::cout << "                                    one column named sequence with the sequence, and one column named cluster (with empty" << endl;
-    std::cout << "                                    as default value)" << endl;
+    std::cout << " Alternatively it require a SQLite" << endl;
+    std::cout << "                                database file with one table named gb_data that" << endl;
+    std::cout << "                                have a column named accno that contain accession" << endl; 
+    std::cout << "                                numbers for each sequence, and one column named" << endl;
+    std::cout << "                                taxon_string that contain the taxonomic" << endl;
+    std::cout << "                                hierarchy for the sequence as given above. It" << endl;
+    std::cout << "                                should also have a table for each gene region to" << endl;
+    std::cout << "                                be tested. Each of these tables should have a" << endl;
+    std::cout << "                                column named accno with the accession for each" << endl;
+    std::cout << "                                sequence, one column named sequence with the" << endl;
+    std::cout << "                                sequence, and one column named cluster (with" << endl;
+    std::cout << "                                empty as default value)" << endl;
     #else
     std::cout << endl;
     #endif //DATABASE
     std::cout << "--alignments / -a               output aligned sequences pairwise." << endl;
 ////////////////////////////
-    std::cout << "--cut_off / -c [0-1]            sets the cut off value in pairwise similarity for clustering of each gene. Should be" << endl;
-    std::cout << "                                    comma separated string with gene name first and value second. If all genes should" << endl;
-    std::cout << "                                    have same cut off 'all' could be given as gene. E.g. -c all,0.99 or ITS,0.97,LSU,0.99." << endl;
+    std::cout << "--cut_off / -c [0-1]            sets the cut off value in pairwise similarity" << endl;
+    std::cout << "                                for clustering of each gene. Should be comma" << endl;
+    std::cout << "                                separated string with gene name first and value" << endl;
+    std::cout << "                                second. If all genes should have same cut off" << endl;
+    std::cout << "                                'all' could be given as gene. E.g. -c all,0.99" << endl;
+    std::cout << "                                or ITS,0.97,LSU,0.99." << endl;
     #ifdef DATABASE
-    std::cout << "--db_type / -D [sqlite/fasta]   sets if the database is in sqlite or fasta format." << endl;
+    std::cout << "--db_type / -D [sqlite/fasta]   sets if the database is in sqlite or fasta" << endl;
+    std::cout << "                                format." << endl;
     #endif // DATABASE
 /////////////////////////////////
-    std::cout << "--difference / -i               output difference between the Jukes-Cantor (JC) distance and proportion different sites." << endl;
-    std::cout << "--distances / -d                output proportion different sites, JC distance, and diference between the two." << endl;
+    std::cout << "--difference / -i               output difference between the Jukes-Cantor (JC)" << endl;
+    std::cout << "                                distance and proportion different sites." << endl;
+    std::cout << "--distances / -d                output proportion different sites, JC distance," << endl;
+    std::cout << "                                and diference between the two." << endl;
     std::cout << "--help / -h                     print this help." << endl;
     std::cout << "--jc_distance / -j              output Jukes-Cantor (JC) distance." << endl;
-    std::cout << "--matrix / -m                   output in the form of a space separated left-upper triangular matrix." << endl;
-    std::cout << "--min_length / -m [integer]     sets the minimum length of sequences to consider for clustering, e.g. -m 100." << endl;
-    std::cout << "--names / -n                    output sequence names (if outputing alignments then in fasta format)." << endl;
-    std::cout << "--no_cluster / -O               turn clustering off when running alignment_groups. Only calculating alignment groups." << endl;
+    std::cout << "--matrix / -m                   output in the form of a space separated" << endl;
+    std::cout << "                                left-upper triangular matrix." << endl;
+    std::cout << "--min_length / -m [integer]     sets the minimum length of sequences to consider"<< endl;
+    std::cout << "                                for clustering, e.g. -m 100." << endl;
+    std::cout << "--names / -n                    output sequence names (if outputing alignments" << endl;
+    std::cout << "                                then in fasta format)." << endl;
+    std::cout << "--no_cluster / -O               turn clustering off when running" << endl;
+    std::cout << "                                alignment_groups. Only calculating alignment" << endl;
+    std::cout << "                                groups." << endl;
     #ifdef DATABASE
-    std::cout << "--previous_clusters / -P        only sequences with cluster marked as 'lead' will be considered for further clustering." << endl;
+    std::cout << "--previous_clusters / -P        only sequences with cluster marked as 'lead'" << endl;
+    std::cout << "                                will be considered for further clustering." << endl;
     #endif // DATABASE
     std::cout << "--proportion_difference / -p    output proportion sites that are different." << endl;
 //    std::cout << "--quiet / -q                    suppress additional output regarding the run of the program." << endl;
-    std::cout << "--similarity / -s               output similarity between sequences (1-proportion different)." << endl;
+    std::cout << "--similarity / -s               output similarity between sequences (1-proportion" << endl;
+    std::cout << "                                different)." << endl;
     #ifdef PTHREAD
-    std::cout << "--threads / -T [integer]        set the number of threads additional to the controling thread, e.g. -T 4." << endl;
+    std::cout << "--threads / -T [integer]        set the number of threads additional to the" << endl;
+    std::cout << "                                controling thread, e.g. -T 4. The order of" << endl;
+    std::cout << "                                output between pairs are not guarantead for more" << endl;
+    std::cout << "                                than one thread (default 1)" << endl;
     #endif /* PTHREAD */
     std::cout << "--verbose / -v                  get additional output." << endl;
 }
@@ -470,6 +499,10 @@ void cluster_each_table ( const string& file, const char* databasetype, const st
 }
 
 void cluster( seqdatabase& db, const string table, const float cut_off, const int min_length, const bool only_lead, const bool aligned, const char output, const bool output_names, const bool matrix, const bool quiet ) {
+    #ifdef DEBUG
+    cerr << "Starting my buisness" << endl;
+    #endif //DEBUG
+
     #ifdef PTHREAD
     pthread_t thread[n_threads];
     pthread_attr_t attr;
@@ -501,9 +534,9 @@ void cluster( seqdatabase& db, const string table, const float cut_off, const in
 	if (matrix && output == 'd') std::cout << "Proportion different/Similarity/Jukes-Cantor distance/Difference between JC and similarity" << endl; // from pairalign
     	while(!db.all_pairs()) {
 	    bool new_row(false);
+    	    db.move_to_next_pair(only_lead);
 	    if (db.at_new_first())
 		new_row = true;
-    	    db.move_to_next_pair(only_lead);
 	    if (matrix && new_row) {
 		++n_seq;
 	   	if (n_seq > 1) std::cout << endl;
@@ -512,6 +545,9 @@ void cluster( seqdatabase& db, const string table, const float cut_off, const in
 	    }
     	    #ifdef PTHREAD
 	    if (n_threads > 1) {
+		#ifdef DEBUG
+		cerr << "Prepairing pthread alignment." << endl;
+		#endif //DEBUG
 		if (next_thread >= n_threads) next_thread = 0;
 		int thread_code=0;
 		if (activated[next_thread]) thread_code = pthread_join(thread[next_thread], &status);
@@ -542,23 +578,26 @@ void cluster( seqdatabase& db, const string table, const float cut_off, const in
 		}
 	    }
 	    else {
-    	    #endif /* PTHREAD */
-    	    //#else /* PTHREAD */
-    	    two_sequences[0].accno1 = db.get_accno1();
-    	    two_sequences[0].sequence1 = db.get_sequence1();
-    	    two_sequences[0].accno2 = db.get_accno2();
-    	    two_sequences[0].sequence2 = db.get_sequence2();
-    	    two_sequences[0].table = &table;
-    	    two_sequences[0].db = &db;
-    	    two_sequences[0].cut_off = &cut_off;
-    	    two_sequences[0].deviations = &deviations;
-	    two_sequences[0].aligned = aligned;
-	    two_sequences[0].output = output;
-	    two_sequences[0].output_names = output_names;
-	    two_sequences[0].matrix = matrix;
-    	    align_pair ( &two_sequences[0] ); // this is where the action is?
-    	    //#endif /* PTHREAD */
-    	    #ifdef PTHREAD
+		#endif /* PTHREAD */
+		//#else /* PTHREAD */
+		#ifdef DEBUG
+		cerr << "Prepairing alignment." << endl;
+		#endif //DEBUG
+		two_sequences[0].accno1 = db.get_accno1();
+		two_sequences[0].sequence1 = db.get_sequence1();
+		two_sequences[0].accno2 = db.get_accno2();
+		two_sequences[0].sequence2 = db.get_sequence2();
+		two_sequences[0].table = &table;
+		two_sequences[0].db = &db;
+		two_sequences[0].cut_off = &cut_off;
+		two_sequences[0].deviations = &deviations;
+		two_sequences[0].aligned = aligned;
+		two_sequences[0].output = output;
+		two_sequences[0].output_names = output_names;
+		two_sequences[0].matrix = matrix;
+		align_pair ( &two_sequences[0] ); // this is where the action is?
+		//#endif /* PTHREAD */
+		#ifdef PTHREAD
 	    }
     	    #endif /* PTHREAD */
 	    if (!quiet) cerr << '.';

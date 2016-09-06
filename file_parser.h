@@ -31,9 +31,7 @@ using namespace std;
 
 class file_parser {
     private:
-    //istream infile;
     char file_type;
-    //void set_file_type( );
     void pars_relaxed_phylip( vector<character_vector>& matrix, map<char,bitset<SIZE> >& alphabet);
     bool is_whitespace(const char c) { return (c==' ' || c=='\t' || c=='\n' || c=='\r'); }
     public:
@@ -41,7 +39,6 @@ class file_parser {
     file_parser (istream* input): file_type('0'), file_stream(input){};
     file_parser (): file_type('0'), file_stream(0){};
     void set_input_stream( istream* stream) { file_stream = stream; };
-    //void set_data_stream( istream& stream) { datafile = stream; };
     bool set_file_type (const char* type);
     bool set_file_type();
     bool move_to_next_X_block(const char X);

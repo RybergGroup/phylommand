@@ -1,5 +1,5 @@
 /********************************************************************
-Copyright (C) 2011 Martin Ryberg
+Copyright (C) 2016 Martin Ryberg
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -14,7 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-contact: kryberg@utk.edu
+contact: martin.ryberg@ebc.uu.se
 *********************************************************************/
 #ifndef NJTREEHEADER
 #define NJTREEHEADER
@@ -30,36 +30,24 @@ class njtree : public tree {
         ~njtree( ) {
             delete_node_and_distance_array( distance_matrix );
         };*/
-        /*struct distance_array {
-            distance_array *next;
-            float distance;
-        };*/
-        //struct node_and_distance_array {
         struct node_and_distance {
             vector<float> distances;
-            //distance_array *distances;
             float S;
             node *child;
-            //node_and_distance_array *next;
         };
-	unsigned int n_nodes_in_array() { distance_matrix.size(); } //n_taxa_node_and_distance_array(distance_matrix); }
+	unsigned int n_nodes_in_array() { return distance_matrix.size(); }
         void read_distance_matrix( istream& infile, bool lables);
-        void build_nj_tree ();
+        void build_nj_tree (bool quiet);
+        void build_nj_tree () { build_nj_tree(true); };
         void print_node_and_distance_array() { print_node_and_distance_array ( distance_matrix.begin(), cout ); };
         void print_node_and_distance_array( ostream& output) {
             print_node_and_distance_array ( distance_matrix.begin(), output );
         }
+	bool matrix_good();
     private:
         vector<node_and_distance> distance_matrix;
-        //node_and_distance_array* distance_matrix;
-        //int n_taxa_node_and_distance_array ( node_and_distance_array* array);
-        //void delete_node_and_distance_array(node_and_distance_array* start_node);
-        //void delete_node_and_distance_array_node(node_and_distance_array* delete_node, node_and_distance_array* previous_node);
-        //void delete_distance_array_node ( distance_array* delete_node, distance_array* previous_node, node_and_distance_array* father );
-        //void delete_distance_array ( distance_array* start_node );
         void print_node_and_distance_array ( vector<node_and_distance>::const_iterator start_node, ostream& output );
-        //void print_distance_array ( distance_array* start_node, ostream& output );
-        //void add_to_distance_array ( float value, distance_array* start_node );
+	void print_unfinished_tree( ostream& output );
 };
 
 #endif //NJTREEHEADER

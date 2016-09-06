@@ -5,41 +5,45 @@ void seqdatabase::move_to_next_pair_fst (bool only_lead) {
     cerr << "Moving to next pair" << endl;
     #endif //DEBUG
     if (mode != '9') { // unless we should quit
-	if (mode == '0') { // if at start of new round
-	    if (previous_taxon.compare("empty")) { // if no at first run
-		if (!fst.set_seq1(previous_taxon)) mode = '9'; // if we fail to set first taxon to previous taxon set to quit
-		if (!fst.next_seq1()) mode = '9'; // if not able to go to next sequence set to quit
-	    }
-	    else { // if at first round
-		if (!fst.initiate_sequence_retrieval()) mode = '9'; // set to quit is we fail to initiate
-	    }
-	    if (mode != 9) {
-		fst.set_seq2_to_seq1(); //set seq 2 to to be same as seq 1 i.e. previous taxon
-		accno2.clear();
-		sequence2.clear();
-		accno1 = fst.get_accno1(); // get accno
-		fst.get_sequence1(sequence1); // get sequence
-		previous_taxon = accno1; // set previous accno to be present accno
-		mode = '1'; // we have now read seq1
-		#ifdef DEBUG
-		cerr << "New first seq: " << accno1 << endl;
-		#endif //DEBUG
-	    }
-	}
-	if (mode != '9') { // if not at end
-	    if (fst.next_seq2()) { // if able to read next sequence
-		accno2 = fst.get_accno2(); // get accno
-		fst.get_sequence2(sequence2); // get sequence
-		if (mode == '1') {
-		    if (fst.seq2_is_last_seq()) mode = '9'; // if at last seq quit
-		    else mode = '2'; // we have now read a second sequence
+	while (1) {
+	    if (mode == '0') { // if at start of new round
+		if (previous_taxon.compare("empty")) { // if no at first run
+		    if (!fst.set_seq1(previous_taxon)) mode = '9'; // if we fail to set first taxon to previous taxon set to quit
+		    if (!fst.next_seq1()) mode = '9'; // if not able to go to next sequence set to quit
 		}
-		#ifdef DEBUG
-		cerr << "New second seq: " << accno2 << endl;
-		#endif //DEBUG
+		else { // if at first round
+		    if (!fst.initiate_sequence_retrieval()) mode = '9'; // set to quit is we fail to initiate
+		}
+		if (mode != 9) {
+		    fst.set_seq2_to_seq1(); //set seq 2 to to be same as seq 1 i.e. previous taxon
+		    accno2.clear();
+		    sequence2.clear();
+		    accno1 = fst.get_accno1(); // get accno
+		    fst.get_sequence1(sequence1); // get sequence
+		    previous_taxon = accno1; // set previous accno to be present accno
+		    mode = '1'; // we have now read seq1
+		    #ifdef DEBUG
+		    cerr << "New first seq: " << accno1 << endl;
+		    #endif //DEBUG
+		}
 	    }
-	    else if (mode == '1') mode = '9'; // if not able to read a second sequence we are at the end
-	    else mode = '0'; // if second sequence read but there are no more, start a new run
+	    else if (mode != '9') { // if not at end
+		if (fst.next_seq2()) { // if able to read next sequence
+		    accno2 = fst.get_accno2(); // get accno
+		    fst.get_sequence2(sequence2); // get sequence
+		    if (mode == '1') {
+			if (fst.seq2_is_last_seq()) mode = '9'; // if at last seq quit
+			else mode = '2'; // we have now read a second sequence
+		    }
+		    else if (mode == '2') mode = '3';
+		    #ifdef DEBUG
+		    cerr << "New second seq: " << accno2 << endl;
+		    #endif //DEBUG
+		    break;
+		}
+		else if (mode == '1') { mode = '9'; break; }// if not able to read a second sequence we are at the end
+		else mode = '0'; // if second sequence read but there are no more, start a new run
+	    }
 	}
     }
 }

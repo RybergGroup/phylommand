@@ -100,7 +100,9 @@ private:
 };
 
 namespace alphabet {
-    void set_alphabet_binary (map<char,bitset<SIZE> >& alphapet);
-    char translate_bitset (const bitset<SIZE> character, map<char,bitset<SIZE> >& alphapet); 
+    void set_alphabet_binary (map<char,bitset<SIZE> >& alphabet);
+    void set_alphabet_dna (map<char,bitset<SIZE> >& alphabet);
+    void set_alphabet_amino_acid (map<char,bitset<SIZE> >& alphabet);
+    char translate_bitset (const bitset<SIZE> character, map<char,bitset<SIZE> >& alphabet); 
 };
 #endif //MATRIX_PARSER

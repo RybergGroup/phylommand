@@ -27,13 +27,14 @@ void matrix_parser::pars_relaxed_phylip() {
 	    }
 	}
 	else if (read_mode == 'N') {
-	    if (character == '\n') read_mode = 'T';
+	    if (character == '\n' || character == '\r') read_mode = 'T';
 	    else if (character != ' ') {
 		n_char *= 10;
 		n_char += character - '0';
 	    }
 	}
 	else if (read_mode == 'T') {
+	    if (character == '\n') continue;
 	    if (character != ' ') taxon += character;
 	    else if (!taxon.empty() && character == ' ') {
 		row.set_taxon(taxon);
@@ -230,7 +231,7 @@ void alphabet_parser::pars_whitespace() {
 	else if (read_mode == 'c') {
 	    if ((character == ' ' || character == '\t' || character == '\n' || character == '\r') && type != ' ' && !value.empty()) {
 		unsigned int number = atoi(value.c_str());
-		if (number >= SIZE) cerr << number << " is out of bound for '" << type << "', reading alphabet." << endl;
+		if (number >= SIZE) cerr << number << " is out of bound for '" << type << "', when reading alphabet." << endl;
 		else {
 		    trait.set(number);
 		}
@@ -252,16 +253,110 @@ void alphabet_parser::pars_whitespace() {
 }
 
 namespace alphabet {
-    void set_alphabet_binary (map<char,bitset<SIZE> >& alphapet) {
+    void set_alphabet_binary (map<char,bitset<SIZE> >& alphabet) {
 	if (SIZE > 1) {
-	    alphapet['0'][0] = 1;
-	    alphapet['1'][1] = 1;
-	    alphapet['-'][0] = alphapet['-'][1] = 1;
+	    alphabet['0'][0] = 1;
+	    alphabet['1'][1] = 1;
+	    alphabet['-'][0] = alphabet['-'][1] = 1;
+	}
+    }
+    void set_alphabet_dna (map<char,bitset<SIZE> >& alphabet) {
+	if (SIZE > 3) {
+	    alphabet['A'].set(0);
+	    alphabet['a'].set(0);
+	    alphabet['G'].set(1);
+	    alphabet['g'].set(1);
+	    alphabet['C'].set(2);
+	    alphabet['c'].set(2);
+	    alphabet['T'].set(3);
+	    alphabet['t'].set(3);
+	    alphabet['-'].reset();
+	    alphabet['R'].set(0); alphabet['R'].set(1);
+	    alphabet['r'].set(0); alphabet['r'].set(1);
+	    alphabet['Y'].set(2); alphabet['Y'].set(3);
+	    alphabet['y'].set(2); alphabet['y'].set(3);
+	    alphabet['S'].set(1); alphabet['S'].set(2);
+	    alphabet['s'].set(1); alphabet['s'].set(2);
+	    alphabet['W'].set(0); alphabet['W'].set(3);
+	    alphabet['w'].set(0); alphabet['w'].set(3);
+	    alphabet['K'].set(1); alphabet['K'].set(3);
+	    alphabet['k'].set(1); alphabet['k'].set(3);
+	    alphabet['M'].set(0); alphabet['M'].set(2);
+	    alphabet['m'].set(0); alphabet['m'].set(2);
+	    alphabet['B'].set(1); alphabet['B'].set(2); alphabet['B'].set(3);
+	    alphabet['b'].set(1); alphabet['b'].set(2); alphabet['b'].set(3);
+	    alphabet['D'].set(0); alphabet['D'].set(1); alphabet['D'].set(3);
+	    alphabet['d'].set(0); alphabet['d'].set(1); alphabet['d'].set(3);
+	    alphabet['H'].set(0); alphabet['H'].set(2); alphabet['H'].set(3);
+	    alphabet['h'].set(0); alphabet['h'].set(2); alphabet['h'].set(3);
+	    alphabet['V'].set(0); alphabet['V'].set(1); alphabet['V'].set(2);
+	    alphabet['v'].set(0); alphabet['v'].set(1); alphabet['v'].set(2);
+	    alphabet['N'].set(0); alphabet['N'].set(1); alphabet['N'].set(2); alphabet['N'].set(3);
+	    alphabet['n'].set(0); alphabet['n'].set(1); alphabet['n'].set(2); alphabet['n'].set(3);
+	    alphabet['.'].reset();
+	    //alphabet['.'].set(0); alphabet['.'].set(1); alphabet['.'].set(2); alphabet['.'].set(3);
+	    #ifdef DEBUG
+	    for (map<char, bitset<SIZE> >::const_iterator i = alphabet.begin(); i != alphabet.end(); ++i) {
+		cerr << i->first << " = " << i->second.to_string() << endl;
+	    }
+	    #endif //DEBUG
+	}
+    }
+    void set_alphabet_amino_acid (map<char,bitset<SIZE> >& alphabet) {
+	if (SIZE > 22) {
+	    alphabet['A'].set(0);
+	    alphabet['a'].set(0);
+	    alphabet['B'].set(1);
+	    alphabet['b'].set(1);
+	    alphabet['C'].set(2);
+	    alphabet['c'].set(2);
+	    alphabet['D'].set(3);
+	    alphabet['d'].set(3);
+	    alphabet['E'].set(4);
+	    alphabet['e'].set(4);
+	    alphabet['F'].set(5);
+	    alphabet['f'].set(5);
+	    alphabet['G'].set(6);
+	    alphabet['g'].set(6);
+	    alphabet['H'].set(7);
+	    alphabet['h'].set(7);
+	    alphabet['I'].set(8);
+	    alphabet['i'].set(8);
+	    alphabet['K'].set(9);
+	    alphabet['k'].set(9);
+	    alphabet['L'].set(10);
+	    alphabet['l'].set(10);
+	    alphabet['M'].set(11);
+	    alphabet['m'].set(11);
+	    alphabet['N'].set(12);
+	    alphabet['n'].set(12);
+	    alphabet['P'].set(13);
+	    alphabet['p'].set(13);
+	    alphabet['Q'].set(14);
+	    alphabet['q'].set(14);
+	    alphabet['R'].set(15);
+	    alphabet['r'].set(15);
+	    alphabet['S'].set(16);
+	    alphabet['s'].set(16);
+	    alphabet['T'].set(17);
+	    alphabet['t'].set(17);
+	    alphabet['V'].set(18);
+	    alphabet['v'].set(18);
+	    alphabet['W'].set(19);
+	    alphabet['w'].set(19);
+	    alphabet['X'].set(20);
+	    alphabet['x'].set(20);
+	    alphabet['Y'].set(21);
+	    alphabet['y'].set(21);
+	    alphabet['Z'].set(22);
+	    alphabet['z'].set(22);
+	    alphabet['-'].reset();
+	    alphabet['.'].reset();
 	}
     }
 
-    char translate_bitset (const bitset<SIZE> character, map<char,bitset<SIZE> >& alphapet) {
-	for ( map<char,bitset<SIZE> >::const_iterator i = alphapet.begin(); i != alphapet.end(); ++i ) {
+    char translate_bitset (const bitset<SIZE> character, map<char,bitset<SIZE> >& alphabet) {
+	for ( map<char,bitset<SIZE> >::const_iterator i = alphabet.begin(); i != alphabet.end(); ++i ) {
 	    if (i->second == character) return i->first;
 	}
 	return '!';

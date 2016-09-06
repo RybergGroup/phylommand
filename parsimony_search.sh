@@ -1,4 +1,4 @@
-TREES=($(./treeator -s -r -d $1))
+TREES=($(./treeator -r -v -d $1 $2))
 BESTSCORE=$(echo ${TREES[0]} | ./treeator -p -d $1)
 PREV_BEST=$((BESTSCORE+1))
 TREES_IN_MEM=100
@@ -11,7 +11,7 @@ do
     NNI_RUN=$((NNI_RUN+1))
     for j in ${!TREES[*]}
     do
-	NNITREES=( $(echo ${TREES[$j]} | ./treebender -0 --nni all) )
+	NNITREES=( $(echo ${TREES[$j]} | ./treebender -0 -v --nni all) )
 	echo "NNI on tree $j (${#NNITREES[@]} trees)"
 	for i in ${!NNITREES[*]}
 	do

@@ -32,6 +32,7 @@ contact: kryberg@utk.edu
 #include "nj_tree.h"
 #include "character_vector.h"
 #include "file_parser.h"
+#include "argv_parser.h"
 #include "matrix_parser.h"
 #include "simpleML.h"
 
@@ -56,7 +57,6 @@ int main (int argc, char *argv []) {
     #endif //DEBUG
     bool lables = true;
     char method = 'p';
-    //bool random = false;
     bool print_br_length(true);
     bool print_state_on_nodelable(false);
     char print_tree = 'w';
@@ -64,11 +64,9 @@ int main (int argc, char *argv []) {
     string tree_file_name;
     ifstream tree_file;
     file_parser tree_input(&cin);
-    //istream* tree_stream = &std::cin;
     string data_file_name;
     ifstream data_file;
     file_parser data_input(&cin);
-    //istream* data_stream = &std::cin;
     string alphabet_file_name;
     string tree_file_format;
     string data_file_format;
@@ -86,6 +84,7 @@ int main (int argc, char *argv []) {
     vector<double> model_parameters;
     ///////////
     bool tree_same_as_data_when_nexus(false);
+    /// Reading arguments ///
     if (argc > 1) {
         for (int i=1; i < argc; ++i) {
             if (!strcmp(argv[i],"-L") || !strcmp(argv[i],"--no_lable")) lables = false;
@@ -133,7 +132,7 @@ int main (int argc, char *argv []) {
                 if ( i < argc-1 && argv[i+1][0] != '-' )
                     alphabet_file_name = argv[++i];
                 else {
-                    std::cerr << "-a/--alphabet_file require a file name as next argument" << endl;
+                    std::cerr << "-a/--alphabet_file require a file name, or dna, protein or binary for dna, amino acid respectively binary alphabet, as next argument" << endl;
                     return 1;
                 }
 		#ifdef DEBUG
@@ -146,25 +145,64 @@ int main (int argc, char *argv []) {
             else if (!strcmp(argv[i],"-0") || !strcmp(argv[i],"--no_branch_length")) print_br_length = false;
 ///////////// From ancon
             else if (!strcmp(argv[i],"-m") || !strcmp(argv[i],"--model")) {
-                while (i < argc-1 && argv[i+1][0] != '-') {
-                    model_specifications.push_back(atoi(argv[++i]));
-                }
+                if (i < argc-1 && argv[i+1][0] != '-') {
+		    ++i;
+		    string number;
+		    unsigned int j(0);
+		    while (true) {
+			if ((argv[i][j] == '\0' || argv[i][j] == ',') && !number.empty()) {
+			    model_specifications.push_back(atoi(number.c_str()));
+			    number.clear();
+			}
+			else number += argv[i][j];
+			if (argv[i][j] == '\0') break;
+			++j;
+		    }
+		}
+		else {
+		    cerr << "-m / --model require a comma separated integer string as next argument.";
+		    return 1;
+		}
             }
             else if (!strcmp(argv[i],"-e") || !strcmp(argv[i],"--fixed")) {
-                while (i < argc-1 && argv[i+1][0] != '-') {
-                    fixed_parameters.insert(atoi(argv[++i]));
-                }
+                if (i < argc-1 && argv[i+1][0] != '-') {
+		    ++i;
+		    vector<string> arguments;
+		    argv_parser::pars_sub_args(argv[i], ',', arguments);
+		    for (vector<string>::const_iterator i=arguments.begin(); i != arguments.end(); ++i)
+			fixed_parameters.insert(atoi(i->c_str()));
+		}
+                //while (i < argc-1 && argv[i+1][0] != '-') {
+                  //  fixed_parameters.insert(atoi(argv[++i]));
+                //}
             }
             else if (!strcmp(argv[i],"-P") || !strcmp(argv[i],"--parameters")) {
-                while (i < argc-1 && argv[i+1][0] != '-') {
-                    model_parameters.push_back(atof(argv[++i]));
-                }
+                if (i < argc-1 && argv[i+1][0] != '-') {
+		    ++i;
+		    vector<string> numbers;
+		    argv_parser::pars_sub_args(argv[i], ',', numbers);
+		    for (vector<string>::const_iterator i=numbers.begin(); i != numbers.end(); ++i)
+	    		model_parameters.push_back(atof(i->c_str()));
+		}
+		/*    //unsigned int j(0);
+		    while (true) {
+			if ((argv[i][j] == '\0' || argv[i][j] == ',') && !number.empty()) {
+			    model_parameters.push_back(atof(number.c_str()));
+			    number.clear();
+			}
+			else number += argv[i][j];
+			if (argv[i][j] == '\0') break;
+			++j;
+		    }
+		}*/
+		else {
+		    cerr << "-P/--parameters require a comma separated real number string as next argument.";
+		    return 1;
+		}
             }
             else if (!strcmp(argv[i],"-N") || !strcmp(argv[i],"--no_optim")) optimize_param = false;
-	    //else if (!strcmp(argv[i],"-w") || !strcmp(argv[i],"--newick")) print_tree = 'w';
-	    //else if (!strcmp(argv[i],"-x") || !strcmp(argv[i],"--nexus")) print_tree = 'x';
             else if (!strcmp(argv[i],"-l") || !strcmp(argv[i],"--likelihood")) {
-                if ( i < argc-1 && argv[i+1][0] != '-' ) {
+                /*if ( i < argc-1 && argv[i+1][0] != '-' ) {
                     string method_name = argv[++i];
                     if (!method_name.compare("const")) method = 'o';
                     else if (!method_name.compare("time")) method='t';
@@ -173,9 +211,9 @@ int main (int argc, char *argv []) {
                         return 1;
                     }
                 }
-                else {
+                else {*/
 		    method = 'o';
-                }
+                //}
             }
             else if (!strcmp(argv[i],"-R") || !strcmp(argv[i],"--rate_mod")) {
                 if ( i < argc-1 && argv[i+1][0] != '-' )
@@ -253,6 +291,12 @@ int main (int argc, char *argv []) {
             }
         }
     }
+    if (!quiet) {
+       std::cerr << "The program was called with the following command:" << endl;
+       for (int i=0; i<argc; ++i) std::cerr << argv[i] << ' ';
+       std::cerr << endl << endl;
+    }
+    /// preparing reading from files
     if (!data_file_name.empty()) {
 	#ifdef DEBUG
 	cerr << data_file_name << endl;
@@ -270,43 +314,67 @@ int main (int argc, char *argv []) {
     if (*data_input.file_stream == cin) cerr << "Possible data read from standard in." << endl;
     else cerr << "Possible data read from " << data_file_name << endl;
     #endif //DEBUG
+    /// if doing NJ do that now
     if (method == 'n') { // Neigbour Joining
 	njtree tree;
 	if (!quiet) cerr << "Reading distance matrix." << endl;
 	tree.read_distance_matrix(*data_input.file_stream, lables);
+	if (!tree.matrix_good()) {
+	    cerr << "Error in distance matrix. Check distance matrix format." << endl;
+	    return 1;
+	}
 	if (!quiet) cerr << "Read distances for " << tree.n_nodes_in_array() << " taxa." << endl;
 	if (!quiet) tree.print_node_and_distance_array(cerr);
 	//tree.print_node_and_distance_array();
-	if (!quiet) cerr << "creating NJ tree." << endl;
-	tree.build_nj_tree();
+	if (!quiet) cerr << "Creating NJ tree." << endl;
+	tree.build_nj_tree(quiet);
 	if (print_tree == 'w') tree.print_newick(print_br_length);
 	else if (print_tree == 'x') tree.print_nexus(print_br_length);
 	return 0;
     }
+    /// For parsimony and ML
     if (method == 'p' || method == 's' || method == 'r' || method == 'o' || method == 't') { // ML or parsimony
 	vector<character_vector> characters;
 	map<char, bitset<SIZE> > alphabet;
-	alphabet::set_alphabet_binary(alphabet);
+	alphabet::set_alphabet_dna(alphabet);
 	if (!alphabet_file_name.empty()) {
-	    ifstream alphabet_file;
-	    alphabet_file.open(alphabet_file_name.c_str(),std::ifstream::in);
 	    alphabet.clear();
-	    alphabet_parser parser(alphabet_file,alphabet);
-	    parser.pars();
-	    if (!quiet) cerr << "Setting alphabet from file " << alphabet_file_name << "." << endl;
+	    if (!alphabet_file_name.compare("binary")) {
+		alphabet::set_alphabet_binary(alphabet);
+		if (!quiet) cerr << "Using binary alphabet." << endl;
+	    }
+	    else if (!alphabet_file_name.compare("dna")) {
+		alphabet::set_alphabet_dna(alphabet);
+		if (!quiet) cerr << "Using dna alphabet." << endl;
+	    }
+	    else if (!alphabet_file_name.compare("protein")) {
+		alphabet::set_alphabet_amino_acid(alphabet);
+		if (!quiet) cerr << "Using amino acid alphabet." << endl;
+	    }
+	    else {
+		ifstream alphabet_file;
+		alphabet_file.open(alphabet_file_name.c_str(),std::ifstream::in);
+		alphabet_parser parser(alphabet_file,alphabet);
+		parser.pars();
+		if (!quiet) cerr << "Setting alphabet from file " << alphabet_file_name << "." << endl;
+	    }
 	}
-	else if (!quiet) cerr << "Using default alphabet (binary)." << endl;
+	else if (!quiet) cerr << "Using default alphabet (dna)." << endl;
 	if (!quiet) {
 	    bitset<SIZE> all_possible_char;
 	    for (map<char,bitset<SIZE> >::const_iterator i = alphabet.begin(); i != alphabet.end(); ++i)
 		all_possible_char |= i->second;
 	    cerr << "Alphabet include " << all_possible_char.count() << " distinct traits, given by " << alphabet.size() << " characters." << endl;
 	}
+	if (alphabet.empty()) {
+	    cerr << "No characters in alphabet. Unable to read data." << endl;
+	    return 1;
+	}
 	partitions regions;
 	regions.add_alphabet("first",alphabet);
 	regions.add_partition(0,0,"default","first");
 	#ifdef DEBUG
-	cerr << "prepaired partitions." << endl;
+	cerr << "Prepared partitions." << endl;
 	#endif //DEBUG
     	if (!data_file_format.empty()) {
     	    data_input.set_file_type(data_file_format.c_str());
@@ -329,6 +397,16 @@ int main (int argc, char *argv []) {
 	std::cerr << "Max number of characters: " << characters.begin()->max_n_char() << std::endl;
 	#endif //DEBUG
         if (data_file.is_open()) data_file.close();
+	if (!tree_file_name.empty()) {
+	    tree_file.open(tree_file_name.c_str(),std::ifstream::in);
+	    if (tree_file.good())
+		tree_input.file_stream = &tree_file;
+	    else {
+		cerr << "Could not open file: " << tree_file_name << endl;
+		return 1;
+	    }
+	    if (!quiet) cerr << "Reading trees from " << tree_file_name << "." << endl;
+	}
 	if (tree_same_as_data_when_nexus && data_input.test_file_type("nexus") &&
 	(tree_file_format.compare("nexus") || tree_file_format.empty()) &&
 	tree_file_name.empty() && !data_file_name.empty()) {
@@ -342,15 +420,6 @@ int main (int argc, char *argv []) {
 	    if (!tree_input.set_file_type("newick")) cerr << "Failed to set default file type." << endl;
 	}
 	if (!quiet) cerr << "Tree file format: " << tree_input.get_file_type() << endl;
-	if (!tree_file_name.empty()) {
-	    tree_file.open(tree_file_name.c_str(),std::ifstream::in);
-	    if (tree_file.good())
-		tree_input.file_stream = &tree_file;
-	    else {
-		cerr << "Could not open file: " << tree_file_name << endl;
-		return 1;
-	    }
-	}
 	#ifdef DEBUG
 	if (*tree_input.file_stream == cin) cerr << "Possible trees read from standard in." << endl;
 	else cerr << "Possible trees read from " << tree_file_name << endl;
@@ -411,9 +480,10 @@ int main (int argc, char *argv []) {
 	    if (print_tree == 'w') tree.print_newick(print_br_length);
 	    else if (print_tree == 'x') tree.print_nexus(print_br_length);
 	}
-	if (method == 'o' || method == 't') {
+	else if (method == 'o' || method == 't') {
 	    unsigned int n_states = 0;
 	    unsigned int n_parameters = 0;
+	    if (!quiet) cerr << "Preparing model." << endl; 
 	    for (vector<character_vector>::iterator i=characters.begin(); i!=characters.end(); ++i)
 		if (i->highest_char_state()+1 > n_states) n_states = i->highest_char_state()+1;
 	    if (!model_specifications.empty()) {
@@ -471,6 +541,7 @@ int main (int argc, char *argv []) {
 	    }
 	    if (!quiet && !taxa_trans.empty()) cerr << "Read translation for " << taxa_trans.size() << " taxa." << endl;
 	    unsigned int read_trees(0);
+	    if (!quiet) cerr << "Estimating likelihood." << endl;
 	    while (1) {
 		stringstream model_out;
 		if (tree_input.test_file_type("nexus")) {
@@ -486,6 +557,7 @@ int main (int argc, char *argv []) {
 		for (vector<character_vector>::iterator i=characters.begin(); i!=characters.end(); ++i)
 		    tree.set_char(i->get_taxon(),i->get_character(0));
 ////////////////////////////////////////////
+		if (print_tree == 'x') model_out << '[' << endl;
 		if (optimize_param) {
 		    #ifdef NLOPT
 		    nlopt::opt maximize(nlopt::LN_NELDERMEAD, n_parameters);
@@ -498,7 +570,7 @@ int main (int argc, char *argv []) {
 		    for (unsigned int i=0; i < n_parameters; ++i) lower_bounds.push_back(0.0);
 		    maximize.set_lower_bounds(lower_bounds);
 		    double LogL;
-		    if (print_tree == 'x') model_out << '[';
+		    //if (print_tree == 'x') model_out << '[';
 		    if (method == 'o') {
 			maximize.set_max_objective(opt_function,&data);
 			model_out << "Number of parameters to optimize: " << maximize.get_dimension() << endl;
@@ -544,7 +616,6 @@ int main (int argc, char *argv []) {
 		    model_out << endl;
 		    model_out << "Log likelihood: " << LogL << endl;
 /////////////////////
-//		    cerr << "Not implemented yet" << endl;
 		    #else
 		    cerr << "Compiled without NLOPT can not do optimization" << endl;
 		    #endif //NLOPT
@@ -589,56 +660,79 @@ int main (int argc, char *argv []) {
 	    if (print_tree == 'x') {
 		cout << "End;" << endl;
 	    }
-	    //std::cout << "Sorry, likelihood is not available yet." << std::endl;
-	    //return 0;
 	}
     }
 }
 
 void help () {
-    std::cout << "Treeator is a command line program to construct trees." << endl;
-    std::cout << "The program take either a left triangular similarity" << endl;
-    std::cout << "matrix (neighbour joining) or a data matrix of relaxed" << endl;
-    std::cout << "phylip format (not interleaved; parsimony/maximum likelihood)" << endl;
-    std::cout << " as input through standard in/ last argument/ as given below." << endl;
-    std::cout << "(c) Martin Ryberg 2015." << endl << endl;
-    std::cout << "Usage:" << endl << "treeator [arguments] < data_file.txt" << endl << endl;
+    std::cout << "Treeator is a command line program to construct trees. The program take either a" << endl;
+    std::cout << "left triangular similarity matrix (neighbour joining) or a data matrix of" << endl;
+    std::cout << "fasta, nexus, or relaxed phylip format (not interleaved; parsimony/maximum" << endl;
+    std::cout << "likelihood) as input through standard in/ last argument/ as given below. For" << endl;
+    std::cout << "character data an alphabet is also needed, default is binary (0 1 -)." << endl;
+    std::cout << "(c) Martin Ryberg 2016." << endl << endl;
+    std::cout << "Usage:" << endl << "treeator [arguments] data_file.txt" << endl << endl;
     std::cout << "Arguments:" << endl;
-    std::cout << "--alphabet_file / -a                                       give file with character alphabet." << std::endl;
-    std::cout << "--data_file / -d [file name]                               give the data file."<< std::endl;
-    std::cout << "--fixed/-e [parameter name]                                give name of parameter to fix. This argument can be repeated." << endl;
-    std::cout << "--file / -f [file name]                                    give data file name, or if data file name already given, then tree file name. If nexus format" << endl;
-    std::cout << "                                                               and no tree file name is given, tree is assumed to be in same file as data." << endl;
-    std::cout << "--format [fasta/phylip/nexus/newick]                       give the format of the input files. For character file fasta, phylip and nexus are the options." << endl;
-    std::cout << "                                                               For the tree file the options are newick and nexus. Give the character file format first," << endl;
-    std::cout << "                                                               and the tree file format after a comma, e.g. --format phylip,newick. Fasta is the default" << endl;
-    std::cout << "                                                               character file format, and newick is the default tree file format (unless character file" << endl;
-    std::cout << "                                                               is set to nexus, then nexus is also default for tree file, e.g. --format nexus)." << endl;
-    std::cout << "--get_state_at_nodes                                       will give the states at nodes as comments (readable in FigTree)." << endl;
-    std::cout << "--help / -h                                                print this help." << endl;
-    std::cout << "--likelihood / -l                                          calculate likelihood for data given tree. Either with constant rate throug time (const) or" << endl;
-    std::cout << "                                                               with rate changing (multiplied by a variable) at a certain time point (time)." << endl;
-    std::cout << "--model/-m [space separated string of integer numbers]     give the model by numbering the rate parameters for different transition, e.g. -m 0,1,0,2,1,2" << endl;
-    std::cout << "--neighbour_joining / -n                                   compute neighbour joining tree for given data. The data should be" << std::endl;
-    std::cout << "                                                           a left triangular similarity matrix." << std::endl;
-//    std::cout << "--newick / -w                                              output tree in newick format (default)." << endl;
-//    std::cout << "--nexus / -x                                               output tree in nexus format." << endl;
-    std::cout << "--no_branch_length / -0                                    do not print branch lengths and do not calculate branch lengths for" << std::endl;
-    std::cout << "                                                               parsimony trees" << endl;
-    std::cout << "--no_lable / -L                                            will tell treeator that there are no taxon labels in the matrix." << endl;
+    std::cout << "--alphabet_file / -a             give file with character alphabet, or dna," << endl;
+    std::cout << "                                 protein, or binary for dna, amino acid," << endl;
+    std::cout << "                                 respectively binary (0 1) alphabets (default:" << endl;
+    std::cout << "                                 dna)." << std::endl;
+    std::cout << "--data_file / -d [file name]     give the data file."<< std::endl;
+    std::cout << "--fixed / -e [integer]           give parameter to fix. First parameter is" << endl;
+    std::cout << "                                 indexed 0. Several parameters can be given in a" << endl;
+    std::cout << "                                 comma separated string, e.g. -e 0,2,3." << endl;
+    std::cout << "--file / -f [file name]          give data file name, or if data file name" << endl;
+    std::cout << "                                 already given, then tree file name. If nexus" << endl;
+    std::cout << "                                 format and no tree file name is given, tree is" << endl;
+    std::cout << "                                 assumed to be in same file as data." << endl;
+    std::cout << "--format [file format]           give the format of the input files. For" << endl;
+    std::cout << "                                 character file fasta, phylip and nexus are the" << endl;
+    std::cout << "                                 options. For the tree file the options are" << endl;
+    std::cout << "                                 newick and nexus. Give the character file" << endl;
+    std::cout << "                                 format first, and the tree file format after a" << endl;
+    std::cout << "                                 comma, e.g. --format phylip,newick. Fasta is" << endl;
+    std::cout << "                                 the default character file format, and newick" << endl;
+    std::cout << "                                 is the default tree file format (unless" << endl;
+    std::cout << "                                 character file is set to nexus, then nexus is" << endl;
+    std::cout << "                                 also default for tree file, e.g. --format" << endl;
+    std::cout << "                                 nexus)." << endl;
+    std::cout << "--get_state_at_nodes             will give the states at nodes as comments" << endl;
+    std::cout << "                                 (readable in FigTree)." << endl;
+    std::cout << "--help / -h                      print this help." << endl;
+    std::cout << "--likelihood / -l                calculate likelihood for data given tree." << endl;
+    /*std::cout << "--likelihood / -l [const/time]   calculate likelihood for data given tree." << endl;
+    std::cout << "                                 Either with constant rate through time (const)" << endl;
+    std::cout << "                                 or with rate changing (multiplied by a" << endl;
+    std::cout << "                                 variable) at a certain time point (time)." << endl;*/
+    std::cout << "--model / -m [integer numbers]   give the model by numbering the rate parameters" << endl;
+    std::cout << "                                 for different transition, e.g. -m 0,1,0,2,1,2." << endl;
+    std::cout << "--neighbour_joining / -n         compute neighbour joining tree for given data." << endl;
+    std::cout << "                                 The data should be  a left triangular" << endl;
+    std::cout << "                                 similarity matrix." << std::endl;
+    std::cout << "--no_branch_length / -0          do not print branch lengths and do not" << endl;
+    std::cout << "                                 calculate branch lengths for parsimony trees." << std::endl;
+    std::cout << "--no_lable / -L                  will tell treeator that there are no taxon" << endl;
+    std::cout << "                                 labels in the similarity matrix." << endl;
     #ifdef NLOPT
-    std::cout << "--no_optim/-n                                              calculate likelihood for given parameters. No optimization." << endl;
+    std::cout << "--no_optim/-n                    calculate likelihood for given parameters. No" << endl;
+    std::cout << "                                 optimization." << endl;
     #endif //NLOPT
-    std::cout << "--output [newick/nexus]                                    give tree format for output, nexus (nex or x for short) or newick (new or w for short), e.g --output x. (default w)." << endl; 
-    std::cout << "--parameters/-P [space separated string of real numbers]   give corresponding parameter values for parameters. If optimizing these will be starting values," << endl;
-    std::cout << "                                                               e.g. -p 0.1 0.01 0.05" << endl;
-    std::cout << "--parsimony / -p                                           calculate parsimony score for given tree and data." << std::endl;
-    std::cout << "--rate_mod/-R [real number]                                give modifier for rate compared to rate at root, e.g. -r 0.5. Default: 1.0." << endl;
-    std::cout << "--random / -r                                              do stepwise addition in random order." << endl;
-    std::cout << "--time/-T [real number]                                    give branch length distance from root where change in rate occur, e.g. -t 10. Default: 0" << endl;
-    std::cout << "--tree_file / -t [file name]                               give tree file name" << std::endl;
-    std::cout << "--step_wise / -s                                           do parsimony stepwise addition." << std::endl;
-    std::cout << "--verbose / -v                                             get additional output." << endl;
+    std::cout << "--output [newick/nexus]          give tree format for output, nexus (nex or x" << endl;
+    std::cout << "                                 for short) or newick (new or w for short), e.g" << endl;
+    std::cout << "                                 --output x. (default w)." << endl; 
+    std::cout << "--parameters / -P [real numbers] give corresponding parameter values for" << endl;
+    std::cout << "                                 parameters. If optimizing these will be" << endl;
+    std::cout << "                                 starting values, e.g. -P 0.1,0.01,0.05." << endl;
+    std::cout << "--parsimony / -p                 calculate parsimony score for given tree and" << endl;
+    std::cout << "                                 data." << std::endl;
+    std::cout << "--rate_mod / -R [real number]    give modifier for rate compared to rate at root" << endl;
+    std::cout << "                                 e.g. -r 0.5. Default: 1.0." << endl;
+    std::cout << "--random / -r                    do stepwise addition in random order." << endl;
+    std::cout << "--time / -T [real number]        give branch length distance from root where" << endl;
+    std::cout << "                                 change in rate occur, e.g. -t 10. Default: 0." << endl;
+    std::cout << "--tree_file / -t [file name]     give tree file name." << std::endl;
+    std::cout << "--step_wise / -s                 do parsimony stepwise addition." << std::endl;
+    std::cout << "--verbose / -v                   get additional output." << endl;
     std::cout << endl;
 }
 
