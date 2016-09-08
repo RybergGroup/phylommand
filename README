@@ -1,0 +1,39 @@
+Phylomand is a software package for working with phylogenies. It can be compiled
+by gcc and g++ using make. Just go into the folder where the source code is and
+execute
+
+    make
+
+on the command line. To implement multi threading give PTHREADS=YES as extra
+argument. To implement optimization of likelihood score NLOPT needs to be
+installed (http://ab-initio.mit.edu/wiki/index.php/NLopt) and NLOPT=YES given as
+an extra argument to make. E.g.:
+
+    make PTHREADS=YES NLOPT=YES
+
+If you are compiling on windows using MinGW give WIN=YES as extra argument.
+  
+Phylomand includes:
+    treebender - for manipulating and getting basic statistics from trees.
+    treeator - for evaluating trees to calculate parsimony, or likelihood for
+        trees, or construct trees using Neighbour joining or stepwise addition.
+    contree - to compare trees and estimate decisiveness.
+    pairalign - make pairwise comparisons between sequences, and can also do
+        pairwise alignments.
+
+If RUDISVG=YES is given as an extra argument ito make a rudimentary svg viewer
+will also be compiled. This viewer can be used to view svg representations of
+trees as outputted from treebender (except color aspects). It depends on there
+being a x11 server to accept the output (standard on linux and OS X).
+
+All programs are accept input from standard in, or a file. This means that input
+can be piped from one (or another) program to the other. The program that deals
+with treas accept trees in newick or nexus format; treeator also accept character
+data matrices in fasta, sequential phylip, and sequential nexus format, and space
+separated left triangular distance matrices; for decisiveness estimates contree
+require a text file with the genes for each taxon on a separate row. 
+
+For further instructions on possible arguments call the help function of the
+respective program with the switch -h or --help, e.g.:
+
+    treebender --help
