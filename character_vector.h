@@ -60,6 +60,10 @@ public:
 	    for (unsigned int j=higest_state; j < SIZE; ++j)
 		if (characters[i].test(j)) higest_state = j;
 	return higest_state;
+    };
+    void set_empty_to( bitset<SIZE> value ) {
+	for (vector<bitset<SIZE> >::iterator i=characters.begin(); i != characters.end(); ++i)
+	    if (i->none()) *i |= value;
     }
 protected:
     vector<bitset<SIZE> > characters;

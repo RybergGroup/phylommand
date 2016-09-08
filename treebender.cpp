@@ -236,10 +236,13 @@ int main (int argc, char *argv []) {
             else if (!strcmp(argv[i],"-z") || !strcmp(argv[i],"--distances_to_root")) {
                 method = 'o';
                 if ( i < argc-1 && argv[i+1][0] != '-') {
-                    separator = argv[++i];
-                    if ( i < argc-1 && argv[i+1][0] != '-') {
-                        separator2 = argv[++i];
-                    }
+		    ++i;
+		    vector<string> arguments;
+		    argv_parser::pars_sub_args(argv[i], ':', arguments );
+		    separator = arguments[0];
+		    if (arguments.size() > 1 && !arguments[1].empty()) {
+	    		separator2 = arguments[1];
+		    }
                     else separator2 = "\t";
                 }
                 else separator = "\n";
@@ -247,10 +250,17 @@ int main (int argc, char *argv []) {
             else if (!strcmp(argv[i],"-p") || !strcmp(argv[i],"--patristic_distances")) {
                 method = 'p';
                 if ( i < argc-1 && argv[i+1][0] != '-') {
-                    separator = argv[++i];
+		    ++i;
+		    vector<string> arguments;
+		    argv_parser::pars_sub_args(argv[i], ':', arguments );
+		    separator = arguments[0];
+		    if (arguments.size() > 1 && !arguments[1].empty()) {
+	    		separator2 = arguments[1];
+		    }
+                    /*separator = argv[++i];
                     if ( i < argc-1 && argv[i+1][0] != '-') {
                         separator2 = argv[++i];
-                    }
+                    }*/
                     else separator2 = "\t";
                 }
                 else separator = "\n";
@@ -278,7 +288,7 @@ int main (int argc, char *argv []) {
 		    ++i;
 		    string temp;
 		    for (unsigned int j=0; argv[i][j] != '\0'; ++j) {
-			if (argv[i][j] == ',') {
+			if (argv[i][j] == ':') {
 			    cut_off = atof(temp.c_str());
 			    temp.clear();
 			}
@@ -368,6 +378,14 @@ int main (int argc, char *argv []) {
 		method = 'T';
 		if ( i < argc-1 && argv[i+1][0] != '-') {
 		    ++i;
+		    vector<string> arguments;
+		    argv_parser::pars_sub_args(argv[i], ':', arguments );
+		    if (!arguments[0].empty()) value = atof(arguments[0].c_str());
+		    if (arguments.size() > 1 && !arguments[1].empty()) {
+	    		stats_param = arguments[1];
+		    }
+                }
+		/*    ++i;
 		    int j=0;
 		    while (argv[i][j] != '\0' && argv[i][j] != '/') ++j;
 		    string temp;
@@ -375,7 +393,7 @@ int main (int argc, char *argv []) {
 		    value = atof(temp.c_str());
 		    if (argv[i][j] != '\0') ++j;
 		    while (argv[i][j] != '\0') stats_param += argv[i][j++];
-		}
+		}*/
 	    }
             else if (!strcmp(argv[i],"-n") || !strcmp(argv[i],"--number_of_taxa")) method = 'n';
             else if (!strcmp(argv[i],"-D") || !strcmp(argv[i],"--depth")) method = 'D';
@@ -847,10 +865,10 @@ int main (int argc, char *argv []) {
 }
 
 void help () {
-    std::cout << "Treebender is a command line program for manipulating trees. The program take a" << endl;
-    std::cout << "tree in newick or nexus format as indata through standard in or from a file and" << endl;
-    std::cout << "process it according to given options." << endl;
-    std::cout << "(c) Martin Ryberg 2016." << endl << endl;
+    std::cout << "Treebender " << VERSION << " is a command line program for manipulating trees. The program" << endl;
+    std::cout << "take a tree in newick or nexus format as indata through standard in or from a" << endl;
+    std::cout << "file and process it according to given options." << endl;
+    std::cout << "(c) Martin Ryberg" << YEAR << "." << endl << endl;
     std::cout << "Usage:" << endl << "treebender [arguments] < file.tree" << endl;
     std::cout << "treebender [arguments] file.tree" << endl << endl;
     std::cout << "For the second alternative you need to be careful so treebender does not" << endl;
@@ -909,7 +927,7 @@ void help () {
     std::cout << "                                     branches longer than cut off." << endl;
     std::cout << "                                  tip_name - cluster taxa based on taxon" << endl;
     std::cout << "                                     annotation. Should be followed after a" << endl;
-    std::cout << "                                     colon (:) by a single character that" << endl;
+    std::cout << "                                     colon by a single character that" << endl;
     std::cout << "                                     separates different parts of the tip name" << endl;
     std::cout << "                                     (default ' ') and after another colon (:) a" << endl;
     std::cout << "                                     number giving which position in the name" << endl;
@@ -921,11 +939,11 @@ void help () {
     std::cout << "--distances_to_root / -z [sep.]   output the number of nodes and branch length" << endl;
     std::cout << "                                  distance to the root for each tip. The" << endl;
     std::cout << "                                  separator between tip name and value can be" << endl;
-    std::cout << "                                  specified, e.g. -p , \" | \" (default is newline" << endl;
-    std::cout << "                                  and tab)." << endl;
+    std::cout << "                                  specified, separated by colon, e.g. -p \",:|\"" << endl;
+    std::cout << "                                  (default is newline and tab)." << endl;
     std::cout << "--drop_tips / -d [taxa]           drop the given tips from the tree, e.g. -d" << endl;
     std::cout << "                                  taxon1,taxon2,taxon3." << endl;
-    std::cout << "--get_tip_names / -t [separator]  get the names of the tips in the tree, a" << endl;
+    std::cout << "--get_tip_names / -t [sep.]       get the names of the tips in the tree, a" << endl;
     std::cout << "                                  separator can be specified, e.g. -t \\n (each" << endl;
     std::cout << "                                  name on separate rows; ',' is the default" << endl;
     std::cout << "                                  separator)." << endl;
@@ -934,7 +952,8 @@ void help () {
     std::cout << "                                  largest fraction of the difference between" << endl;
     std::cout << "                                  number of taxa included in the given group and" << endl;
     std::cout << "                                  number not included in the group divided by" << endl;
-    std::cout << "                                  the total number in the group." << endl;
+    std::cout << "                                  the total number in the group. Taxa given as" << endl;
+    std::cout << "                                  comma separated string (see --drop_tips)." << endl;
     std::cout << "--file/-f                         give file name, e.g. -f file.tree." << endl;
     std::cout << "--format [newick/nexus]           give format of input, e.g. --format nexus. If" << endl;
     std::cout << "                                  no format is given and the input is a file" << endl;
@@ -947,9 +966,9 @@ void help () {
     std::cout << "                                  value, e.g. --internal_node_stats 1.96" << endl;
     std::cout << "                                  (default: 1.0). If extra stats are given in" << endl;
     std::cout << "                                  FigTree/treeanotator format the parameter to" << endl;
-    std::cout << "                                  summarize can be given behind slash, e.g." << endl;
-    std::cout << "                                  --internal_node_stats 1.96/rate, or" << endl;
-    std::cout << "                                  --internal_node_stats /rate." << std::endl;
+    std::cout << "                                  summarize can be given behind colon, e.g." << endl;
+    std::cout << "                                  --internal_node_stats 1.96:rate, or" << endl;
+    std::cout << "                                  --internal_node_stats :rate." << std::endl;
     std::cout << "--interval [integer-integer]      only print the trees in the interval. Interval" << endl;
     std::cout << "                                  given as first tree to print - last tree to" << endl;
     std::cout << "                                  print, e.g. --interval 10-100, or just the" << endl;
@@ -969,22 +988,23 @@ void help () {
     std::cout << "   -u [value]                     given value, e.g. 3.5 (default 1.0)." << endl;
     std::cout << "--multiply_branch_lengths_clade / multiply branches in clades defined by the" << endl;
     std::cout << "   -V [value:taxon_string]        most recent common ancestor of comma separated" << endl;
-    std::cout << "                                  taxa. Separate clade with ':' or ';'. E.g." << endl;
-    std::cout << "                                  -V 3:Taxon_1,Taxon_2:Taxon_3,Taxon_4." << endl;
+    std::cout << "                                  taxa. Separate clade with colon E.g. -V 3:" << endl;
+    std::cout << "                                  Taxon_1,Taxon_2:Taxon_3,Taxon_4." << endl;
     std::cout << "--multiply_branch_lengths_until / multiply branches in tree up until given" << endl;
-    std::cout << "   -U [cut off,value]             distance (cut off) from root with the given" << endl;
-    std::cout << "                                  value, e.g. 40,2 (default 0.0,1.0)." << endl;
+    std::cout << "   -U [cut off:value]             distance (cut off) from root with the given" << endl;
+    std::cout << "                                  value (separated by colon), e.g. 40:2 (default" << endl;
+    std::cout << "                                  0.0:1.0)." << endl;
     std::cout << "--n_supported [value]             get the number of nodes with higher support" << endl;
     std::cout << "                                  than given value. Should be followed by value," << endl;
     std::cout << "                                  e.g. --n_supported 70.0." << endl;
-    std::cout << "--nni [integer/all]               perform nearest neighbor interchange. If a" << endl;
+    std::cout << "--nni [node/all]                  perform nearest neighbor interchange. If a" << endl;
     std::cout << "                                  integer is given as extra argument the" << endl;
     std::cout << "                                  interchange will be done on that branch (use" << endl;
     std::cout << "                                  --get_branch_numbers to get branch numbers)." << endl;
     std::cout << "                                  If 0 or no extra argument is given a branch" << endl;
-    std::cout << "                                  will be selected. If 'all' is given NNI will" << endl;
-    std::cout << "                                  be performed for all branches, e.g. --nni 4," << endl;
-    std::cout << "                                  or --nni all." << std::endl;
+    std::cout << "                                  will be selected randomly. If 'all' is given" << endl;
+    std::cout << "                                  NNI will be performed for all branches, e.g." << endl;
+    std::cout << "                                  --nni 4, or --nni all." << std::endl;
     std::cout << "--no_branch_length / -0           do not print branch lengths. If there are no" << endl;
     std::cout << "                                  branch lengths in input tree the default is to" << endl;
     std::cout << "                                  print zero length branches in the out tree." << endl;
@@ -1000,9 +1020,9 @@ void help () {
     std::cout << "--patristic_distances / -p [sep.] get the total patristic distance to all other" << endl;
     std::cout << "                                  taxa in the tree for each taxon, the separator" << endl;
     std::cout << "                                  between different taxa, and the separator" << endl;
-    std::cout << "                                  between taxon name and value can be specified," << endl;
-    std::cout << "                                  e.g. -p , \" | \" (default is new line and" << endl;
-    std::cout << "                                  tab)." << endl;
+    std::cout << "                                  between taxon name and value can be specified" << endl;
+    std::cout << "                                  (separated by colon) e.g. -p \",: | \" (" << endl;
+    std::cout << "                                  default is new line and tab)." << endl;
     std::cout << "--random_tree / -r                get a random topology (no branch lengths) with" << endl;
     std::cout << "                                  given number of taxa, e.g. -r 20 (default 0)." << endl;
     std::cout << "--read_figtree_annotations        will read annotations in FigTree/treeanotator" << endl;
@@ -1037,7 +1057,7 @@ void help () {
     std::cout << "--svg / -g                        output tree as svg image. Extra graphical" << endl;
     std::cout << "                                  commands can be given as next argument. Each" << endl;
     std::cout << "                                  command should be separated by &, and commands" << endl;
-    std::cout << "                                  and arguments should be separated by :." << endl;
+    std::cout << "                                  and arguments should be separated by colon." << endl;
     std::cout << "                                  Possible commands are: 'width' set width of" << endl;
     std::cout << "                                  figure; 'height' set hight of figure; 'offset'" << endl;
     std::cout << "                                  set offset between tips and tip label;" << endl;

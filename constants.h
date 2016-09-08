@@ -5,6 +5,7 @@
 
 static const unsigned int SIZE = 24;
 static const char VERSION[] = "0.2.8";
+static const char YEAR[] = "2016";
 
 namespace nexus_command {
     const char END = 'e';

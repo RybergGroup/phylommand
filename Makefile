@@ -8,14 +8,20 @@ CC=gcc
 # Options
 NLOPT= YES # if NLOPT set to NO set TREEATORFLAGS = -DNOLNLOPT
 WIN = NO # add WIN=YES if compiling on windows using MinGW
-PTHREADS = NO # set to yes to compile using pthreads, PTHREADS=-DPTREADS
-DATABASE = NO # set to compile with database
+PTHREADS = NO # set to YES to compile using pthreads, PTHREADS=-DPTREADS
+DATABASE = NO # set to YES compile with database
+RUDISVG = NO # set to  YES to compile rudisvg
 
-PHYLOMMAND = treebender pairalign contree treeator #clustertree anconstruction treesplitter superstat alignmentgroups 
+ifeq ($(RUDISVG),YES)
+PHYLOMMAND = treebender pairalign contree treeator rudisvg
+else
+PHYLOMMAND = treebender pairalign contree treeator
+endif
 #CFLAGS
 EXTRAS= # add EXTRAS=-DDEBUG for debug mode
 TREEATORFLAGS = -DNLOPT
 TREEATORLINKFLAGS = -lnlopt -lm
+RUDISVGLINKFLAGS = -lX11
 ifeq ($(NLOPT),NO)
     TREEATORFLAGS=
     TREEATORLINKFLAGS=
@@ -32,65 +38,46 @@ DECISIVE = decisiveness.cpp
 SQLITE = sqlite3.c
 SQLITEO = sqlite3.o
 TREEB = treebender.cpp
-#CLUSTTREE = clustertree_main.cpp
 DATABASEFLAG = -DDATABASE
 ifeq ($(DATABASE),NO)
     DATABASEFLAG =
     SQLITEO =
     SQLITEFLAGS =
 endif
-#ALIGNMENT = alignmentgroups.cpp
 ALIGNFLAGS =
 ifeq ($(PTHREADS),YES)
     ALIGNFLAGS = -DPTHREAD
 endif
 PAIRALIGN = pairalign.cpp
-# TREESPLIT = treesplitter.cpp
-# SUPER = superstat.cpp
 CONTREE = contree.cpp
 TREEATOR = treeator.cpp
-#ANCON = anconstruction.cpp
+RUDISVGCPP = rudisvg.cpp
+PUGIXML = pugixml/pugixml.cpp
 STRINGTREE = string_tree.cpp
 NJTREE = nj_tree.cpp
 SIMPLEML = simpleML.cpp
 MARTH = marth/marth.cpp
-#SUPPORTFUNCTIONS = support_functions.cpp
 FILE_PARSER = file_parser.cpp
 ARGV_PARSER = argv_parser.cpp
 MATRIXPARS = matrix_parser.cpp
 SEQDB = seqdatabase.cpp
 INDEXEDFST = indexedfasta.cpp
 
-OTREE = tree.o treebender.o string_tree.o file_parser.o argv_parser.o matrix_parser.o clustertree.o $(SQLITEO) # support_functions.o
-#OCLUSTTREE = clustertree.o tree.o clustertree_main.o string_tree.o matrix_parser.o file_parser.o $(SQLITEO) # support_functions.o
-//OALIGNMENT = seqpair.o align_group.o seqdatabase.o indexedfasta.o alignmentgroups.o $(SQLITEO)
+OTREE = tree.o treebender.o string_tree.o file_parser.o argv_parser.o matrix_parser.o clustertree.o $(SQLITEO)
 OPAIRALIGN = seqpair.o pairalign.o align_group.o seqdatabase.o indexedfasta.o $(SQLITEO)
-#OSPLIT = tree.o treesplitter.o string_tree.o matrix_parser.o # support_functions.o
-#OSUPER = superstat.o tree.o decisiveness.o string_tree.o matrix_parser.o # support_functions.o
-OCONTREE = contree.o tree.o decisiveness.o string_tree.o matrix_parser.o file_parser.o # support_functions.o
-OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o matrix_parser.o file_parser.o argv_parser.o $(TREEATORLINKFLAGS) # support_functions.o
-
-# treeator.cpp tree.cpp string_tree.cpp nj_tree.cpp
+OCONTREE = contree.o tree.o decisiveness.o string_tree.o matrix_parser.o file_parser.o
+OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o matrix_parser.o file_parser.o argv_parser.o $(TREEATORLINKFLAGS)
+ifeq ($(RUDISVG),YES)
+ORUDISVG = rudisvg.o pugixml.o
+endif
 
 all: $(PHYLOMMAND)
 
 treebender: $(OTREE)
 	$(PP) -o treebender $(OTREE) $(SQLOFLAGS)
 
-#clustertree: $(OCLUSTTREE)
-#	$(PP) -o clustertree $(OCLUSTTREE) $(SQLOFLAGS)
-
-#alignmentgroups: $(OALIGNMENT)
-#	$(PP) -o alignmentgroups $(OALIGNMENT) $(SQLOFLAGS)
-
 pairalign: $(OPAIRALIGN)
 	$(PP) -o pairalign $(OPAIRALIGN) $(SQLOFLAGS)
-
-#treesplitter: $(OSPLIT)
-#	$(PP) -o treesplitter $(OSPLIT)
-
-#superstat: $(OSUPER)
-#	$(PP) -o superstat $(OSUPER)
 
 contree: $(OCONTREE)
 	$(PP) -o contree $(OCONTREE)
@@ -98,24 +85,16 @@ contree: $(OCONTREE)
 treeator: $(OTREEATOR)
 	$(PP) -o treeator $(OTREEATOR) $(TREEATORFLAGS)
 
+ifeq ($(RUDISVG),YES)
+rudisvg: $(ORUDISVG)
+	$(PP) -o rudisvg $(ORUDISVG) $(RUDISVGLINKFLAGS)
+endif
+
 treebender.o: $(TREEB)
 	$(PP) $(DATABASEFLAG) -c $(TREEB) $(EXTRAS)
 
-#clustertree_main.o: $(CLUSTTREE)
-#	$(PP) $(DATABASEFLAG) -c $(CLUSTTREE) $(EXTRAS)
-
-#alignmentgroups.o: $(ALIGNMENT)
-#	$(PP) $(DATABASEFLAG) $(ALIGNFLAGS) -c $(ALIGNMENT) $(EXTRAS)
-#	$(PP) $(DATABASEFLAG) -c $(ALIGNMENT) $(EXTRAS)
-
 pairalign.o: $(PAIRALIGN)
 	$(PP) $(ALIGNFLAGS) $(DATABASEFLAG) -c $(PAIRALIGN) $(EXTRAS)
-
-#treesplitter.o: $(TREESPLIT)
-#	$(PP) -c $(TREESPLIT) $(EXTRAS)
-
-#superstat.o: $(SUPER)
-#	$(PP) -c $(SUPER) $(EXTRAS)
 
 contree.o: $(CONTREE)
 	$(PP) -c $(CONTREE) $(EXTRAS)
@@ -123,8 +102,10 @@ contree.o: $(CONTREE)
 treeator.o: $(TREEATOR)
 	$(PP) -c $(TREEATOR) $(EXTRAS)
 
-#anconstruction.o: $(ANCON)
-#	$(PP) -c $(ANCON) $(EXTRAS)
+ifeq ($(RUDISVG),YES)
+rudisvg.o: $(RUDISVGCPP)
+	$(PP) -c $(RUDISVGCPP) $(EXTRAS)
+endif
 
 tree.o: $(TREE)
 	$(PP) -c $(TREE) $(EXTRAS)
@@ -158,9 +139,6 @@ simpleML.o: $(SIMPLEML)
 marth.o: $(MARTH)
 	$(PP) -c $(MARTH) $(EXTRAS)
 
-#support_functions.o: $(SUPPORTFUNCTIONS)
-#	$(PP) -c $(SUPPORTFUNCTIONS)
-
 file_parser.o: $(FILE_PARSER)
 	$(PP) -c $(FILE_PARSER) $(EXTRAS)
 
@@ -175,3 +153,8 @@ seqdatabase.o: $(SEQDB)
 
 indexedfasta.o: $(INDEXEDFST)
 	$(PP) -c $(INDEXEDFST) $(EXTRAS)
+
+ifeq ($(RUDISVG),YES)
+pugixml.o: $(PUGIXML)
+	$(PP) -c $(PUGIXML) $(EXTRAS)
+endif

@@ -61,6 +61,7 @@ int main (int argc, char *argv []) {
     bool print_state_on_nodelable(false);
     char print_tree = 'w';
     bool quiet(true);
+    bool non_as_uncertain(true);
     string tree_file_name;
     ifstream tree_file;
     file_parser tree_input(&cin);
@@ -360,10 +361,10 @@ int main (int argc, char *argv []) {
 	    }
 	}
 	else if (!quiet) cerr << "Using default alphabet (dna)." << endl;
+    	bitset<SIZE> all_possible_char;
+	for (map<char,bitset<SIZE> >::const_iterator i = alphabet.begin(); i != alphabet.end(); ++i)
+	    all_possible_char |= i->second;
 	if (!quiet) {
-	    bitset<SIZE> all_possible_char;
-	    for (map<char,bitset<SIZE> >::const_iterator i = alphabet.begin(); i != alphabet.end(); ++i)
-		all_possible_char |= i->second;
 	    cerr << "Alphabet include " << all_possible_char.count() << " distinct traits, given by " << alphabet.size() << " characters." << endl;
 	}
 	if (alphabet.empty()) {
@@ -397,6 +398,10 @@ int main (int argc, char *argv []) {
 	std::cerr << "Max number of characters: " << characters.begin()->max_n_char() << std::endl;
 	#endif //DEBUG
         if (data_file.is_open()) data_file.close();
+	if (non_as_uncertain) {
+	    for (vector<character_vector>::iterator i = characters.begin(); i != characters.end(); ++i)
+		i->set_empty_to(all_possible_char);
+	}
 	if (!tree_file_name.empty()) {
 	    tree_file.open(tree_file_name.c_str(),std::ifstream::in);
 	    if (tree_file.good())
@@ -665,27 +670,27 @@ int main (int argc, char *argv []) {
 }
 
 void help () {
-    std::cout << "Treeator is a command line program to construct trees. The program take either a" << endl;
-    std::cout << "left triangular similarity matrix (neighbour joining) or a data matrix of" << endl;
-    std::cout << "fasta, nexus, or relaxed phylip format (not interleaved; parsimony/maximum" << endl;
+    std::cout << "Treeator " << VERSION <<  " is a command line program to construct trees. The program take" << endl;
+    std::cout << "either a left triangular similarity matrix (neighbour joining) or a data matrix" << endl;
+    std::cout << "of fasta, nexus, or relaxed phylip format (not interleaved; parsimony/maximum" << endl;
     std::cout << "likelihood) as input through standard in/ last argument/ as given below. For" << endl;
     std::cout << "character data an alphabet is also needed, default is binary (0 1 -)." << endl;
-    std::cout << "(c) Martin Ryberg 2016." << endl << endl;
+    std::cout << "(c) Martin Ryberg " << YEAR << "." << endl << endl;
     std::cout << "Usage:" << endl << "treeator [arguments] data_file.txt" << endl << endl;
     std::cout << "Arguments:" << endl;
-    std::cout << "--alphabet_file / -a             give file with character alphabet, or dna," << endl;
+    std::cout << "--alphabet_file / -a [file/type] give file with character alphabet, or dna," << endl;
     std::cout << "                                 protein, or binary for dna, amino acid," << endl;
     std::cout << "                                 respectively binary (0 1) alphabets (default:" << endl;
     std::cout << "                                 dna)." << std::endl;
-    std::cout << "--data_file / -d [file name]     give the data file."<< std::endl;
-    std::cout << "--fixed / -e [integer]           give parameter to fix. First parameter is" << endl;
+    std::cout << "--data_file / -d [file]          give the data file."<< std::endl;
+    std::cout << "--fixed / -e [number/s]          give parameter to fix. First parameter is" << endl;
     std::cout << "                                 indexed 0. Several parameters can be given in a" << endl;
     std::cout << "                                 comma separated string, e.g. -e 0,2,3." << endl;
-    std::cout << "--file / -f [file name]          give data file name, or if data file name" << endl;
+    std::cout << "--file / -f [file]               give data file name, or if data file name" << endl;
     std::cout << "                                 already given, then tree file name. If nexus" << endl;
     std::cout << "                                 format and no tree file name is given, tree is" << endl;
     std::cout << "                                 assumed to be in same file as data." << endl;
-    std::cout << "--format [file format]           give the format of the input files. For" << endl;
+    std::cout << "--format [format]                give the format of the input files. For" << endl;
     std::cout << "                                 character file fasta, phylip and nexus are the" << endl;
     std::cout << "                                 options. For the tree file the options are" << endl;
     std::cout << "                                 newick and nexus. Give the character file" << endl;
@@ -696,15 +701,15 @@ void help () {
     std::cout << "                                 character file is set to nexus, then nexus is" << endl;
     std::cout << "                                 also default for tree file, e.g. --format" << endl;
     std::cout << "                                 nexus)." << endl;
-    std::cout << "--get_state_at_nodes             will give the states at nodes as comments" << endl;
-    std::cout << "                                 (readable in FigTree)." << endl;
+    std::cout << "--get_state_at_nodes             will give the states at internal nodes as" << endl;
+    std::cout << "                                 comments (readable in FigTree)." << endl;
     std::cout << "--help / -h                      print this help." << endl;
     std::cout << "--likelihood / -l                calculate likelihood for data given tree." << endl;
     /*std::cout << "--likelihood / -l [const/time]   calculate likelihood for data given tree." << endl;
     std::cout << "                                 Either with constant rate through time (const)" << endl;
     std::cout << "                                 or with rate changing (multiplied by a" << endl;
     std::cout << "                                 variable) at a certain time point (time)." << endl;*/
-    std::cout << "--model / -m [integer numbers]   give the model by numbering the rate parameters" << endl;
+    std::cout << "--model / -m [number/s]          give the model by numbering the rate parameters" << endl;
     std::cout << "                                 for different transition, e.g. -m 0,1,0,2,1,2." << endl;
     std::cout << "--neighbour_joining / -n         compute neighbour joining tree for given data." << endl;
     std::cout << "                                 The data should be  a left triangular" << endl;
@@ -720,17 +725,17 @@ void help () {
     std::cout << "--output [newick/nexus]          give tree format for output, nexus (nex or x" << endl;
     std::cout << "                                 for short) or newick (new or w for short), e.g" << endl;
     std::cout << "                                 --output x. (default w)." << endl; 
-    std::cout << "--parameters / -P [real numbers] give corresponding parameter values for" << endl;
+    std::cout << "--parameters / -P [values]       give corresponding parameter values for" << endl;
     std::cout << "                                 parameters. If optimizing these will be" << endl;
     std::cout << "                                 starting values, e.g. -P 0.1,0.01,0.05." << endl;
     std::cout << "--parsimony / -p                 calculate parsimony score for given tree and" << endl;
     std::cout << "                                 data." << std::endl;
-    std::cout << "--rate_mod / -R [real number]    give modifier for rate compared to rate at root" << endl;
-    std::cout << "                                 e.g. -r 0.5. Default: 1.0." << endl;
+    /*std::cout << "--rate_mod / -R [value]        give modifier for rate compared to rate at root" << endl;
+    std::cout << "                                 e.g. -r 0.5. Default: 1.0." << endl;*/
     std::cout << "--random / -r                    do stepwise addition in random order." << endl;
-    std::cout << "--time / -T [real number]        give branch length distance from root where" << endl;
-    std::cout << "                                 change in rate occur, e.g. -t 10. Default: 0." << endl;
-    std::cout << "--tree_file / -t [file name]     give tree file name." << std::endl;
+    /*std::cout << "--time / -T [value]            give branch length distance from root where" << endl;
+    std::cout << "                                 change in rate occur, e.g. -t 10. Default: 0." << endl;*/
+    std::cout << "--tree_file / -t [file]          give tree file name." << std::endl;
     std::cout << "--step_wise / -s                 do parsimony stepwise addition." << std::endl;
     std::cout << "--verbose / -v                   get additional output." << endl;
     std::cout << endl;

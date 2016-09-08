@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <stdlib.h>
 #include <string.h>
@@ -25,14 +26,55 @@ void close_x(Display* dis, Window &win, GC &gc) {
 
 void display_drawing(Display* dis, Window& win, GC& gc, drawing& fig, int x_setoff, int y_setoff, float scale); 
 bool pars_svg(istream& input, drawing& fig);
-
+void help();
 int main (int argc, char *argv[]) {
     // Variables for general behaviour
-    bool quiet(false);
+    bool quiet(true);
+    string file_name;
+    ifstream infile;
+    istream* input = &cin;
+    // Pars arguments
+    for (int i=1; i < argc; ++i) {
+	if ( !strcmp(argv[i],"-f") || !strcmp(argv[i],"--file") ) {
+	    if (i+1 < argc && argv[i+1][0] != '-') {
+		file_name = argv[++i];
+	    }
+	    else {
+		cerr << "-f/--file needs to be followed by a file name." << endl;
+		return 1;
+	    }
+	}
+	else if (!strcmp(argv[i],"-v") || !strcmp(argv[i],"--verbose")) quiet = false;
+	else if ( !strcmp(argv[i],"-h") || !strcmp(argv[i],"--help") ) {
+	    help();
+	    return 0;
+	}
+	else if ( i == argc-1 && argv[i][0] != '-' && file_name.empty() ) {
+	    file_name = argv[i];
+	}
+	else if (i < argc) {
+	    std::cerr << "The program was called with the following command:" << endl;
+	    for (int j=0; j<argc; ++j) std::cerr << argv[j] << ' ';
+	    std::cerr << endl;
+	    std::cerr << "Argument " << argv[i] << " not recognized. For available arguments give -h or --help." << endl;
+	    return 0;
+	}
+
+    }
+    // Open infile if one given
+    if (!file_name.empty()) {
+	infile.open(file_name.c_str(), std::ifstream::in);
+	if (infile.good())
+	    input = &infile;
+	else {
+	    cerr << "Could not open file: " << file_name << endl;
+	    return 1;
+	}
+    }
 
     // Pars SVG
     drawing figure;
-    if (pars_svg(std::cin, figure) && !quiet) std::cerr << "Parsed figure." << std::endl;
+    if (pars_svg(*input, figure) && !quiet) std::cerr << "Parsed figure." << std::endl;
     else if (!quiet) {
         std::cerr << "Unable to pars figure." << std::endl;
 	return 1;
@@ -302,3 +344,15 @@ void display_drawing(Display* dis, Window& win, GC& gc, drawing& fig, int x_seto
     XUnloadFont(dis,font);
 }
 
+void help() {
+    cout << "Rudisvg 0.1.0 is a rudimentary svg viewer. It can read and draw lines," << endl;
+    cout << "rectangles, ellipsoids, and text. It only display in one color. Zoom in and out" << endl;
+    cout << "with + and - key, move right and left with arrow keys (Swedish keyboard)." << endl;
+    cout << "(c) Martin Ryberg 2016." << endl << endl;
+    cout << "Usage:" << endl << "rudisvg < file.svg" << endl << "rudisvg file.svg" << endl << endl;
+    cout << "Arguments:" << endl;
+    cout << "--file / -f [file]    give svg file name." << endl;
+    cout << "--help / -h           print this help." << endl;
+    cout << "--verbose / -v        give additional output (to command line)." << endl;
+
+}

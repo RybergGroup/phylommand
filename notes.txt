@@ -3,6 +3,8 @@ Xming on ubuntu on windows:
 in bash
 export DISPLAY=localhost:0.0
 
+compile svg viewer: -lX11 -lXau -lws2_32
+
 Put treesplitter in treebender - done
 Moved superstat to contree - done
 Make alignmentgroups independent of sqlite - done
@@ -41,10 +43,11 @@ Add checks and warnings
 	treeator if distance matrix of wrong size - done
 Add progress reports and quiet options - done
 Go trough how extra arguments are given in treebender so it is one extra per argument - done
-Make hov arguments are given more uniform using argv_parser
-Add svg viewer (latest version should be on git on NAS)
+Make how arguments are given more uniform using argv_parser - done
+Add svg viewer (latest version should be on git on NAS; download from backup?)
 Make sure help funktions are good - improve further
-Handeling of gaps in parsimony
+Handeling of gaps in parsimony - done
 Write manual
 Testing, testing, testing
 Ask people to test
+Write manuscript.
