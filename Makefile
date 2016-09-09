@@ -6,7 +6,7 @@ PP=g++ -std=c++11
 CC=gcc
 
 # Options
-NLOPT= YES # if NLOPT set to NO set TREEATORFLAGS = -DNOLNLOPT
+NLOPT= NO # if NLOPT set to NO set TREEATORFLAGS = -DNOLNLOPT
 WIN = NO # add WIN=YES if compiling on windows using MinGW
 PTHREADS = NO # set to YES to compile using pthreads, PTHREADS=-DPTREADS
 DATABASE = NO # set to YES compile with database
@@ -19,16 +19,12 @@ PHYLOMMAND = treebender pairalign contree treeator
 endif
 #CFLAGS
 EXTRAS= # add EXTRAS=-DDEBUG for debug mode
-TREEATORFLAGS = -DNLOPT
-TREEATORLINKFLAGS = -lnlopt -lm
+TREEATORFLAGS=
+TREEATORLINKFLAGS=
 RUDISVGLINKFLAGS = -lX11
-ifeq ($(NLOPT),NO)
-    TREEATORFLAGS=
-    TREEATORLINKFLAGS=
-endif
-SQLOFLAGS = -ldl -lpthread
-ifeq ($(WIN),YES)
-    SQLOFLAGS=
+ifeq ($(NLOPT),YES)
+    TREEATORFLAGS = -DNLOPT
+    TREEATORLINKFLAGS = -lnlopt -lm
 endif
 TREE = tree.cpp
 ALIGN = align_group.cpp
@@ -36,13 +32,17 @@ CLUST = clustertree.cpp
 SEQPAIR = seqpair.cpp
 DECISIVE = decisiveness.cpp
 SQLITE = sqlite3.c
-SQLITEO = sqlite3.o
+SQLITEO =
 TREEB = treebender.cpp
-DATABASEFLAG = -DDATABASE
-ifeq ($(DATABASE),NO)
-    DATABASEFLAG =
-    SQLITEO =
-    SQLITEFLAGS =
+DATABASEFLAG =
+SQLITEFLAGS =
+ifeq ($(DATABASE),YES)
+    SQLITEO = sqlite3.o
+    DATABASEFLAG = -DDATABASE
+    SQLOFLAGS = -ldl -lpthread
+endif
+ifeq ($(WIN),YES)
+    SQLOFLAGS=
 endif
 ALIGNFLAGS =
 ifeq ($(PTHREADS),YES)
@@ -83,7 +83,7 @@ contree: $(OCONTREE)
 	$(PP) -o contree $(OCONTREE)
 
 treeator: $(OTREEATOR)
-	$(PP) -o treeator $(OTREEATOR) $(TREEATORFLAGS)
+	$(PP) -o treeator $(OTREEATOR) 
 
 ifeq ($(RUDISVG),YES)
 rudisvg: $(ORUDISVG)
@@ -100,7 +100,7 @@ contree.o: $(CONTREE)
 	$(PP) -c $(CONTREE) $(EXTRAS)
 
 treeator.o: $(TREEATOR)
-	$(PP) -c $(TREEATOR) $(EXTRAS)
+	$(PP) -c $(TREEATOR) $(TREEATORFLAGS) $(EXTRAS)
 
 ifeq ($(RUDISVG),YES)
 rudisvg.o: $(RUDISVGCPP)
@@ -122,7 +122,7 @@ seqpair.o: $(SEQPAIR)
 decisiveness.o: $(DECISIVE)
 	$(PP) -c $(DECISIVE) $(EXTRAS)
 
-ifeq ($(DATABASE), YES)
+ifeq ($(DATABASE),YES)
 sqlite3.o: $(SQLITE)
 	$(CC) -c $(SQLITE)
 endif
