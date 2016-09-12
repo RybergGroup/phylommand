@@ -13,10 +13,10 @@
 
 using namespace std;
 
-void sleep(unsigned int mseconds) {
+/*void sleep(unsigned int mseconds) {
     clock_t goal = mseconds + clock();
     while (goal > clock());
-}
+}*/
 
 void close_x(Display* dis, Window &win, GC &gc) {
     XFreeGC(dis, gc);

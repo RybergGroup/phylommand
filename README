@@ -11,7 +11,16 @@ an extra argument to make. E.g.:
 
     make PTHREADS=YES NLOPT=YES
 
-If you are compiling on windows using MinGW give WIN=YES as extra argument.
+If you are compiling on windows using MinGW give WIN=YES as extra argument. If
+you want to recompile phylommand, first remove all object files,
+
+rm *.o
+
+or for Windows
+
+DEL *.o
+
+and then compile again as above.
   
 Phylomand includes:
     treebender - for manipulating and getting basic statistics from trees.
@@ -37,3 +46,21 @@ For further instructions on possible arguments call the help function of the
 respective program with the switch -h or --help, e.g.:
 
     treebender --help
+
+To be able to execute the phylomand programs from any folder, move the programs
+to a folder in your PATH, e.g.
+
+sudo mv treebender /usr/local/bin/
+sudo mv treeator /usr/local/bin/
+sudo mv pairalign /usr/local/bin/
+sudo mv contree /usr/local/bin/
+
+,or 
+
+su
+mv treebender /usr/local/bin/
+mv treeator /usr/local/bin/
+mv pairalign /usr/local/bin/
+mv contree /usr/local/bin/
+
+, or put the folder with the programs into your PATH.

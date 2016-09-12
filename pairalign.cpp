@@ -356,7 +356,8 @@ void cluster( seqdatabase& db, const string table, const float cut_off, const in
     //#else /* PTHREAD */
     //sequence_package two_sequences;
     #endif /* PTHREAD */
-    sequence_package two_sequences[n_threads];
+    vector<sequence_package> two_sequences;
+    for (unsigned int i=0;i < n_threads; ++i) two_sequences.push_back(sequence_package());
     align_group deviations;
     //char mode='1';
     stringstream converter;
