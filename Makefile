@@ -36,17 +36,20 @@ SQLITEO =
 TREEB = treebender.cpp
 DATABASEFLAG =
 SQLITEFLAGS =
+PAIRALIGNFLAGS =
 ifeq ($(DATABASE),YES)
     SQLITEO = sqlite3.o
     DATABASEFLAG = -DDATABASE
     SQLOFLAGS = -ldl -lpthread
-endif
-ifeq ($(WIN),YES)
-    SQLOFLAGS=
+    PAIRALIGNFLAGS = -ldl -lpthread
 endif
 ALIGNFLAGS =
 ifeq ($(PTHREADS),YES)
     ALIGNFLAGS = -DPTHREAD
+    PAIRALIGNFLAGS = -ldl -lpthread
+endif
+ifeq ($(WIN),YES)
+    SQLOFLAGS=
 endif
 PAIRALIGN = pairalign.cpp
 CONTREE = contree.cpp
@@ -77,7 +80,7 @@ treebender: $(OTREE)
 	$(PP) -o treebender $(OTREE) $(SQLOFLAGS)
 
 pairalign: $(OPAIRALIGN)
-	$(PP) -o pairalign $(OPAIRALIGN) $(SQLOFLAGS)
+	$(PP) -o pairalign $(OPAIRALIGN) $(PAIRALIGNFLAGS)
 
 contree: $(OCONTREE)
 	$(PP) -o contree $(OCONTREE)

@@ -388,7 +388,7 @@ void help () {
     std::cout << "                                each tree that that split is present in." <<endl;
     std::cout << "--compare / -c [value]          output conflicting splits where at least one" << endl;
     std::cout << "                                branch support the conflict with more than given" << endl;
-    std::cout << "                                support, e.g. -f 0.7." << endl;
+    std::cout << "                                support, e.g. -c 0.7." << endl;
     std::cout << "--database / -d [file]          give a second file of trees to compare against" << endl;
     std::cout << "                                instead of comparing within the ordinary input." << endl;
     std::cout << "                                If - is given input will be taken from standard" << endl;

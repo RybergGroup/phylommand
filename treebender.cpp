@@ -954,7 +954,7 @@ void help () {
     std::cout << "                                  number not included in the group divided by" << endl;
     std::cout << "                                  the total number in the group. Taxa given as" << endl;
     std::cout << "                                  comma separated string (see --drop_tips)." << endl;
-    std::cout << "--file/-f                         give file name, e.g. -f file.tree." << endl;
+    std::cout << "--file / -f [file]                give file name, e.g. -f file.tree." << endl;
     std::cout << "--format [newick/nexus]           give format of input, e.g. --format nexus. If" << endl;
     std::cout << "                                  no format is given and the input is a file" << endl;
     std::cout << "                                  treebender will try to guess the format, if it" << endl;
@@ -1048,7 +1048,7 @@ void help () {
     std::cout << "                                  (max_tree_size/s). The number should be given" << endl;
     std::cout << "                                  togather with the specific criterion after :." << endl;
 /////////////////////////
-    std::cout << "--rooted/-R                       sets if the tree should be considered as" << endl;
+    std::cout << "--rooted / -R                     sets if the tree should be considered as" << endl;
     std::cout << "                                  rooted or not (only matters when splitting" << endl;
     std::cout << "                                  trees)." << endl;
     std::cout << "--sum_branch_length / -s          get the sum of the branch lengths in the tree" << endl;

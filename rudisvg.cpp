@@ -113,7 +113,7 @@ int main (int argc, char *argv[]) {
     #endif // DEBUG
     win = XCreateSimpleWindow(dis,RootWindow(dis,0),1,1,500,500, 0, black, black);
 
-    XSetStandardProperties(dis,win, "Incomplete SVG", "i!", None, NULL, 0, NULL);
+    XSetStandardProperties(dis,win, "rudisvg", "i!", None, NULL, 0, NULL);
 
     XSelectInput(dis, win, ExposureMask | KeyPressMask | ButtonPressMask);
 

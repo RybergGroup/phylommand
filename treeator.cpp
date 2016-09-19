@@ -719,7 +719,7 @@ void help () {
     std::cout << "--no_lable / -L                  will tell treeator that there are no taxon" << endl;
     std::cout << "                                 labels in the similarity matrix." << endl;
     #ifdef NLOPT
-    std::cout << "--no_optim/-n                    calculate likelihood for given parameters. No" << endl;
+    std::cout << "--no_optim / -n                  calculate likelihood for given parameters. No" << endl;
     std::cout << "                                 optimization." << endl;
     #endif //NLOPT
     std::cout << "--output [newick/nexus]          give tree format for output, nexus (nex or x" << endl;

@@ -44,10 +44,14 @@ Add checks and warnings
 Add progress reports and quiet options - done
 Go trough how extra arguments are given in treebender so it is one extra per argument - done
 Make how arguments are given more uniform using argv_parser - done
-Add svg viewer (latest version should be on git on NAS; download from backup?)
+Add svg viewer (latest version should be on git on NAS; download from backup?) - done
 Make sure help funktions are good - improve further
 Handeling of gaps in parsimony - done
-Write manual
+Write manual - No
+Add calculate mad for taxon set
+Review README
+Add to EXAMPLES
+Write bash script to calculate maximum clade credibility tree
 Testing, testing, testing
 Ask people to test
 Write manuscript.
