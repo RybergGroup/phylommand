@@ -1,5 +1,51 @@
 #include "seqdatabase.h"
 
+float seqdatabase::get_comp_value_pair ( const string& accno ) {
+    string* sequence;
+    if (accno.compare(accno1)) sequence = &sequence1;
+    else if (accno.compare(accno2)) sequence = &sequence2;
+    else return 0.0;
+    unsigned int length = sequence->length();
+    float value(0.0);
+    for (unsigned int i = 0; i < length; ++i)
+	if (sequence->at(i) != 'n' && sequence->at(i) != 'N') value += 1.0;
+    return value;
+}
+
+void seqdatabase::move_to_next_pair_pairwisefst() {
+    if (!accno1.empty()) previous_taxon = accno1;
+    accno1.clear(); accno2.clear(); sequence1.clear(); sequence2.clear();
+    char read_mode = '0';
+    while (*input) {
+	char input_char = input->get();
+	if (input_char == '>') {
+	    if (read_mode == '0') read_mode = 'A';
+	    else if (read_mode == 'S') read_mode = 'a';
+	}
+	else if (input_char == '|') {
+	    if (read_mode == 'A') read_mode = 'T';
+	    else if (read_mode == 'a') read_mode = 't';
+	}
+	else if (input_char == '\n' || input_char == '\r') {
+	    if (read_mode == 'A' || read_mode == 'T') read_mode = 'S';
+	    else if (read_mode == 'a' || read_mode == 't') read_mode = 's';
+	}
+	else if (read_mode == 'A') accno1 += input_char;
+	else if (read_mode == 'a') accno2 += input_char;
+	else if (read_mode == 'T') taxon_strings[accno1] += input_char;
+	else if (read_mode == 't') taxon_strings[accno2] += input_char;
+	else if (read_mode == 'S') sequence1 += input_char;
+	else if (read_mode == 's') sequence2 += input_char;
+	if (read_mode == 's' && (input->peek() == '>' || input->peek() == EOF)) break;
+    }
+    #ifdef DEBUG
+    cerr << previous_taxon << " : " << accno1 << endl;
+    #endif //DEBUG
+    if (!previous_taxon.compare("empty") || previous_taxon.compare(accno1)) mode = '2';
+    else mode = '3';
+    if (input->bad() || input->peek() == EOF) mode = '9';
+}
+
 void seqdatabase::move_to_next_pair_fst (bool only_lead) {
     #ifdef DEBUG
     cerr << "Moving to next pair" << endl;
@@ -128,10 +174,11 @@ void seqdatabase::move_to_next_pair_sql (bool only_lead) {
 		}
 		if (!accno.compare(previous_taxon)) break;
 	    }
-	    mode = 1;
+	    mode = '1';
 	}
 	else mode = '9';
     }
+    else if (mode == '0') mode = '1';
     if (mode != '9') {
 	while (1) {
 	    if(sqlite3_step(statement) == SQLITE_ROW) {
@@ -157,7 +204,7 @@ void seqdatabase::move_to_next_pair_sql (bool only_lead) {
 	    }
 	    else { // reached the end
 		sqlite3_finalize(statement);
-		if (mode == '2' || mode == '1') mode = '9'; // if on first or second sequence, all pairs have been done
+		if (mode == '2' || mode == '1' || mode == '0') mode = '9'; // if on first or second sequence, all pairs have been done
 		else if(sqlite3_prepare_v2(db, query.c_str(), -1, &statement, 0) != SQLITE_OK) mode = '9'; // if failing sql statment
 		else mode = 0; // otherwise we start from the begining again
 		break;
@@ -264,7 +311,7 @@ string seqdatabase::get_cluster_sql( const string accno, const string table ) {
     return cluster;
 }
 
-float seqdatabase::get_comp_value_sql ( const string accno, const string table ) {
+float seqdatabase::get_comp_value_sql ( const string& accno, const string& table ) {
     int length=0;
     float prop_N=0.0;
     if (OPEN) {

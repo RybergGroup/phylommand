@@ -1,24 +1,73 @@
-So to view a neighbour joining tree representation of a set of sequences it is possible to use:
+Here are some examples on how phylommand can be used. The examples assumes a
+basic knowledge in how to work on the command line. Many cases also assume that
+you are working in a bash shell or similar.
 
-  [time] mafft alignment_file.fst | pairalign -A -j -n -m | treeator -n | treebender --svg | rudisvg 
+To make and view a neighbour joining tree based on a mafft alignment:
 
-Treebender can be used to create monophyletic operational taxonomic units in a tree base on branch lengths (c.f. virtual tax sensu Öpick et al 20XX):
+    mafft alignment_file.fst | pairalign -A -j -n -m | treeator -n | treebender \
+    --svg | rudisvg
+
+To create monophyletic OTUs based on the branch lengths in a tree (c.f. virtual
+taxa sensu Öpick et al 20XX):
 
     treebender --cluster branch_length --cut_off 0.03 tree_file.tre 
 
-The parsimony score of all nearest neighbour interchange trees from a topology can be given by:
+Get the parsimony score of all nearest neighbour interchange trees from:
 
     treebender --nni all tree_file.tree | treeator -f alignment.fst -p
 
-Pairalign can be used to get which taxa can be aligned confidently according to MAD score (Smith et al. 2009, BMC Evol. Biol. 9:37):
+Get alignable groups based on MAD score (Smith et al. 2009, BMC Evol. Biol.
+9:37):
 
     pairalign --alignment_groups alignment_file.fst
 
-Contree can be used to get what clades that have more than a given support in a tree and are in conflict with clades with the given support in other trees. The output can be either text or HTML:
+Get conflict between trees that have more than given number of support in HTML
+format:
 
     contree -c 70 tree_file.trees --html
 
-It can also be used to draw the number of times the clades of a tree occur in a set of other trees, i.e. to draw bootstrap supports:
+Draw bootstrap supports on topology in tree_file.tree:
 
     contree -a -d tree_file.trees tree_file.tree
+
+Get the maximum clade credibility tree in a set of trees, removing burn-in (5000
+trees), and with help of awk:
+
+    treebender --interval 5001 tree_file.trees | contree -a | treebender \
+    --clade_credibility | awk -v max=0 '{if($1>max){print NR " " $1; max=$1}}'
+
+The first value is which tree after burn-in, and the second the log sum of
+support values. The last printed values should be for the maximum clade
+credibility (MCC) tree. The second value is not the clade credibility since we
+do not divide the support by the number of trees, and we do not compare each
+tree with itself (which should add 1 to all nodes, for all trees).
+
+If we want to change the names of many or all tips in a tree it may be convenient 
+to use a file with the name changes. We can get a nice start for such a file
+getting the tip names from treebender:
+
+    treebender -t '|,\n' tree_file.tree > name_changes.txt
+
+We can then then edit name_changes.txt, putting our new names between the '|' and
+',' (you need to add | for the last name though; depending on your system and
+text editor you may want to use other line break than \n), and then run:
+
+    treebender -c file:name_changes.txt tree_file.tree
+
+Do not forget to add new name or delete the row if you do not want to change that
+name, otherwise these tip name will be deleted. If you like the output in svg
+format just add --output svg. Start files for the other arguments that take
+taxa as input can be gotten similarly:
+
+    treebender -t ,\\n tree_file.tree > taxa.txt
+
+To be able to pipe all information for the --group analyses it is possible to
+give the taxonomy in the sequence names. However, pairalign does not output the
+taxonomy as part of the sequence name. This may be irritating sometimes when you
+make a pairwise alignment to use for a latter --group analysis. To get the
+taxonomy from the first fasta file into a separate file that can be used for the
+analysis you can do:
+
+    grep '>' sequences.fst | sed 's/^>//' | awk \
+    'BEGIN { FS="|" } {print $2 "|" $1}' > taxonomy_file.txt
 

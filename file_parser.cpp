@@ -212,13 +212,24 @@ void file_parser::read_translate_parameters( map<string,string>& translations ) 
 	else if (type == 'v') {
 	    if (temp == ',') {
 		type = 'k';
+		while (!value.empty() && value.back() == ' ') value.pop_back();
 		translations[key]=value;
 		key.clear(); value.clear();
 	    }
-	    else if (temp != ' ' && temp != '\n' && temp != '\t' && temp != '\r') value += temp;
+	    else if (temp == '\'' || temp == '"') {
+		char delimiter = temp;
+		temp = file_stream->get();
+		while (*file_stream && temp != delimiter) {
+		    value += temp;
+		    temp = file_stream->get();
+		}
+		continue;
+	    }
+	    else if (!(temp == ' ' && value.empty()) && temp != '\n' && temp != '\t' && temp != '\r') value += temp;
 	}
 	temp = file_stream->get();
 	if (temp == ';') {
+	    while (!value.empty() && value.back() == ' ') value.pop_back();
 	    translations[key]=value;
 	    break;
 	}

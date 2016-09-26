@@ -73,7 +73,7 @@ public:
     matrix_parser(istream& input_file, vector<character_vector>& data_matrix, partitions& codes, string type) : file(input_file), regions(codes), matrix(data_matrix), matrix_type(type) {};
     void pars () {
         if (!matrix_type.compare("fasta")) pars_fasta();
-        else if (!matrix_type.compare("relaxed_phylip")) pars_relaxed_phylip();
+        else if (!matrix_type.compare("phylip")) pars_relaxed_phylip();
 	else if (!matrix_type.compare("nexus")) pars_nexus();
     };
 private:

@@ -1,4 +1,0 @@
-#ifndef PHYLOMAND_CONSTANTS
-#define PHYLOMAND_CONSTANTS
-const unsigned int SIZE = 24;
-#endif //PHYLOMAND_CONSTANTS

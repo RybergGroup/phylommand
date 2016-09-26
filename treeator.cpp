@@ -246,7 +246,7 @@ int main (int argc, char *argv []) {
 		    }
 		    if (!first.compare("nexus")) data_file_format = "nexus";
 		    else if (!first.compare("fasta")) data_file_format = "fasta";
-		    else if (!first.compare("phylip")) data_file_format = "relaxed_phylip";
+		    else if (!first.compare("phylip")) data_file_format = "phylip";
 		    else {
 			std::cerr << "Do not recognize format " << argv[i] << "." << endl;
 			return 1;
@@ -455,7 +455,7 @@ int main (int argc, char *argv []) {
 		if (tree.empty()) break;
 		++read_trees;
 		unsigned int score  = tree.fitch_parsimony( characters, print_state_on_nodelable, print_br_length, alphabet );
-		if (print_br_length) {
+		if (print_br_length || print_state_on_nodelable) {
 		    if (print_tree == 'w') {
 			cout << "[score: " << score << "] ";
 			tree.print_newick(print_br_length);
@@ -472,7 +472,7 @@ int main (int argc, char *argv []) {
 		}
 		else cout << score << endl;
 	    }
-	    if (print_br_length && print_tree == 'x') {
+	    if ((print_br_length || print_state_on_nodelable) && print_tree == 'x') {
 		cout << "End;" << endl;
 	    }
 	}
@@ -568,7 +568,7 @@ int main (int argc, char *argv []) {
 		    nlopt::opt maximize(nlopt::LN_NELDERMEAD, n_parameters);
 		    tree_modelspec_struct data = {&tree, &model_specifications, &model_parameters, &fixed_parameters};
 		    vector<double> variable_values;
-		    for (int i=0; i<model_parameters.size(); ++i) {
+		    for (unsigned int i=0; i<model_parameters.size(); ++i) {
 			if (fixed_parameters.find(i)==fixed_parameters.end()) variable_values.push_back(model_parameters[i]);
 		    }
 		    vector<double> lower_bounds;

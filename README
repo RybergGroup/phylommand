@@ -73,6 +73,10 @@ Phylommand work on fully resolved (bifurcating) trees and will arbitrarily
 resolve any polytomies. This needs to be especially considered when defining
 or queering monophyletic groups.
 
+Phylommand does not handle : ; , ( ) [ ] and white space in tip names very well.
+So avoid these characters, even if the names are surrounded by ' or ". It handles
+white space better in nexus format than in newick format, using the translate
+command.
 
 Treeator uses the NLOPT LN_NELDERMEAD algorithm for optimization (Nelder JA &
 Mead R. 1965. A simplex method for function minimization. The Computer J. 7:308
@@ -89,7 +93,22 @@ then need to set the DISPLAY parameter in your bash window by:
 
 The MAD score calculated in pairalign is only approximate, the precision needs
 to be set at compile time. To change the precision change the value of
-precision at line 14 in align_group.h (default 10000 i.e. 0.001).
+precision at line 14 in align_group.h (default 10000 i.e. 0.001). If clustering
+the calculation of MAD only include pairs that have a lower similarity than the
+cut off. If all your sequences are clustered together, the alignment group will
+be empty (this is also the case if no taxonomy was read).
 
 The calculation of decisiveness is based on randomly generated topologies. And is
 thus only an estimation.
+
+Empty trees are printed as -1;. You may get this, for example, if you do nni on
+branch 1, and the sister lineage only have one tip (i.e. is a terminal branch).
+
+If a treebender gets a tip name that it does not recognize it usually just
+ignore it. So if a taxon to rcognize the most recent common ancestor is misspelt
+it is just ignored (show must go on).
+
+When drawing printing trees in SVG (and HTML) and there is no branch length, all
+branches will be printed with the length 0. To change this you can use the
+--set_branch_lengths option in treebender, for example setting all branch lengths
+to 1.

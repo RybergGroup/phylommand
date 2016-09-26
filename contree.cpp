@@ -57,6 +57,8 @@ int main (int argc, char *argv []) {
     string file_format;
     map <string,string> db_taxa_trans;
     string db_file_format;
+    bool divide_by_n_trees(false);
+    bool rooted(false);
     /////// Variables from superstat
     string genestring;
     int n_iterations(100);
@@ -69,8 +71,10 @@ int main (int argc, char *argv []) {
                 if ( i < argc-1 && argv[i+1][0] != '-') cut_off = atof(argv[++i]);
             }
             else if (!strcmp(argv[i],"-r") || !strcmp(argv[i],"--robinson_foulds")) method = 'r';
+            else if (!strcmp(argv[i],"-R") || !strcmp(argv[i],"--rooted")) rooted = true;
             else if (!strcmp(argv[i],"-t") || !strcmp(argv[i],"--non_shared_tips")) method = 't';
 	    else if (!strcmp(argv[i],"-a") || !strcmp(argv[i],"--add_to_support")) method = 'a';
+	    else if (!strcmp(argv[i],"-s") || !strcmp(argv[i],"--calculate_support")) { method = 'a'; divide_by_n_trees=true; }
 	    //else if (!strcmp(argv[i],"-w") || !strcmp(argv[i],"--newick")) print_format = 'w';
 	    //else if (!strcmp(argv[i],"-x") || !strcmp(argv[i],"--nexus")) print_format = 'x';
             else if (!strcmp(argv[i],"--html")) html = true;
@@ -199,7 +203,7 @@ int main (int argc, char *argv []) {
 	    }
 	    else db_input.file_stream = &database_file;
 	    if (!quiet) {
-		cerr << "Trees that will be compared against (database), will be read from " << file_name << "." << endl;
+		cerr << "Trees that will be compared against (database), will be read from " << database_name << "." << endl;
 	    }
 	}
 	if (!db_file_format.empty()) {
@@ -255,6 +259,7 @@ int main (int argc, char *argv []) {
     array->next = 0;
     tree_array* array_start = array;
     unsigned int read_trees(0);
+    unsigned int print_trees(0);
     if (!quiet) cerr << "Reading trees ";
     while (1) {
 	if (input.test_file_type("nexus") || input.test_file_type("newick")) {
@@ -285,6 +290,7 @@ int main (int argc, char *argv []) {
     }
     /// Loop over trees
     int i=0;
+    unsigned int read_db_trees(0);
     while (array != 0 && array->phylo.n_tips() > 1) {
 	unsigned int sum = 0;
 	double normalized_sum = 0.0;
@@ -297,10 +303,19 @@ int main (int argc, char *argv []) {
 	int n_comp = 0;
 	database_file.clear();
 	database_file.seekg(0,database_file.beg);
+	if (db_input.test_file_type("nexus")) {
+	    if (db_input.move_to_next_X_block( nexus_block::TREES )) {
+		db_nexus_command = db_input.read_next_nexus_command();
+		if (db_nexus_command==nexus_command::TRANSLATE) {
+		    //db_input.read_translate_parameters(db_taxa_trans);
+		    db_nexus_command = db_input.read_next_nexus_command();
+		}
+	    }
+	}
 	/// Loop over trees to compare to
 	while (1) {
 	    ++j;
-	    convert.clear();
+	    convert.clear(); // clear to-string-converter for new input
 	    convert.str(std::string());
 	    convert << j;
 	    string name_j = convert.str();
@@ -317,8 +332,23 @@ int main (int argc, char *argv []) {
 		#ifdef DEBUG
 		std::cerr << "Database file given." << std::endl;
 		#endif //DEBUG
+		if (db_input.test_file_type("nexus")) {
+		    #ifdef DEBUG
+		    std::cerr << "It is in nexus format. " << db_taxa_trans.size() << ' ' << read_db_trees << std::endl;
+		    #endif //DEBUG
+		    if (read_db_trees != 0) db_nexus_command = db_input.read_next_nexus_command();
+		    if (!(db_nexus_command==nexus_command::TREE && db_input.move_to_start_of_tree()))
+			break;
+		    #ifdef DEBUG
+		    cerr << db_nexus_command << endl;
+		    #endif //DEBUG
+		}
 		tree_j = new tree;
 		tree_j->tree_file_parser( *(db_input.file_stream), db_taxa_trans, false );
+		++read_db_trees;
+		#ifdef DEBUG
+		std::cerr << "Read tree with: " << tree_j->n_tips() << std::endl;
+		#endif //DEBUG
 		if (tree_j->empty()) {
 		    delete tree_j;
 		    break;
@@ -348,21 +378,30 @@ int main (int argc, char *argv []) {
 	    }
 	    else if (method == 't')
 		array->phylo.tips_not_shared( tree_j, name_i, name_j );
-	    else if (method == 'a') array->phylo.add_to_support(tree_j);
+	    else if (method == 'a') array->phylo.add_to_support(tree_j, rooted);
 	    if (database_name.empty()) comp_tree = comp_tree->next;
 	    else delete tree_j;
 	}
 	if (method == 'r') std::cout << "Sum of Robinson-Foulds metric for tree " << i << " (per internal node, number of comparisons): " << sum << " (" << normalized_sum << ", " << n_comp << ')' << std::endl;
 	if (method == 'a') {
+	    if (database_name.empty()) {
+		array->phylo.add_one_to_each_support(rooted);
+		//--j;
+	    }
+	    #ifdef DEBUG
+	    cerr << "N trees compared: " << j << endl;
+	    #endif //DEBUG
+	    if (divide_by_n_trees) array->phylo.divide_support_by(float(j-1));
 	    if (print_format == 'w') array->phylo.print_newick();
 	    else if (print_format == 'x') {
-		if (read_trees == 1) array->phylo.print_nexus_tree_intro(taxa_trans);
+		if (print_trees == 0) array->phylo.print_nexus_tree_intro(taxa_trans);
 		stringstream ss;
 		ss << "tree" << read_trees;
 		ss << '_' << read_trees;
 		string tree_name(ss.str());
 		array->phylo.print_tree_to_nexus( tree_name, true, true, taxa_trans );
 	    }
+	    ++print_trees;
 	}
 	array = array->next;
     }
@@ -386,6 +425,8 @@ void help () {
     std::cout << "Arguments:" << endl;
     std::cout << "--add_to_support / -a           add one to the value of the internal node for" << endl;
     std::cout << "                                each tree that that split is present in." <<endl;
+    std::cout << "--calculate_support / -s        same as --add_to_support but divide the number" << endl;
+    std::cout << "                                by number of trees compared against." << endl;
     std::cout << "--compare / -c [value]          output conflicting splits where at least one" << endl;
     std::cout << "                                branch support the conflict with more than given" << endl;
     std::cout << "                                support, e.g. -c 0.7." << endl;
@@ -422,11 +463,13 @@ void help () {
     std::cout << "--html                          give output as tree in html (svg) format with" << endl;
     std::cout << "                                conflicting tips coloured green and red when" << endl;
     std::cout << "                                doing --compare." << endl;
-    std::cout << "--non_shared_tips / -t          print tip names not present in other tree." << endl;
+    std::cout << "--non_shared_tips / -t          print tip names not present in the other tree." << endl;
     std::cout << "--output [newick/nexus]         give tree format for output, nexus (nex or x for" << endl;
     std::cout << "                                short) or newick (new or w for short), e.g" << endl;
     std::cout << "                                --output x. (default w)." << endl;
     std::cout << "--robinson_foulds / -r          compute Robinson-Foulds metric between trees." << endl;
+    std::cout << "--rooted / -R                   treat trees as rooted for --add_to_support and" << endl; 
+    std::cout << "                                --calculate_support." << endl;
     std::cout << "--verbose / -v                  get additional output." << endl;
     std::cout << endl;
 }

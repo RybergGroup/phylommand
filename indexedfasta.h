@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <map>
+#include <vector>
 
 using namespace std;
 
@@ -17,15 +18,12 @@ class indexedfasta {
 	#ifdef DEBUG
 	cerr << "Taxon string returned: " << taxon << endl;
 	#endif // DEBUG
-       	//return index[accno].taxon_string;
     };
     bool initiate_sequence_retrieval() { 
 	#ifdef DEBUG
 	cerr << "Initiating sequence retrieval." << endl;
 	#endif //DEBUG
 	seq1 = index.begin();
-	//seq2 = seq1;
-	//++seq2;
 	return seq1 != index.end(); // returns false if index is empty
     };
     bool set_seq1 ( string accno ) { seq1 = index.find(accno); if (seq1 == index.end()) return false; else return true;};
@@ -57,6 +55,7 @@ class indexedfasta {
 	if (seq2 == index.end() || temp == index.end()) return true;
 	else return false;
     };
+    void assign_taxon_string (const string& taxon, const vector<string>& accnos);
     private:
     struct set {
 	string taxon_string;

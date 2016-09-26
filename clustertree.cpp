@@ -92,19 +92,20 @@ void clustertree::br_length_clust_max_cout( node *leaf, const float cut_off, con
 }
 
 string clustertree::name_clust_cout ( unsigned int name_pos, char separator, node *leaf ) {
-    if ( leaf->left == 0 && leaf->right == 0 ) {
+    if ( leaf->left == 0 && leaf->right == 0 ) { // if at a tip find name to compare
         string species;
         unsigned int i = 1;
         unsigned int position = 0;
 	unsigned int string_length = leaf->nodelabel->length();
-        while ( i < name_pos && position < string_length) {
+        while ( i < name_pos && position < string_length) { // move until we are at the right separator
             if ( leaf->nodelabel->at(position) == separator ) i++;
             ++position;
         }
-        while ( position < string_length && leaf->nodelabel->at(position) != separator ) { //leaf->nodelabel->at(position) != '\0') {
+        while ( position < string_length && leaf->nodelabel->at(position) != separator ) { // read till next separator or end of string
             species += leaf->nodelabel->at(position);
             ++position;
         }
+	if (species.empty()) cout << *leaf->nodelabel << endl;
         return species;
     }
     else {
@@ -112,17 +113,21 @@ string clustertree::name_clust_cout ( unsigned int name_pos, char separator, nod
         if ( leaf->left != 0 ) species_left = name_clust_cout ( name_pos, separator, leaf->left );
         string species_right;
         if ( leaf->right !=0 ) species_right = name_clust_cout ( name_pos, separator, leaf->right );
-        if (species_left.compare("Clade with different names") != 0 && species_right.compare("Clade with different names") != 0 && species_left.compare(species_right) == 0 ) return species_left;
+        //if (species_left.compare("Clade with different names") != 0 && species_right.compare("Clade with different names") != 0 && species_left.compare(species_right) == 0 ) return species_left;
+        if (!species_left.empty() && !species_right.empty() && species_left.compare(species_right) == 0 ) return species_left;
         else {
-            if ( leaf->left != 0 && species_left.compare("Clade with different names") != 0 ) {
+            //if ( leaf->left != 0 && species_left.compare("Clade with different names") != 0 ) {
+            if ( leaf->left != 0 && !species_left.empty() ) {
                 print_tips ( leaf->left );
                 cout << endl;
             }
-            if ( leaf->right != 0 && species_right.compare("Clade with different names") != 0 ) {
+            //if ( leaf->right != 0 && species_right.compare("Clade with different names") != 0 ) {
+            if ( leaf->right != 0 && !species_right.empty() ) {
                 print_tips ( leaf->right );
                 cout << endl;
             }
-            return "Clade with different names";
+	    species_left.clear();
+            return species_left;
         }
     }
 }

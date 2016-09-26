@@ -60,15 +60,19 @@ class tree {
         };
         tree () { //constructor 
             root = new node; //initiate the root
-            srand(time(NULL));
+            if (!random_seeded) { srand(time(NULL)); random_seeded = true; }
         };
-        tree ( node *leaf) { root = leaf; srand(time(NULL)); }; //initilize the class by creating the root using given node
-                                             //does not set left and right too null, which may be a problem for some functions
-                                             //this alternative only make sence if the given node already point to a tree
-        tree (const tree& A) {
+        tree (node *leaf) {        //initilize the class by creating the root using given node
+	    root = leaf;          //does not set left and right too null, which may be a problem for some functions
+	    if (!random_seeded) { //this alternative only make sence if the given node already point to a tree
+		srand(time(NULL));
+		random_seeded = true;
+	    }
+	};
+    	tree (const tree& A) {
 	    root = new node;
 	    copy(root,A.root, 0);
-            srand(time(NULL));
+            if (!random_seeded) srand(time(NULL));
 	}; //can not copy tree objects (yet)
         ~tree () { destroy_tree (root); }; //delete the class starting from the node
 	tree operator = (const tree& A) {
@@ -153,6 +157,9 @@ class tree {
 	double log_clade_credibility ( ) {
 	    return log_clade_credibility( root );
 	};
+	void divide_support_by( const float value ) {
+	    divide_internal_nodes_by(root, value);
+	};
         void midpoint_root ( );
         void outgroup_root ( const string taxa ){
 	    node *present = most_recent_common_ancestor (taxa);
@@ -165,10 +172,7 @@ class tree {
 	    #endif //DEBUG
 	    re_root(new_root);
 	};
-	void print_relaxed_outgroup( const string& taxa ) {
-	    node* theNode = max_proportion_taxa( root, taxa );
-	    print_tips (theNode);
-       	};
+	void print_relaxed_outgroup( const string& taxa );
         void ladderize ( ) {
             ladderize ( root, 1 );
         };
@@ -247,7 +251,9 @@ class tree {
 	    assign_branch_number_to_internal_nodes(root, 0);
 	};
 	void stepwise_addition (vector<character_vector>& characters);
-	void add_to_support(tree* B);
+	void add_to_support(tree* B, const bool rooted);
+	void add_to_support(tree* B) { add_to_support(B, false); };
+	void add_one_to_each_support(const bool rooted) { add_one_to_each_support(root, rooted); };
     protected:
 	class node { //store the information for each node of the tree
 	    public:
@@ -263,6 +269,7 @@ class tree {
 	struct int_double2 { int n; double a; double c; };
 	// Variables
 	static string_tree nodelabels;
+	static bool random_seeded;
         node *root; //stores the location of the root
 	//string tree_comment;
         //deletes a part of the tree from given node
@@ -333,6 +340,7 @@ class tree {
 	    }
 	};
 	double log_clade_credibility( node* leaf ); 
+	void divide_internal_nodes_by( node* leaf, const float value );
 	void null_short_branches( node* leaf, const double value );
 	unsigned int get_internal_node_by_number(node* leaf, node*& tip, unsigned int node_no); // leaft is node 1, then node number increase by one as they occure in a newick tree
 	node* get_internal_branch_by_number_unrooted(unsigned int branch_no);
@@ -364,6 +372,7 @@ class tree {
 	    return print_tips ( cout, leaf, leading_n, n, leading, trailing );
 	};
         int print_tips ( ostream& output, node *leaf, string leading_n, int n, string leading, string trailing );
+	void print_non_descendants( ostream& output, node *leaf, node* done, const string leading, const string trailing );
         char drop_tips (node *leaf, const string taxa);
         void re_root ( node *leaf );
         bool is_monophyletic ( node* leaf, set<string*>& taxa );
@@ -441,7 +450,8 @@ class tree {
 	unsigned int parsimony_score_if_tip_added_to_branch (const unsigned int branch_no, map<node*, parsimony_character_vector>& node_states, parsimony_character_vector taxa_state, const unsigned int start_char, const unsigned int end_char);
 	void recalc_fitch_parsimony_given_added_tip ( node* leaf, map<node*, parsimony_character_vector>& node_states, unsigned int start_char, unsigned int end_char );
 	void clear_node_states_from_tip ( node* leaf, map<node*, parsimony_character_vector>& node_states );
-	void add_to_support(node* leaf, tree* B, set<string*>& split);
+	void add_to_support(node* leaf, tree* B, set<string*>& split, const bool rooted);
+	void add_one_to_each_support(node* leaf, const bool rooted);
 	void add_characters_as_node_comments(node* leaf, parsimony_character_vector& characters, const unsigned int start_char, const unsigned int end_char, map<char, bitset<SIZE> >& alphabet);
 };
 #endif //TREEHEADER

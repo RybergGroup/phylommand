@@ -77,3 +77,11 @@ bool indexedfasta::seq2_is_last() {
     if (seq2 == temp) return true;
     else return false;
 }
+
+void indexedfasta::assign_taxon_string (const string& taxon, const vector<string>& accnos) {
+    for (vector<string>::const_iterator i = accnos.begin(); i != accnos.end(); ++i) {
+	map<string,set>::iterator pos = index.find(*i);
+	if (pos != index.end()) pos->second.taxon_string = taxon;
+	else cerr << "Warning!!! No sequence was found for '" << *i << "'" << endl;
+    }
+}

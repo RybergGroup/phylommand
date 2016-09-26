@@ -1,5 +1,5 @@
 /********************************************************************
-Copyright (C) 2015 Martin Ryberg
+Copyright (C) 2016 Martin Ryberg
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -14,7 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-contact: kryberg@utk.edu
+contact: martin.ryberg@ebc.uu.se
 *********************************************************************/
 
 #include "tree.h"
@@ -48,6 +48,7 @@ namespace support_functions {
 /** Define tree for node labels ***/
 string_tree tree::nodelabels;
 
+bool tree::random_seeded(false);
 /** Function to delete tree ***
 *** beginning with leaf      **/
 void tree::destroy_tree (node *leaf) {
@@ -66,6 +67,9 @@ void tree::destroy_tree (node *leaf) {
 *** Basically follow a algorithm given by Revell at:                  ***
 *** http://phytools.blogspot.com/2011/02/building-tree-in-memory.html **/
 void tree::tree_file_parser( istream& infile, map<string,string> label_translation, bool read_extra_node_annotation ) {
+    #ifdef DEBUG
+    cerr << "Start pos: " << infile.tellg() << endl;
+    #endif //DEBUG
     node *present_node = root; //the tree will be parsed from the root
     node *parent_node; //keep track of which node we came from
     string label_string;
@@ -75,9 +79,13 @@ void tree::tree_file_parser( istream& infile, map<string,string> label_translati
     char temp; //store input one character at the time
     infile >> temp; //read input one character at the time
     while (infile) {
+//	#ifdef DEBUG
+//	cerr << temp << endl;
+//	#endif //DEBUG
         //ignore things in square brackets
         if ( temp == '[' ) {
 	    infile >> temp;
+	    if (infile.bad()) break;
 	    if (temp != ']') {
 		if (read_extra_node_annotation && temp == '&') { // square brachet and & means extra info
 		    extra_label_string+= '[';
@@ -90,10 +98,11 @@ void tree::tree_file_parser( istream& infile, map<string,string> label_translati
 		else {
 		    int n_right_square_brachets = 1; //keep track of number of right brackets
 		    while (infile && n_right_square_brachets > 0) { //while more right than left brackets have been read
-			infile >> temp; //keep reading input one character at the time
 			if ( temp == '[' ) ++n_right_square_brachets; //count right brackets
 			if ( temp == ']' ) --n_right_square_brachets; //a left bracket neutralizes a right bracket
+			infile >> temp; //keep reading input one character at the time
 		    }
+		    continue;
 		}
             }
         }
@@ -200,7 +209,17 @@ void tree::tree_file_parser( istream& infile, map<string,string> label_translati
         }
         //if we read semicolon we have reached the end of the tree
         else if (read_mode=='l') {
-            label_string += temp;
+	    if (label_string.empty() && (temp == '\'' || temp == '"')) {
+		char marker = temp;
+		//unsigned int marker_count(1);
+		infile >> temp;
+		while (infile) {
+		    if (temp == marker) break;
+		    else label_string += temp;
+		    infile >> temp;
+		}
+	    }
+            else label_string += temp;
         }
         infile >> temp; //read next character for next loop
     }
@@ -489,6 +508,18 @@ int tree::print_tips ( ostream& output, node *leaf, string leading_n, int n, str
         }
     }
     return n;
+}
+
+void tree::print_non_descendants( ostream& output, node *leaf, node* done, const string leading, const string trailing ) {
+// the node that is given as done will be excluded from printing
+    if ( leaf != 0 ) {
+	if (leaf->left != 0 && leaf->left != done ) print_non_descendants( output, leaf->left, leaf, leading, trailing );
+	if (leaf->right != 0 && leaf->right != done ) print_non_descendants( output, leaf->right, leaf, leading, trailing );
+	if (leaf->parent != 0 && leaf->parent != done ) print_non_descendants( output, leaf->parent, leaf, leading, trailing );
+	if (leaf->left == 0 && leaf->right == 0 && leaf->nodelabel != 0) {
+	    output << leading << *leaf->nodelabel << trailing;
+	}
+    }
 }
 /*void tree::outgroup_root ( const string taxa ) {
     node *present = most_recent_common_ancestor (taxa);
@@ -918,10 +949,10 @@ tree::node * tree::find_taxon_tip ( node *leaf, const string* taxon ) {
 
 void tree::print_distance_to_root ( node* leaf, double distance, int n_nodes, string value_sep, string row_sep) {
     if (leaf != 0) {
-        if ( leaf->left == 0 && leaf->right == 0 && leaf->nodelabel != 0) std::cout << *leaf->nodelabel << value_sep << ++n_nodes << value_sep << distance + leaf->branchlength << row_sep;
+        if ( leaf->left == 0 && leaf->right == 0 && leaf->nodelabel != 0 ) std::cout << *leaf->nodelabel << value_sep << n_nodes << value_sep << distance + leaf->branchlength << row_sep;
         else {
-            if ( leaf->left != 0 ) print_distance_to_root ( leaf->left, distance + leaf->branchlength, ++n_nodes, value_sep, row_sep );
-            if ( leaf->right != 0 ) print_distance_to_root ( leaf->right, distance + leaf->branchlength, ++n_nodes, value_sep, row_sep );
+            if ( leaf->left != 0 ) print_distance_to_root ( leaf->left, distance + leaf->branchlength, n_nodes+1, value_sep, row_sep );
+            if ( leaf->right != 0 ) print_distance_to_root ( leaf->right, distance + leaf->branchlength, n_nodes+1, value_sep, row_sep );
         }
     }
 }
@@ -1064,11 +1095,12 @@ void tree::print_svg_autoscale_no_head (bool scalebar, bool node_lable, const un
     tip_furthest_from_root (root, &x_lim_node);
     float height = n_tips()*font_size;
     if (scalebar) height += 2*font_size;
+    if (height < 100) height = 100;
     float width = height/1.618;
     unsigned int stroke_width = (font_size/20)+1;
-    if (for_html) std::cout << "<svg width=\"" << width <<"\" height=\"" << height << "\">" << endl;
+    //if (for_html) std::cout << "<svg width=\"" << width+10 <<"\" height=\"" << height << "\">" << endl;
     print_svg_no_head (scalebar, node_lable, width, height, 5.0, stroke_width, font_size, "Arial", tip_color, for_html);
-    if (for_html) std::cout << "</svg>" << endl;
+    //if (for_html) std::cout << "</svg>" << endl;
 }
 
 void tree::print_svg ( bool scalebar, bool node_lable, const float width, const float height, const float offset, const unsigned int stroke_width, const int font_size, string font, const string& tip_color ) {
@@ -1085,7 +1117,10 @@ void tree::print_svg_no_head ( bool scalebar, bool node_lable, const float width
     if (scalebar) y_unit = (height-3*font_size)/(n_tips()+1);
     else y_unit = (height-font_size)/(n_tips()+1);
     poly_line_start stem;
-    if (for_html) std::cout << "<svg width=\"" << width <<"\" height=\"" << height << "\">" << endl;
+    #ifdef DEBUG
+    cerr << "Tip colors: " << tip_color << endl;
+    #endif // DEBUG
+    if (for_html) std::cout << "<svg width=\"" << width+10 <<"\" height=\"" << height << "\">" << endl;
     print_svg_subtree (root, &stem, node_lable, 1, 5.0, x_unit, y_unit, offset, stroke_width, font_size, font, tip_color);
     if (scalebar) {
         int i=0;
@@ -1094,13 +1129,16 @@ void tree::print_svg_no_head ( bool scalebar, bool node_lable, const float width
         int  int_scale = x_lim_node.distance/5 * pow(10.0,i);
         if ((x_lim_node.distance/5 * pow(10.0,i))-int_scale > 0.5) ++int_scale;
         float length_scalebar = int_scale/pow(10.0,i);
-        std::cout << "<line x1=\"" << (width/2)-(length_scalebar*x_unit/2)+5 << "\" y1=\"" << height-2*font_size << "\" x2=\"" << (width/2)+(length_scalebar*x_unit/2)+5 << "\" y2=\"" << height-2*font_size << "\" style=\"fill:none;stroke:black;stroke-width:" << stroke_width << "\" />" << endl;
-        std::cout << "<text x=\"" << (width/2)-(length_scalebar*x_unit/2)+5 << "\" y=\"" << height-0.5*font_size << "\" font-family=\"" << font << "\" font-size=\"" << font_size << "\">" << length_scalebar << "</text>" << endl;
+        std::cout << "<line x1=\"" << (width/2)-(length_scalebar*x_unit/2)+5 << "\" y1=\"" << height-2*font_size << "\" x2=\"" << (width/2)+(length_scalebar*x_unit/2)+5
+	    << "\" y2=\"" << height-2*font_size << "\" style=\"fill:none;stroke:black;stroke-width:" << stroke_width << "\" />" << endl;
+        std::cout << "<text x=\"" << (width/2)-(length_scalebar*x_unit/2)+5 << "\" y=\"" << height-0.5*font_size << "\" font-family=\"" << font << "\" font-size=\""
+	    << font_size << "\">" << length_scalebar << "</text>" << endl;
     }
     if (for_html) std::cout << "</svg>" << endl;
 }
 
-void tree::print_svg_subtree ( node* leaf, poly_line_start* branch_start, bool node_lable, int n, float x, const float x_unit, const float y_unit, const float offset, const int stroke_width, const int font_size, string font, const string& tip_color ) {
+void tree::print_svg_subtree ( node* leaf, poly_line_start* branch_start, bool node_lable, int n, float x, const float x_unit, const float y_unit,
+                               const float offset, const int stroke_width, const int font_size, string font, const string& tip_color ) {
     x += leaf->branchlength * x_unit;
     float y;
     if (leaf->left == 0 && leaf->right == 0) {
@@ -1111,17 +1149,18 @@ void tree::print_svg_subtree ( node* leaf, poly_line_start* branch_start, bool n
 	    string color;
 	    string temp;
 	    for (unsigned int i=0; i<length+1; ++i) {
-                if (i == length || tip_color.at(i) == ',') {
+                if (i == length || tip_color.at(i) == ',' || tip_color.at(i) == ')') {
                     if (!leaf->nodelabel->compare(temp)) {
                         std::cout << "\" style=\"fill:" << color << ';';
                     }
 		    temp.clear();
                 }
 		else if (tip_color.at(i) == '(') {
+		    color.clear();
 		    color = temp;
 		    temp.clear();
 		}
-		else if (tip_color.at(i) == ')') color.clear();
+		//else if (tip_color.at(i) == ')') 
 		else temp += tip_color.at(i);
 	    }
 	}
@@ -1138,7 +1177,7 @@ void tree::print_svg_subtree ( node* leaf, poly_line_start* branch_start, bool n
         print_svg_subtree( leaf->right, right_branch, node_lable, n, x, x_unit, y_unit, offset, stroke_width, font_size, font, tip_color );
         n = right_branch->n;
     }
-    if (left_branch->line_start.compare(0,9,"<polyline") == 0 or right_branch->line_start.compare(0,9,"<polyline") == 0) {
+    if (left_branch->line_start.compare(0,9,"<polyline") == 0 || right_branch->line_start.compare(0,9,"<polyline") == 0) { // or instead of ||?
         if (left_branch->line_start.compare(0,9,"<polyline") == 0 and right_branch->line_start.compare(0,9,"<polyline") == 0) {
             y = left_branch->y + ((right_branch->y - left_branch->y)/2);
             std::cout << left_branch->line_start << " " << x << "," << left_branch->y << " " << x << "," << y << "\"\nstyle=\"fill:none;stroke:black;stroke-width:" << stroke_width << "\" />" << endl;
@@ -1152,6 +1191,10 @@ void tree::print_svg_subtree ( node* leaf, poly_line_start* branch_start, bool n
             y = right_branch->y;
             std::cout << right_branch->line_start << " " << x << "," << y << "\"\nstyle=\"fill:none;stroke:black;stroke-width:" << stroke_width << "\" />" << endl;
         }
+    }
+    if (leaf->nodelabel != 0 && (leaf->left != 0 || leaf->right != 0)) {
+	cout << "<text x=\"" << (x - (leaf->branchlength/2)*x_unit - leaf->nodelabel->length()*(font_size/3.2)) << "\" y=\"" << y - stroke_width << "\" font-family=\"" << font << "\" font-size=\""
+	<< font_size << "\">" << *leaf->nodelabel << "</text>" << endl;
     }
     delete right_branch;
     delete left_branch;
@@ -1168,90 +1211,39 @@ void tree::print_svg_subtree ( node* leaf, poly_line_start* branch_start, bool n
 }
 
 void tree::rand_topology ( const int n  ) {
-    //srand(time(NULL));
     destroy_tree(root->right);
+    root->right = 0;
     destroy_tree(root->left);
-    //node_array* tips = new node_array;
-    //tips->next=0;
-    //tips->entry=0;
-    //node_array* present = tips;
+    root->left = 0;
     vector<node*> tips;
+    if (n<1) return;
     for (int i=1; i<=n; ++i) {
-        //while (present->next!=0) present=present->next;
-        //if (present->entry != 0) {
-        //    present->next = new node_array;
-        //    present = present->next;
-        //    present->entry = 0;
-        //    present->next = 0;
-        //}
-        //present->entry = new node;
 	tips.push_back(new node);
         stringstream number;
         number << i;
 	tips.back()->nodelabel = nodelabels.add_string(number.str());
-        //present->entry->nodelabel = nodelabels.add_string(number.str());
-        //present->entry->left=0;
-        //present->entry->right=0;
-        //present->entry->parent=0;
-	//present->entry->other=0;
     }
     for (int i=n; i>2; --i) {
-        //present = tips;
         int no1 = rand() % i;
         int no2 = rand() % (i-1);
         if (no2 >= no1) ++no2;
-        //if (no1 > no2) {
-        //    int hold=no2;
-        //    no2=no1;
-        //    no1=hold;
-        //}
         node* new_node= new node;
 	new_node->nodelabel=0;
 	new_node->branchlength=0;
-	//new_node->other=0;
-        //node_array* previous;
-        //while (no1 > 0 && present->next!=0) {
-        //    --no1;
-        //    --no2;
-        //    previous=present;
-        //    present=present->next;
-        //}
-        //present->entry->parent = new_node;
 	tips[no1]->parent = new_node;
-        //new_node->left = present->entry;
         new_node->left = tips[no1];
-        //if (present != tips) previous->next=present->next;
-        //else tips = present->next;
-        //previous=present;
-        //present=present->next;
-        //--no2;
-        //delete previous;
-        //while (no2 > 0 && present!=0 && present->next!=0) {
-        //    --no2;
-        //    present=present->next;
-        //}
-        //present->entry->parent = new_node;
 	tips[no2]->parent = new_node;
-        //new_node->right = present->entry;
         new_node->right = tips[no2];
-        //present->entry = new_node;
 	tips[no2] = new_node;
 	tips.erase(tips.begin()+no1);
     }
-    //if (tips->entry != 0 && tips->next !=0) {
     if (tips[0] != 0 && tips.size()==2) {
-        //tips->entry->parent=root;
 	tips[0]->parent=root;
-        //root->left=tips->entry;
         root->left=tips[0];
-        //tips->next->entry->parent=root;
         tips[1]->parent=root;
-        //root->right=tips->next->entry;
         root->right=tips[1];
     }
-    //else if (tips->entry != 0) {
     else if (tips[0] != 0 && tips.size()==1) {
-        //root->nodelabel = tips->entry->nodelabel;
         root->nodelabel = tips[0]->nodelabel;
         root->left=0;
         root->right=0;
@@ -1263,7 +1255,6 @@ void tree::rand_topology ( const int n  ) {
 	    destroy_tree(*i);
 	}
     }
-    //delete_node_array(tips);
 }
 
 /*** Sub to count the number of nodes with support value above or equal to given value ***/
@@ -1336,7 +1327,7 @@ char tree::is_monophyletic_unrooted (node* leaf, set<string*>& taxa, set<string*
     else if ((left == 'E' && right == 'F') ||  (left == 'F' && right == 'E')) return 'E';
     else if ((left == 'C' && right == 'T') ||  (left == 'T' && right == 'C')) return 'D';
     else if ((left == 'C' && right == 'F') ||  (left == 'F' && right == 'C')) return 'E';
-    return 'X';
+    return 'X'; // is not monophyletic
 }
 
 char tree::is_monophyletic_unrooted (node* leaf, set<string*>& taxa) {
@@ -1357,7 +1348,7 @@ char tree::is_monophyletic_unrooted (node* leaf, set<string*>& taxa) {
     else if ((left == 'E' && right == 'F') ||  (left == 'F' && right == 'E')) return 'E';
     else if ((left == 'C' && right == 'T') ||  (left == 'T' && right == 'C')) return 'D';
     else if ((left == 'C' && right == 'F') ||  (left == 'F' && right == 'C')) return 'E';
-    return 'X';
+    return 'X'; // is not monophyletic
 }
 
 tree::node* tree::max_proportion_taxa(node* leaf, const string& taxa) {
@@ -1385,9 +1376,6 @@ tree::node* tree::max_proportion_taxa(node* leaf, const string& taxa) {
 
 tree::node* tree::max_proportion_taxa(node* leaf, const set<string*>& taxa, unsigned int& in_taxa_above, unsigned int& out_taxa_above, const unsigned int tot_n_taxa, double& max_proportion) {
     if (leaf == 0)  return 0;
-    //#ifdef DEBUG
-    //cerr << "Max in: " << max_proportion << endl;
-    //#endif //DEBUG
     if (leaf->right == 0 && leaf->left == 0) {
 	if (taxa.find(leaf->nodelabel) != taxa.end()) {
 	    ++in_taxa_above;
@@ -1428,6 +1416,31 @@ tree::node* tree::max_proportion_taxa(node* leaf, const set<string*>& taxa, unsi
 	}
 	else if (right_return != 0) return right_return;
 	else return left_return;
+    }
+}
+
+void tree::print_relaxed_outgroup( const string& taxa ) {
+    node* theNode = max_proportion_taxa( root, taxa );
+    if (theNode != 0) {
+	if (theNode == root) {
+	    #ifdef DEBUG
+	    cerr << "The root is the node to root at" << endl;
+	    #endif // DEBUG
+	    if (n_sub_tips(theNode->left) > n_sub_tips(theNode->right)) print_tips(theNode->right,"",",");
+	    else print_tips(theNode->left, "", ",");
+	}
+	else if (n_sub_tips(theNode) > n_sub_tips(root)/2) {
+	    #ifdef DEBUG
+	    cerr << "The non descendants are the smaller group." << endl;
+	    #endif // DEBUG
+	    print_non_descendants(cout, theNode->parent, theNode, "", ",");
+	}
+	else {
+	    #ifdef DEBUG
+	    cerr << "The descendants are the smaller group." << endl;
+	    #endif // DEBUG
+	    print_tips (theNode, "", ",");
+	}
     }
 }
 
@@ -1542,7 +1555,7 @@ void tree::print_conflict_clades ( node* leaf, tree* tree, const float supp, set
 			if (svg) {
 			    std::cout << "</p>" << endl;
 			    std::cout << "<h2>Fist tree:</h2>" << endl;
-			    string tip_color = "red;" + missfits + ",green;" + taxa_names;
+			    string tip_color = "red(" + missfits + ")green(" + taxa_names + ")";
 			    print_svg_autoscale_no_head(false,true,10.0,tip_color, true);
 			    std::cout << "<h2>Second tree:</h2>" << endl;
 			    tree->print_svg_autoscale_no_head(false,true,10.0,tip_color, true);
@@ -1616,17 +1629,55 @@ unsigned int tree::robinson_fould(tree* B) {
     return return_value;
 }
 
-void tree::add_to_support(node* leaf, tree* B, set<string*>& split) {
+void tree::add_to_support(node* leaf, tree* B, set<string*>& split, const bool rooted) {
     if (leaf!=0) {
     	if (leaf->left==0 && leaf->right==0) {
     	    if (leaf->nodelabel!=0) split.insert(leaf->nodelabel);
     	}
     	else {
 	    set<string*> descendants;
-	    if (leaf->left!=0) add_to_support(leaf->left, B, descendants);
-	    if (leaf->right!=0) add_to_support(leaf->right, B, descendants);
-	    char mono = B->is_monophyletic_unrooted(B->root,descendants);
-	    if (mono != 'X') {
+	    if (leaf->left!=0) add_to_support(leaf->left, B, descendants, rooted);
+	    if (leaf->right!=0) add_to_support(leaf->right, B, descendants, rooted);
+	    if (leaf != root) {
+		char mono('X');
+		if (rooted) {
+		   if (B->is_monophyletic(B->root,descendants)) mono='T';
+		}
+	       	else {
+		    if (!(leaf->parent == root && n_sub_tips(root)-n_sub_tips(leaf) == 1)) mono = B->is_monophyletic_unrooted(B->root,descendants);
+		    #ifdef DEBUG
+		    cerr << "N descendants: " << descendants.size() << endl;
+		    cerr << "Mono code: " << mono << endl;
+		    #endif //DEBUG
+		}
+		if (mono != 'X' && mono != 'F') {
+		    stringstream converter;
+		    int present_support(0);
+		    if (leaf->nodelabel!=0) {
+			present_support = atoi(leaf->nodelabel->c_str());
+		    }
+		    ++present_support;
+		    converter << present_support;
+		    string value(converter.str());
+		    leaf->nodelabel = nodelabels.add_string(value);
+		}
+		split.insert(descendants.begin(),descendants.end());
+	    }
+      	}
+    }
+}
+
+void tree::add_to_support(tree* B, const bool rooted) {
+    set<string*> taxa_in_tree;
+    add_to_support(root,B,taxa_in_tree, rooted);
+}
+
+void tree::add_one_to_each_support(node* leaf, const bool rooted) {
+    if (leaf != 0) {
+	if (leaf->left != 0) add_one_to_each_support(leaf->left, rooted);
+	if (leaf->right != 0) add_one_to_each_support(leaf->right, rooted);
+	if (leaf->left != 0 && leaf->right != 0 && leaf != root) {
+	    if (rooted || !(leaf->parent == root && n_sub_tips(root)-n_sub_tips(leaf) == 1)) {
 		stringstream converter;
 		int present_support(0);
 		if (leaf->nodelabel!=0) {
@@ -1637,14 +1688,8 @@ void tree::add_to_support(node* leaf, tree* B, set<string*>& split) {
 		string value(converter.str());
 		leaf->nodelabel = nodelabels.add_string(value);
 	    }
-	    split.insert(descendants.begin(),descendants.end());
-      	}
+	}
     }
-}
-
-void tree::add_to_support(tree* B) {
-    set<string*> taxa_in_tree;
-    add_to_support(root,B,taxa_in_tree);
 }
 
 unsigned int tree::tips_present_in_set (node* leaf, set<string*>& taxa) {
@@ -2066,6 +2111,20 @@ void tree::nni (unsigned int branch_no, tree& L, tree& R) {
     node* swap_branch = 0;
     if (branch_no == 0) branch_no = (rand() % n_tips()) +1;
     swap_branch = L.get_internal_branch_by_number_unrooted(branch_no);
+    #ifdef DEBUG
+    cout << "N tips: " << L.n_sub_tips(root) -  L.n_sub_tips(swap_branch) << endl;
+    #endif //DEBUG
+    if ( branch_no == 1 && (L.n_sub_tips(swap_branch)==1  || L.n_sub_tips(L.root)-L.n_sub_tips(swap_branch)==1 )) {
+	L.destroy_tree(L.root->left);
+	L.root->left=0;
+	L.destroy_tree(L.root->right);
+	L.root->right=0;
+	R.destroy_tree(R.root->left);
+	R.root->left=0;
+	R.destroy_tree(R.root->right);
+	R.root->right=0;
+	return;
+    }
     if (swap_branch != 0) {
 	L.interchange(swap_branch, true);
     }
@@ -2438,8 +2497,25 @@ double tree::log_clade_credibility( node* leaf ) {
 	if (leaf->left != 0) credibility += log_clade_credibility(leaf->left);
 	if (leaf->right != 0) credibility += log_clade_credibility(leaf->right);
     }
+    #ifdef DEBUG
+    cerr << credibility << endl;
+    #endif //DEBUG
     return credibility;
 }
+
+void tree::divide_internal_nodes_by( node* leaf, const float value ) {
+    if (leaf != 0) {
+	if (leaf->left != 0) divide_internal_nodes_by (leaf->left, value);
+	if (leaf->right != 0) divide_internal_nodes_by (leaf->right, value);
+	if (leaf->left != 0 && leaf->right != 0 && leaf->nodelabel != 0) {
+	    float support = atof(leaf->nodelabel->c_str());
+	    support /= value;
+	    stringstream converter;
+	    converter << support;
+	    leaf->nodelabel = nodelabels.add_string(converter.str());
+	}
+    }
+} 
 
 void tree::null_short_branches( node* leaf, const double value ) {
     if (leaf != 0) {
