@@ -997,6 +997,28 @@ tree::node* tree::longest_branch ( node* leaf ) {
     else return leaf;
 }
 
+tree::node* tree::shortest_branch ( node* leaf ) {
+    if (leaf->left==0 && leaf->right==0) return leaf;
+    node* shortest_left = 0;
+    node* shortest_right = 0;
+    if (leaf->left != 0) shortest_left = shortest_branch( leaf->left);
+    if (leaf->right != 0) shortest_right = shortest_branch( leaf->right);
+    if (shortest_left != 0 && shortest_right != 0) {
+        if (shortest_left->branchlength < shortest_right->branchlength && shortest_left->branchlength < leaf->branchlength) return shortest_left;
+        else if (shortest_right->branchlength < shortest_left->branchlength && shortest_right->branchlength < leaf->branchlength) return shortest_right;
+        else return leaf;
+    }
+    else if (shortest_left != 0 ) {
+        if (shortest_left->branchlength < leaf->branchlength) return shortest_left;
+        else return leaf;
+    }
+    else if (shortest_right != 0 ) {
+        if (shortest_right->branchlength < leaf->branchlength) return shortest_right;
+        else return leaf;
+    }
+    else return leaf;
+}
+
 void/*tree::tree*/ tree::prune_clade ( node* leaf,tree* pruned_clade ) {
     //tree pruned_clade;
     if (leaf == root) {

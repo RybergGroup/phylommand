@@ -48,11 +48,14 @@ Add svg viewer (latest version should be on git on NAS; download from backup?) -
 Make sure help funktions are good - improve further
 Handeling of gaps in parsimony - done
 Write manual - No
-Check so NNI does not do the root branch twice
-Add calculate mad for taxon set
+Check so NNI does not do the root branch twice - done
+Add calculate mad for taxon set - kind of done
 Review README
 Add to EXAMPLES
-Write bash script to calculate maximum clade credibility tree
+Write bash script to calculate maximum clade credibility tree - included in EXAMPLES
 Testing, testing, testing
 Ask people to test
-Write manuscript.
+Write manuscript
+Add ability to add node depths to treebender.
+Check bug with split trees
+Test likelihood calculations

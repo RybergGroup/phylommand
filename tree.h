@@ -209,6 +209,10 @@ class tree {
             node* node = longest_branch(root);
             return node->branchlength;
         }
+	double shortest_branch() {
+	    node* node = shortest_branch(root);
+            return node->branchlength;
+	}
 	double longest_to_tip () {
 	    return longest_to_tip(root);
 	};
@@ -428,6 +432,7 @@ class tree {
         void print_distance_to_root ( node* leaf, double distance, int n_nodes, string value_sep, string row_sep);
         void print_branch_lengths ( node* leaf, string separator );
         node* longest_branch ( node* leaf );
+        node* shortest_branch ( node* leaf );
         void prune_clade ( node* leaf, tree* pruned_clade );
         void split_at_longest_branch ( node* leaf, tree* tree );
         void split_at_longest_branch_unrooted ( node* leaf, tree* tree );

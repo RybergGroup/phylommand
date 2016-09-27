@@ -80,7 +80,17 @@ command.
 
 Treeator uses the NLOPT LN_NELDERMEAD algorithm for optimization (Nelder JA &
 Mead R. 1965. A simplex method for function minimization. The Computer J. 7:308
--313). 
+-313).
+
+Treeator only do likelihood on one character at the time. If given a multi
+character matrix it will calculate the likelihood of the first character. This
+may change in future editions, so do not count on this behaviour. 
+
+Treeator calculate likelihoods even if there are negative branches in the tree.
+So look out for warnings about negative branches.
+
+The neighbour-joining implementation will produce the optimal solution, even if
+this include negative branches.
 
 When colon (:) is used to separate options in extra arguments, back slash (\) can
 be used as an escape character or to help denote newline (\n/\r) and tab (\t).

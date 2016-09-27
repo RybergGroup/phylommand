@@ -42,13 +42,13 @@ void help ();
 
 double opt_function(const std::vector<double> &x, std::vector<double> &grad, void* data);
 double opt_rate_in_time(const std::vector<double> &x, std::vector<double> &grad, void* data);
-void change_non_fixed(const std::vector<double> &x, std::vector<double>* values, const std::set<int>* fixed);
+void change_non_fixed(const std::vector<double> &x, std::vector<double>* values, const std::set<unsigned int>* fixed);
 
 struct tree_modelspec_struct {
     simpleML* tree;
-    const vector<unsigned int>* specifications;
+    const vector<unsigned int>* specifications; // which parameter represents which rate i.e. 0,0,1,1,2,2 represents same rates going from 0->1 as 0->2, and 1->0 as 1->2, and so on.
     vector<double>* values;
-    const set<int>* fixed;
+    const set<unsigned int>* fixed;
 };
 
 int main (int argc, char *argv []) {
@@ -81,7 +81,7 @@ int main (int argc, char *argv []) {
     vector<unsigned int> model_specifications;
     double cut_off = 0.0;
     double rate_mod = 1.0;
-    set<int> fixed_parameters;
+    set<unsigned int> fixed_parameters;
     vector<double> model_parameters;
     ///////////
     bool tree_same_as_data_when_nexus(false);
@@ -392,8 +392,10 @@ int main (int argc, char *argv []) {
 	}
 	matrix_parser data_parser(*data_input.file_stream, characters, regions, data_input.get_file_type() );
 	data_parser.pars();
-	if (!quiet)
-	    std::cerr << "Number of taxa: " << characters.size() << "." << endl;
+	if (!quiet) {
+	    cerr << "Number of taxa: " << characters.size() << "." << endl;
+	    cerr << "Number of characters (first taxon): " << characters.begin()->n_char() << endl;
+	}
 	#ifdef DEBUG
 	std::cerr << "Max number of characters: " << characters.begin()->max_n_char() << std::endl;
 	#endif //DEBUG
@@ -486,12 +488,30 @@ int main (int argc, char *argv []) {
 	    else if (print_tree == 'x') tree.print_nexus(print_br_length);
 	}
 	else if (method == 'o' || method == 't') {
+	    if (characters.begin()->n_char() > 1) cerr << "Warning!!! Will only calculate likelihood of first character in matrix." << endl;
 	    unsigned int n_states = 0;
 	    unsigned int n_parameters = 0;
 	    if (!quiet) cerr << "Preparing model." << endl; 
 	    for (vector<character_vector>::iterator i=characters.begin(); i!=characters.end(); ++i)
 		if (i->highest_char_state()+1 > n_states) n_states = i->highest_char_state()+1;
 	    if (!model_specifications.empty()) {
+		// check model specifications
+		vector<unsigned int> temp = model_specifications;
+		sort(temp.begin(),temp.end());
+		for (vector<unsigned int>::const_iterator i=temp.begin(); i!=temp.end(); ++i) {
+		    if (i == temp.begin()) {
+			if (*i != 0) {
+			    cerr << "Lowest parameter index in model (given by -m / --model) should be 0 not " << *i << "." << endl;
+			    return 1;
+			}
+		    }
+		    else {
+			if (*i - *(i-1) > 1) { 
+			    cerr << "The parameter indexes should be a continuous series of integers. Missing index " << *(i-1)+1 << "." << endl;
+			    return 1;
+			}
+		    }
+		}
 		set<unsigned int> parameters;
 		for (vector<unsigned int>::const_iterator i=model_specifications.begin(); i!=model_specifications.end(); ++i) {
 		    parameters.insert(*i);
@@ -504,7 +524,7 @@ int main (int argc, char *argv []) {
 	    }
 // Set parameter values
 	    if(!model_parameters.empty()) {
-		if (model_parameters.size() < n_parameters) {
+		if (model_parameters.size() != n_parameters) {
 		    cerr << "The number of parameter values (" << model_parameters.size() << ") must be as many as parameters (" << n_parameters << ")." << endl;
 		    return 1;
 		}
@@ -524,10 +544,15 @@ int main (int argc, char *argv []) {
 		model_parameters.push_back(cut_off);
 		model_parameters.push_back(rate_mod);
 	    }
-	    #if DEBUG
-		std::cerr << "1. Number of fixed parameters: " << fixed_parameters.size() << endl;
-		std::cerr << "1. Number of parameters: " << n_parameters << endl;
-	    #endif //DEBUG
+	    // check fixed_parameters
+	    for (set<unsigned int>::iterator i=fixed_parameters.begin(); i != fixed_parameters.end(); ++i) {
+		if (*i > n_parameters-1) {
+		    cerr << "Can not fix parameter " << *i << ". It is out of bound (n parameters=" << n_parameters << ")." << endl;
+		    return 1;
+		}
+	    }
+	    if (!quiet) 
+		cerr << "Model has " << n_parameters << ", of which " << fixed_parameters.size() << " are fixed." << endl;
 	    n_parameters-=fixed_parameters.size();
 	    if (n_parameters==0)
 		optimize_param=false;
@@ -558,6 +583,7 @@ int main (int argc, char *argv []) {
 		tree.tree_file_parser( *tree_input.file_stream, taxa_trans, false );
 		if (tree.empty()) break;
 		++read_trees;
+		if (tree.shortest_branch() < 0.0) cerr << "Warning!!! Tree " << read_trees << " contains negative branches." << endl;
 		tree.init(n_states); // need to fix this
 		for (vector<character_vector>::iterator i=characters.begin(); i!=characters.end(); ++i)
 		    tree.set_char(i->get_taxon(),i->get_character(0));
@@ -711,6 +737,10 @@ void help () {
     std::cout << "                                 variable) at a certain time point (time)." << endl;*/
     std::cout << "--model / -m [number/s]          give the model by numbering the rate parameters" << endl;
     std::cout << "                                 for different transition, e.g. -m 0,1,0,2,1,2." << endl;
+    std::cout << "                                 The order is by row, i.e. from parameter 0 to" << endl;
+    std::cout << "                                 parameter 1 first then, 0 to 2, and so on to" << endl;
+    std::cout << "                                 all other parameters, then 1 to 0, and so" << endl;
+    std::cout << "                                 forth." << endl;
     std::cout << "--neighbour_joining / -n         compute neighbour joining tree for given data." << endl;
     std::cout << "                                 The data should be  a left triangular" << endl;
     std::cout << "                                 similarity matrix." << std::endl;
@@ -719,15 +749,22 @@ void help () {
     std::cout << "--no_lable / -L                  will tell treeator that there are no taxon" << endl;
     std::cout << "                                 labels in the similarity matrix." << endl;
     #ifdef NLOPT
-    std::cout << "--no_optim / -n                  calculate likelihood for given parameters. No" << endl;
+    std::cout << "--no_optim / -N                  calculate likelihood for given parameters. No" << endl;
     std::cout << "                                 optimization." << endl;
     #endif //NLOPT
     std::cout << "--output [newick/nexus]          give tree format for output, nexus (nex or x" << endl;
     std::cout << "                                 for short) or newick (new or w for short), e.g" << endl;
     std::cout << "                                 --output x. (default w)." << endl; 
     std::cout << "--parameters / -P [values]       give corresponding parameter values for" << endl;
-    std::cout << "                                 parameters. If optimizing these will be" << endl;
-    std::cout << "                                 starting values, e.g. -P 0.1,0.01,0.05." << endl;
+    std::cout << "                                 parameters.";
+    #ifdef NLOPT
+    std::cout << " If optimizing these will be" << endl;
+    std::cout << "                                 starting values, e.g.";
+    #else
+    std::cout << " E.g.";
+    #endif //NLOPT
+    std::cout << " -P 0.1,0.01,0.05.";
+    std::cout << endl;
     std::cout << "--parsimony / -p                 calculate parsimony score for given tree and" << endl;
     std::cout << "                                 data." << std::endl;
     /*std::cout << "--rate_mod / -R [value]        give modifier for rate compared to rate at root" << endl;
@@ -760,7 +797,7 @@ double opt_rate_in_time(const std::vector<double> &x, std::vector<double> &grad,
     return LogLH;
 }
 
-void change_non_fixed(const std::vector<double> &x, std::vector<double>* values, const std::set<int>* fixed) {
+void change_non_fixed(const std::vector<double> &x, std::vector<double>* values, const std::set<unsigned int>* fixed) {
     #if DEBUG
         std::cerr << "No. fixed "<< fixed->size();
         std::cerr << " (";
@@ -771,8 +808,8 @@ void change_non_fixed(const std::vector<double> &x, std::vector<double>* values,
         for (vector<double>::const_iterator i=x.begin(); i!=x.end(); ++i) std::cerr << *i << ' ';
         std::cerr << endl;
     #endif //DEBUG
-    int z=0;
-    int j=0;
+    unsigned int z(0);
+    unsigned int j(0);
     for (std::vector<double>::iterator i=values->begin(); i != values->end(); ++i) {
         #if DEBUG
             std::cout << "Param " << z << " has value " << *i << endl;
