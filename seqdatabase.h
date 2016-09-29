@@ -269,11 +269,15 @@ class seqdatabase {
     float get_comp_value_pair ( const string& accno );
     void get_taxon_string_from_map ( const string& accno, string& return_string) {
 	map<string,string>::iterator i = taxon_strings.find(accno);
-	if (i != taxon_strings.end()) return_string = i->second; 
+	if (i != taxon_strings.end()) return_string = i->second;
+	else {
+	    i = taxon_strings.find("default");
+	    if (i != taxon_strings.end()) return_string = i->second;
+	}
     }
     bool initiate_sequence_retrival_file() {
 	mode = 0;
-	if (*input != cin) {
+	if ( input != &cin) { // alternative _sCheck(input != &cin)
 	    if (file.bad()) file.clear();
 	    file.seekg(0,file.beg);
 	    return file.good();

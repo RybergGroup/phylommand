@@ -469,6 +469,12 @@ void cluster_each_table ( const string& file, const char* databasetype, const st
 	}
 	else cerr << "Was not able to open " << taxonomy_file << ". No taxonomy read." << endl;
     }
+    else if (!strcmp(databasetype,"pairfa")) {
+	map<string,string> taxonomy_map;
+	taxonomy_map["default"] = "all";
+	database.add_taxonomy(taxonomy_map);
+	if (!quiet && (output == 'A' || output == 'B')) cerr << "All sequences will be treated as from same taxon." << endl;
+    }
     if ((output == 'A' || output == 'B') && !database.alignment_groups_present()) {
 	if (!quiet) cerr << "No alignment_groups file/table present. Trying to create it." << endl;
 	if (!database.create_alignment_groups()) {
@@ -511,10 +517,10 @@ void cluster_each_table ( const string& file, const char* databasetype, const st
 	}
 	if (!quiet) std::cerr << "Checking " << *table << endl;
 	cluster(database, *table, present_cut_off, min_length, only_lead, aligned, output, output_names, matrix, quiet);
-	#ifdef DEBUG
-	cerr << "Output: " << output << " | " << "Database type: " << databasetype << endl;
-	database.print_clusters(cerr);
-	#endif //DEBUG
+	//#ifdef DEBUG
+	//cerr << "Output: " << output << " | " << "Database type: " << databasetype << endl;
+	//database.print_clusters(cerr);
+	//#endif //DEBUG
 	if ((output == 'B' || output == 'C') && (!strcmp(databasetype,"fasta") || !strcmp(databasetype,"pairfa"))) {
 	    cout << "### Clusters " << *table << ", cut-off: " << present_cut_off << " ###" << endl;
 	    database.print_clusters(cout);
@@ -684,9 +690,9 @@ void cluster( seqdatabase& db, const string table, const float cut_off, const in
 	//#if DATABASE
 	db.insert_alignment_group(table, alignment_groups); 
 	//#endif //DATABASE
-	//#ifdef DEBUG
-	//deviations.print_hierarchy();
-	//#endif /* DEBUG */
+	#ifdef DEBUG
+	deviations.print_hierarchy();
+	#endif /* DEBUG */
     }
 }
 

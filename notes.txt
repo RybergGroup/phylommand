@@ -1,4 +1,3 @@
-g++ -o anconstruction anconstruction.cpp tree.cpp simpleML.cpp string_tree.cpp marth/marth.cpp -lnlopt -lm
 Xming on ubuntu on windows:
 in bash
 export DISPLAY=localhost:0.0
@@ -45,17 +44,19 @@ Add progress reports and quiet options - done
 Go trough how extra arguments are given in treebender so it is one extra per argument - done
 Make how arguments are given more uniform using argv_parser - done
 Add svg viewer (latest version should be on git on NAS; download from backup?) - done
-Make sure help funktions are good - improve further
 Handeling of gaps in parsimony - done
 Write manual - No
 Check so NNI does not do the root branch twice - done
 Add calculate mad for taxon set - kind of done
+##################################################
 Review README
 Add to EXAMPLES
 Write bash script to calculate maximum clade credibility tree - included in EXAMPLES
 Testing, testing, testing
+Make sure help funktions are good - improve further
 Ask people to test
 Write manuscript
 Add ability to add node depths to treebender.
-Check bug with split trees
+Check possible bug with split trees
 Test likelihood calculations
+Compare rooting times against Newick Utilities
