@@ -55,10 +55,10 @@ int main (int argc, char *argv []) {
     #if DEBUG
     cerr << "Debugging version!!!" << endl;
     #endif //DEBUG
-    bool lables = true;
+    bool labels = true;
     char method = 'p';
     bool print_br_length(true);
-    bool print_state_on_nodelable(false);
+    bool print_state_on_nodelabel(false);
     char print_tree = 'w';
     bool quiet(true);
     bool non_as_uncertain(true);
@@ -88,7 +88,7 @@ int main (int argc, char *argv []) {
     /// Reading arguments ///
     if (argc > 1) {
         for (int i=1; i < argc; ++i) {
-            if (!strcmp(argv[i],"-L") || !strcmp(argv[i],"--no_lable")) lables = false;
+            if (!strcmp(argv[i],"-L") || !strcmp(argv[i],"--no_label")) labels = false;
             else if (!strcmp(argv[i],"-d") || !strcmp(argv[i],"--data_file")) {
                 if ( i < argc-1 && argv[i+1][0] != '-' ) {
 		    ++i;
@@ -233,7 +233,7 @@ int main (int argc, char *argv []) {
                 }
             }
 	    else if (!strcmp(argv[i],"--get_state_at_nodes")) {
-		print_state_on_nodelable = true;
+		print_state_on_nodelabel = true;
 	    }
             else if (!strcmp(argv[i],"--format")) {
 		if ( i < argc-1 && argv[i+1][0] != '-' ) {
@@ -319,7 +319,7 @@ int main (int argc, char *argv []) {
     if (method == 'n') { // Neigbour Joining
 	njtree tree;
 	if (!quiet) cerr << "Reading distance matrix." << endl;
-	tree.read_distance_matrix(*data_input.file_stream, lables);
+	tree.read_distance_matrix(*data_input.file_stream, labels);
 	if (!tree.matrix_good()) {
 	    cerr << "Error in distance matrix. Check distance matrix format." << endl;
 	    return 1;
@@ -456,8 +456,8 @@ int main (int argc, char *argv []) {
 		tree.tree_file_parser( *tree_input.file_stream, taxa_trans, false );
 		if (tree.empty()) break;
 		++read_trees;
-		unsigned int score  = tree.fitch_parsimony( characters, print_state_on_nodelable, print_br_length, alphabet );
-		if (print_br_length || print_state_on_nodelable) {
+		unsigned int score  = tree.fitch_parsimony( characters, print_state_on_nodelabel, print_br_length, alphabet );
+		if (print_br_length || print_state_on_nodelabel) {
 		    if (print_tree == 'w') {
 			cout << "[score: " << score << "] ";
 			tree.print_newick(print_br_length);
@@ -474,7 +474,7 @@ int main (int argc, char *argv []) {
 		}
 		else cout << score << endl;
 	    }
-	    if ((print_br_length || print_state_on_nodelable) && print_tree == 'x') {
+	    if ((print_br_length || print_state_on_nodelabel) && print_tree == 'x') {
 		cout << "End;" << endl;
 	    }
 	}
@@ -671,13 +671,13 @@ int main (int argc, char *argv []) {
 		}
 		if (print_tree == 'w') {
 		    // cout << "Tree:" << endl;
-		    if (print_state_on_nodelable) tree.draw_normalized_likelihood_on_nodes();
+		    if (print_state_on_nodelabel) tree.draw_normalized_likelihood_on_nodes();
 		    tree.print_newick();
 		}
 		else if (print_tree == 'x') {
 		    model_out << ']' << std::endl;
 		    if (read_trees == 1) tree.print_nexus_tree_intro(taxa_trans);
-		    if (print_state_on_nodelable) tree.draw_normalized_likelihood_on_nodes();
+		    if (print_state_on_nodelabel) tree.draw_normalized_likelihood_on_nodes();
 		    stringstream ss;
 		    ss << "tree" << read_trees;
 		    ss << '_' << read_trees;
@@ -746,7 +746,7 @@ void help () {
     std::cout << "                                 similarity matrix." << std::endl;
     std::cout << "--no_branch_length / -0          do not print branch lengths and do not" << endl;
     std::cout << "                                 calculate branch lengths for parsimony trees." << std::endl;
-    std::cout << "--no_lable / -L                  will tell treeator that there are no taxon" << endl;
+    std::cout << "--no_label / -L                  will tell treeator that there are no taxon" << endl;
     std::cout << "                                 labels in the similarity matrix." << endl;
     #ifdef NLOPT
     std::cout << "--no_optim / -N                  calculate likelihood for given parameters. No" << endl;

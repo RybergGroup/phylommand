@@ -1576,7 +1576,7 @@ void tree::print_conflict_clades ( node* leaf, tree* tree, const float supp, set
 			cout << "The taxa: " << missfits << ", are supported as nested in " << taxa_names << endl;
 			if (svg) {
 			    std::cout << "</p>" << endl;
-			    std::cout << "<h2>Fist tree:</h2>" << endl;
+			    std::cout << "<h2>First tree:</h2>" << endl;
 			    string tip_color = "red(" + missfits + ")green(" + taxa_names + ")";
 			    print_svg_autoscale_no_head(false,true,10.0,tip_color, true);
 			    std::cout << "<h2>Second tree:</h2>" << endl;

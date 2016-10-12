@@ -140,7 +140,7 @@ int main (int argc, char *argv []) {
 		    }
 		    else if (!arguments[0].compare("m") || !arguments[0].compare("mid_point")) {
 			method = 'P';
-			if (arguments.size() && !arguments[1].empty()) {
+			if (arguments.size() > 1 && !arguments[1].empty()) {
 			    if ( arguments[1][0] == 'n' ) split_criteria = arguments[1][0];
 			    else if ( arguments[1][0] == 'l' ) split_criteria = 'l';
 			    else {
@@ -1088,7 +1088,7 @@ void help () {
     std::cout << "                                  print, e.g. --interval 10-100, or just the" << endl;
     std::cout << "                                  first tree to print, e.g. --interval 1000." << endl;
     std::cout << "--inverse / -i                    inverse the string of taxa, e.g. drop all tips" << endl;
-    std::cout << "                                  but the given." << endl;
+    std::cout << "                                  but the given. E.g -d taxon1,taxon2,taxon3 -i" << endl;
     std::cout << "--is_monophyletic [taxa]          test if the given taxa form a monophyletic" << endl;
     std::cout << "                                  group, e.g. --is_monophyletic taxon1,taxon2." << endl;
     std::cout << "--ladderize / -l                  laddrize the tree. If followed by l - left" << endl;

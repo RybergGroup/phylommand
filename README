@@ -1,4 +1,4 @@
-Phylomand is a software package for working with phylogenies. It can be compiled
+Phylommand is a software package for working with phylogenies. It can be compiled
 by gcc and g++ using make. Just go into the folder where the source code is and
 execute
 
@@ -25,7 +25,7 @@ DEL *.o
 
 and then compile again as above.
   
-Phylomand includes:
+Phylommand includes:
     treebender - for manipulating and getting basic statistics from trees.
     treeator - for evaluating trees to calculate parsimony, or likelihood for
         trees, or construct trees using Neighbour joining or stepwise addition.
@@ -38,19 +38,21 @@ will also be compiled. This viewer can be used to view svg representations of
 trees as outputted from treebender (except color aspects). It depends on there
 being a x11 server to accept the output (standard on linux and OS X).
 
-All programs are accept input from standard in, or a file. This means that input
-can be piped from one (or another) program to the other. The program that deals
-with treas accept trees in newick or nexus format; treeator also accept character
+All programs accept input from standard in, or a file. This means that input can
+be piped from one (or another) program to the other. The program that deals with
+trees accept trees in newick or nexus format; treeator also accept character
 data matrices in fasta, sequential phylip, and sequential nexus format, and space
 separated left triangular distance matrices; for decisiveness estimates contree
-require a text file with the genes for each taxon on a separate row. 
+require a text file with the genes for each taxon on a separate row. Output is
+printed to stdout (the screen) and can be piped to a file using '>' in most
+command line environments.
 
 For further instructions on possible arguments call the help function of the
 respective program with the switch -h or --help, e.g.:
 
     treebender --help
 
-To be able to execute the phylomand programs from any folder, move the programs
+To be able to execute the phylommand programs from any folder, move the programs
 to a folder in your PATH, e.g.
 
 sudo mv treebender /usr/local/bin/

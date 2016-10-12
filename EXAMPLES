@@ -1,6 +1,11 @@
 Here are some examples on how phylommand can be used. The examples assumes a
-basic knowledge in how to work on the command line. Many cases also assume that
-you are working in a bash shell or similar.
+basic knowledge in how to work on the command line, for example that > will pipe
+the output from stdout (the screen) to a file which is the standard way or
+getting the output to a file in phylommand, e.g.:
+
+    treebender --svg tree_file.tre > tree_file.svg
+ 
+Many cases also assume that you are working in a bash shell or similar.
 
 To make and view a neighbour joining tree based on a mafft alignment:
 
@@ -10,7 +15,7 @@ To make and view a neighbour joining tree based on a mafft alignment:
 To create monophyletic OTUs based on the branch lengths in a tree (c.f. virtual
 taxa sensu Öpick et al 20XX):
 
-    treebender --cluster branch_length --cut_off 0.03 tree_file.tre 
+    treebender --cluster branch_length:0.03 tree_file.tre 
 
 Get the parsimony score of all nearest neighbour interchange trees from:
 
@@ -24,7 +29,7 @@ Get alignable groups based on MAD score (Smith et al. 2009, BMC Evol. Biol.
 Get conflict between trees that have more than given number of support in HTML
 format:
 
-    contree -c 70 tree_file.trees --html
+    contree -c 70 -f tree_file.trees --html
 
 Draw bootstrap supports on topology in tree_file.tree:
 

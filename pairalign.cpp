@@ -571,13 +571,14 @@ void cluster( seqdatabase& db, const string table, const float cut_off, const in
 		new_row = true;
     	    #ifdef PTHREAD
 	    if (n_threads > 1) {
-		pthread_mutex_lock(&databasemutex);
 		if (matrix && new_row) {
+		    pthread_mutex_lock(&databasemutex); // move out of if statement if implementing printing progressively
 		    ++n_seq;
 		    stringstream* outputstream = output_queue.new_position();
 		    if (n_seq > 1)  *outputstream << endl;
 		    if (output_names) *outputstream << db.get_accno1() << ' ';
 		    for (unsigned int i=1; i<n_seq; ++i) *outputstream << ' ';
+		    pthread_mutex_unlock(&databasemutex); // move out of if statement if implementing printing progressively
 		}
 		/*while (output_queue.something_in_first_position()) {
 		    cout << output_queue.print_next();
@@ -585,7 +586,6 @@ void cluster( seqdatabase& db, const string table, const float cut_off, const in
 		    cerr << "Printing" << endl;
 		    #endif //DEBUG
 		}*/
-		pthread_mutex_unlock(&databasemutex);
 		if (next_thread >= n_threads) next_thread = 0;
 		int thread_code=0;
 		if (activated[next_thread]) thread_code = pthread_join(thread[next_thread], &status);
@@ -595,7 +595,7 @@ void cluster( seqdatabase& db, const string table, const float cut_off, const in
 		}
 		else {
 		    #ifdef DEBUG
-		    cerr << "Prepairing pthread alignment: ";
+		    cerr << "Preparing pthread alignment: ";
 		    #endif //DEBUG
 		    two_sequences[next_thread].accno1 = db.get_accno1();
 		    two_sequences[next_thread].sequence1 = db.get_sequence1();
@@ -668,10 +668,12 @@ void cluster( seqdatabase& db, const string table, const float cut_off, const in
     pthread_attr_destroy(&attr);
     if (n_threads > 1) {
 	for (unsigned int i=0; i < n_threads; ++i) {
-	    int thread_code = pthread_join(thread[i], &status);
-	    if (thread_code) {
-		std::cerr << "ERROR!!! Return code from pthread_join() is: " << thread_code << endl;
-		exit (-1);
+	    if (activated[i]) {
+		int thread_code = pthread_join(thread[i], &status);
+		if (thread_code) {
+		    std::cerr << "ERROR!!! Return code from pthread_join() is: " << thread_code << endl;
+		    exit (-1);
+		}
 	    }
 	}
     }
