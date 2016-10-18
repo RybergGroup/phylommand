@@ -891,7 +891,7 @@ void align_pair ( sequence_package *two_sequences ) {
 	pthread_mutex_unlock(&databasemutex);
     #endif /* PTHREAD */
 }
-
+#ifdef PTHREAD
 void print_queue::delete_queue ( node* position ) {
     if (position != 0) {
 	if (position->next != 0) delete_queue(position->next);
@@ -936,4 +936,4 @@ string print_queue::print_next( bool print_empty ) {
     }
     else return string();
 }
-
+#endif /* PTHREAD */

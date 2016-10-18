@@ -1736,7 +1736,7 @@ void tree::tips_not_shared( tree* B, const string& name_tree1, const string & na
 	    std::cout << *(*i); printed = true;
 	}
     }
-    if (printed) std::cout << " in tree " << name_tree1 << " are missing from tree " << name_tree2 << endl;
+    if (printed) std::cout << " in " << name_tree1 << " are missing from " << name_tree2 << endl;
     else std::cout << "All tips in "  << name_tree1 << " are present in " << name_tree2 << endl;
 }
 

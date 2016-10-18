@@ -296,7 +296,7 @@ int main (int argc, char *argv []) {
 	double normalized_sum = 0.0;
 	++i;
 	std::stringstream convert;
-	convert << i;
+	convert << "tree " << i;
 	string name_i = convert.str();
 	tree_array* comp_tree = array_start;
 	int j=0;
@@ -317,8 +317,6 @@ int main (int argc, char *argv []) {
 	    ++j;
 	    convert.clear(); // clear to-string-converter for new input
 	    convert.str(std::string());
-	    convert << j;
-	    string name_j = convert.str();
 	    tree* tree_j;
 	    if (database_name.empty()) {
 		if (comp_tree == 0 || comp_tree->phylo.empty()) break;
@@ -332,6 +330,7 @@ int main (int argc, char *argv []) {
 		#ifdef DEBUG
 		std::cerr << "Database file given." << std::endl;
 		#endif //DEBUG
+		convert << "database ";
 		if (db_input.test_file_type("nexus")) {
 		    #ifdef DEBUG
 		    std::cerr << "It is in nexus format. " << db_taxa_trans.size() << ' ' << read_db_trees << std::endl;
@@ -354,6 +353,8 @@ int main (int argc, char *argv []) {
 		    break;
 		}
 	    }
+	    convert << "tree " << j;
+	    string name_j = convert.str();
 	    if (method == 'c') {
 		if (html) std::cout << "<h2>" << endl;
 		std::cout << "Checking conflicts between tree " << i << " and tree " << j << ":" << endl;
