@@ -27,6 +27,7 @@ contact: kryberg@utk.edu
 #include <math.h>
 #include "constants.h"
 #include <climits>
+#include <limits>
 
 using namespace std;
 
@@ -43,7 +44,7 @@ template<> class size_triang_matrix<1> {
 class seqpair {
     public:
     seqpair () {
-        GO = -10;
+        GO = -15;
         GE = -1;
         set_cost_matrix();
 	set_DNA_alphapet();
@@ -53,7 +54,7 @@ class seqpair {
 	set_DNA_alphapet();
         translate_to_binary ( x, seq_x );
         translate_to_binary ( y, seq_y );
-        GO = -10;
+        GO = -15;
         GE = -1;
         set_cost_matrix();
     };

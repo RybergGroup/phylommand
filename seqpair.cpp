@@ -84,18 +84,18 @@ void seqpair::align( ) {
             if (i==0 || j==0) {
                 if (i==0 && j==0) {
                     aligned[i*n_bp_y+j] = cost(seq_x[i],seq_y[j]);
-                    gap_y[i*n_bp_y+j] = GO;
-                    gap_x[i*n_bp_y+j] = GO;
+                    gap_y[i*n_bp_y+j] = 0;//GO;
+                    gap_x[i*n_bp_y+j] = 0;//GO;
                 }
                 else if (i==0) {
                     aligned[i*n_bp_y+j] = gap_x[i*n_bp_y+j-1]+cost(seq_x[i],seq_y[j]);
-                    gap_y[i*n_bp_y+j] = GO;
-                    gap_x[i*n_bp_y+j] = gap_x[i*n_bp_y+j-1]+GE;
+                    gap_y[i*n_bp_y+j] = 0;//GO;
+                    gap_x[i*n_bp_y+j] = 0;//gap_x[i*n_bp_y+j-1]+GE;
                 }
                 else if (j==0) {
                     aligned[i*n_bp_y+j] = gap_y[(i-1)*n_bp_y+j]+cost(seq_x[i],seq_y[j]);
-                    gap_y[i*(n_bp_y)+j] = gap_y[(i-1)*n_bp_y+j]+GE;
-                    gap_x[i*(n_bp_y)+j] = GO;
+                    gap_y[i*(n_bp_y)+j] = 0;//gap_y[(i-1)*n_bp_y+j]+GE;
+                    gap_x[i*(n_bp_y)+j] = 0;//GO;
 
                 }
             }
@@ -114,6 +114,24 @@ void seqpair::align( ) {
     vector< bitset<SIZE> > seq_y_rev_aligned;
     int i = n_bp_x-1;
     int j = n_bp_y-1;
+    // Look for highest value in last row or column
+    int max = numeric_limits<int>::min();
+    for (int pos = 0; pos < n_bp_x; ++pos)
+	if (aligned[pos*n_bp_y+n_bp_y-1] > max) { i = pos; j = n_bp_y-1; }
+    for (int pos = 0; pos < n_bp_y; ++pos)
+	if (aligned[(n_bp_x-1)*n_bp_y+pos] > max) { j = pos; i = n_bp_x-1; }
+    if (i < n_bp_x-1) {
+	for (int pos = n_bp_x-1; pos > i; --pos) {
+            seq_x_rev_aligned.push_back(seq_x[pos]);
+            seq_y_rev_aligned.push_back(bitset<SIZE>());
+	}
+    }
+    else if (j < n_bp_y-1) {
+	for (int pos = n_bp_x-1; pos > j; --pos) {
+            seq_x_rev_aligned.push_back(bitset<SIZE>());
+            seq_y_rev_aligned.push_back(seq_y[j]);
+	}
+    }
     while (i>=0 || j>=0) {
         if ( i >=0 && j >=0 && aligned[i*n_bp_y+j] >= gap_y[i*n_bp_y+j] && aligned[i*n_bp_y+j] >= gap_x[i*n_bp_y+j] ) {
             seq_x_rev_aligned.push_back(seq_x[i]);
