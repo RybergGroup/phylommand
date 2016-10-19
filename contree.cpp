@@ -447,7 +447,8 @@ void help () {
     std::cout << "                                -D 'ITS,RPB2|ITS|ITS,RPB2|RPB2|RPB2|ITS', or in" << endl;
     std::cout << "                                a file (given by -f or as last argument) with a" << endl;
     std::cout << "                                comma separated string with the genes for each" << endl;
-    std::cout << "                                taxa on a separate row." << endl;
+    std::cout << "                                taxa on a separate row. No taxon names, trees," << endl;
+    std::cout << "                                or sequences are needed." << endl;
     std::cout << "--iterations / -i [number]      give numbers of iterations to do when" << endl;
     std::cout << "                                calculating decisiveness, e.g. -i 1000." << endl; 
     std::cout << "--file / -f [file]              give file name for trees, or decisiveness, e.g." << endl;
