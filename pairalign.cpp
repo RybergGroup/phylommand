@@ -711,9 +711,11 @@ void align_pair ( sequence_package *two_sequences ) {
     #ifdef DEBUG
     cerr << "Starting to process: " << two_sequences->accno1 << " " << two_sequences->accno2 << endl;
     #endif //DEBUG
+    //int score(0);
     if (!two_sequences->aligned) {
 	sequences.set_cost_matrix( 7, -5 );
 	sequences.align();
+	//score = sequences.align();
     }
     #ifdef PTHREAD
     if (n_threads >1)

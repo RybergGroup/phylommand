@@ -58,7 +58,7 @@ class seqpair {
         GE = -1;
         set_cost_matrix();
     };
-    void align();
+    int align();
     void add_bp_x ( const string& x ) { add_bp(seq_x, x); };
     void add_bp_y ( const string& y ) { add_bp(seq_y, y); };
     void add_chunk_x ( const string& x ) { add_bp(seq_x, x); };

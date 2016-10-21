@@ -73,7 +73,7 @@ void seqpair::translate_to_binary ( const string& iupac, vector< bitset<SIZE> >&
 }
 
 
-void seqpair::align( ) {
+int seqpair::align( ) {
     const int n_bp_x=seq_x.size();
     const int n_bp_y=seq_y.size();
     int *aligned = new int [n_bp_x*n_bp_y];
@@ -116,10 +116,14 @@ void seqpair::align( ) {
     int j = n_bp_y-1;
     // Look for highest value in last row or column
     int max = numeric_limits<int>::min();
-    for (int pos = 0; pos < n_bp_x; ++pos)
-	if (aligned[pos*n_bp_y+n_bp_y-1] > max) { i = pos; j = n_bp_y-1; }
-    for (int pos = 0; pos < n_bp_y; ++pos)
-	if (aligned[(n_bp_x-1)*n_bp_y+pos] > max) { j = pos; i = n_bp_x-1; }
+    for (int pos = 0; pos < n_bp_x; ++pos) {
+	if (aligned[pos*n_bp_y+n_bp_y-1] > max) { i = pos; j = n_bp_y-1; max = aligned[pos*n_bp_y+n_bp_y-1];}
+    }
+    for (int pos = 0; pos < n_bp_y; ++pos) {
+	if (aligned[(n_bp_x-1)*n_bp_y+pos] > max) { j = pos; i = n_bp_x-1; max = aligned[(n_bp_x-1)*n_bp_y+pos]; }
+    }
+    // Make alignment up to highest value
+    //cerr << "Start pos i: " << i << "(" << n_bp_x-1 << "). Start pos j: " << j << "(" << n_bp_y-1 << "). Highest score: " << max << "." << endl;
     if (i < n_bp_x-1) {
 	for (int pos = n_bp_x-1; pos > i; --pos) {
             seq_x_rev_aligned.push_back(seq_x[pos]);
@@ -127,11 +131,12 @@ void seqpair::align( ) {
 	}
     }
     else if (j < n_bp_y-1) {
-	for (int pos = n_bp_x-1; pos > j; --pos) {
+	for (int pos = n_bp_y-1; pos > j; --pos) {
             seq_x_rev_aligned.push_back(bitset<SIZE>());
-            seq_y_rev_aligned.push_back(seq_y[j]);
+            seq_y_rev_aligned.push_back(seq_y[pos]);
 	}
     }
+    // Trace back
     while (i>=0 || j>=0) {
         if ( i >=0 && j >=0 && aligned[i*n_bp_y+j] >= gap_y[i*n_bp_y+j] && aligned[i*n_bp_y+j] >= gap_x[i*n_bp_y+j] ) {
             seq_x_rev_aligned.push_back(seq_x[i]);
@@ -152,7 +157,7 @@ void seqpair::align( ) {
             --j;
         }
     }
-
+    // Clean up
     delete [] aligned;
     delete [] gap_y;
     delete [] gap_x;
@@ -162,6 +167,7 @@ void seqpair::align( ) {
     i = seq_y_rev_aligned.size(); 
     seq_y.clear();
     while (i>0) seq_y.push_back(seq_y_rev_aligned[--i]);
+    return max;
 }
 
 int seqpair::cost( const bitset<SIZE> bp_x, const bitset<SIZE> bp_y ) {
