@@ -476,34 +476,32 @@ int main (int argc, char *argv []) {
 		    ++i;
 		    if (!strcmp(argv[i],"nexus") || !strcmp(argv[i],"nex") || (argv[i][0] == 'x' && argv[i][1] == '\0')) output_format = 'x';
 		    else if (!strcmp(argv[i],"newick") || !strcmp(argv[i],"new") || (argv[i][0] == 'w' && argv[i][1] == '\0')) output_format = 'w';
-		    else if (!strcmp(argv[i],"svg") || strcmp(argv[i],"SVG")) {
+		    else if ((argv[i][0] == 's' || argv[i][0] == 'S') && (argv[i][1] == 'v' || argv[i][1] == 'V') && (argv[i][2] == 'g' || argv[i][2] == 'G') && (argv[i][3] == '\0' || argv[i][3] == ':')) {
 			output_format = 's';
-			if ( i < argc-1 && argv[i+1][0] != '-' ) {
-			    ++i;
-			    unsigned int j=0;
-			    string temp;
-			    string param;
-			    while (1) {
-				if (argv[i][j] == '&' || argv[i][j] == '\0') {
-				    if (!param.compare("width")) svg_width = atof(temp.c_str());
-				    else if (!param.compare("height")) svg_height = atof(temp.c_str());
-				    else if (!param.compare("offset")) textoffset = atof(temp.c_str());
-				    else if (!param.compare("strokewidth"))  strokewidth = atoi(temp.c_str());
-				    else if (!param.compare("fontsize")) fontsize = atoi(temp.c_str());
-				    else if (!param.compare("font")) font = temp;
-				    else if (!param.compare("tipcolor") || !param.compare("tipcolour")) tip_colors = temp;
-				    else { cerr << "Unrecognized parameter for svg output: " << param << endl; return 1; }
-				    if (argv[i][j] == '\0') break;
-				    temp.clear();
-				    param.clear();
-				}
-				else if (argv[i][j] == ':') {
-				    param = temp;
-				    temp.clear();
-				}
-				else temp += argv[i][j];
-				++j;
+			unsigned int j=3;
+		    	string temp;
+	    		string param;
+    			while (1) {
+			    if ((argv[i][j] == '&' || argv[i][j] == '\0') && !param.empty()) {
+				if (!param.compare("width")) svg_width = atof(temp.c_str());
+				else if (!param.compare("height")) svg_height = atof(temp.c_str());
+				else if (!param.compare("offset")) textoffset = atof(temp.c_str());
+				else if (!param.compare("strokewidth"))  strokewidth = atoi(temp.c_str());
+				else if (!param.compare("fontsize")) fontsize = atoi(temp.c_str());
+				else if (!param.compare("font")) font = temp;
+				else if (!param.compare("tipcolor") || !param.compare("tipcolour")) tip_colors = temp;
+				else { cerr << "Unrecognized parameter for svg output: " << param << endl; return 1; }
+				if (argv[i][j] == '\0') break;
+				temp.clear();
+				param.clear();
 			    }
+			    else if (argv[i][j] == '\0') break;
+			    else if (argv[i][j] == ':') {
+				param = temp;
+				temp.clear();
+			    }
+			    else temp += argv[i][j];
+			    ++j;
 			}
 		    }
 		    else {
@@ -513,36 +511,6 @@ int main (int argc, char *argv []) {
 		}
 		else std::cerr << "--output require nexus(nex or x), newick (new or w), or svg (SVG) as additional argument" << endl;
 	    }
-            /*else if (!strcmp(argv[i],"-g") || !strcmp(argv[i],"--svg")) {
-		output_format = 's';
-		if ( i < argc-1 && argv[i+1][0] != '-' ) {
-		    ++i;
-		    unsigned int j=0;
-		    string temp;
-		    string param;
-		    while (1) {
-		    	if (argv[i][j] == '&' || argv[i][j] == '\0') {
-			    if (!param.compare("width")) svg_width = atof(temp.c_str());
-			    else if (!param.compare("height")) svg_height = atof(temp.c_str());
-			    else if (!param.compare("offset")) textoffset = atof(temp.c_str());
-			    else if (!param.compare("strokewidth"))  strokewidth = atoi(temp.c_str());
-			    else if (!param.compare("fontsize")) fontsize = atoi(temp.c_str());
-			    else if (!param.compare("font")) font = temp;
-			    else if (!param.compare("tipcolor") || !param.compare("tipcolour")) tip_colors = temp;
-			    else { cerr << "Unrecognized parameter for svg output: " << param << endl; return 1; }
-			    if (argv[i][j] == '\0') break;
-			    temp.clear();
-			    param.clear();
-			}
-			else if (argv[i][j] == ':') {
-			    param = temp;
-			    temp.clear();
-			}
-			else temp += argv[i][j];
-			++j;
-		    }
-		}
-	    }*/
             else if (!strcmp(argv[i],"-h") || !strcmp(argv[i],"--help")) {
                 help();
                 return 0;
@@ -1131,8 +1099,8 @@ void help () {
     std::cout << "--output [newick/nexus]           give tree format for output, nexus (nex or x" << endl;
     std::cout << "                                  for short), newick (new or w for short), or" << endl;
     std::cout << "                                  svg e.g. --output x. (default w). For svg" << endl; 
-    std::cout << "                                  extra graphical commands can be given as next" << endl;
-    std::cout << "                                  argument. Each command should be separated by" << endl;
+    std::cout << "                                  extra graphical commands can be given after a" << endl;
+    std::cout << "                                  colon (:). Each command should be separated by" << endl;
     std::cout << "                                  &, and commands and arguments should be" << endl;
     std::cout << "                                  separated by colon. Possible commands are:" << endl;
     std::cout << "                                  'width' set width of figure; 'height' set" << endl;
@@ -1144,8 +1112,8 @@ void help () {
     std::cout << "                                  tip labels given in parenthesis directly" << endl;
     std::cout << "                                  behind the color. 'width' and 'height' are" << endl;
     std::cout << "                                  mandatory if you want to set any other" << endl;
-    std::cout << "                                  parameter than tip color. E.g. --output svg " << endl;
-    std::cout << "                                  'width:300&height:400&tipcolor:red(taxon1," << endl;
+    std::cout << "                                  parameter than tip color. E.g. --output 'svg:" << endl;
+    std::cout << "                                  width:300&height:400&tipcolor:red(taxon1," << endl;
     std::cout << "                                  taxon2,taxon3)green(taxon4)'." << endl;
     std::cout << "--patristic_distances / -p [sep.] get the total patristic distance to all other" << endl;
     std::cout << "                                  taxa in the tree for each taxon, the separator" << endl;
@@ -1188,22 +1156,6 @@ void help () {
     std::cout << "--sum_branch_length / -s          get the sum of the branch lengths in the tree" << endl;
     std::cout << "                                  (including root branch if length for this is" << endl;
     std::cout << "                                  given)." << endl;
-    /*std::cout << "--svg / -g                        output tree as svg image. Extra graphical" << endl;
-    std::cout << "                                  commands can be given as next argument. Each" << endl;
-    std::cout << "                                  command should be separated by &, and commands" << endl;
-    std::cout << "                                  and arguments should be separated by colon." << endl;
-    std::cout << "                                  Possible commands are: 'width' set width of" << endl;
-    std::cout << "                                  figure; 'height' set hight of figure; 'offset'" << endl;
-    std::cout << "                                  set offset between tips and tip label;" << endl;
-    std::cout << "                                  'strokewidth' set the width of the branches;" << endl;
-    std::cout << "                                  'fontsize' sets the size of the font used;" << endl;
-    std::cout << "                                  'font' sets which font to use; and 'tipcolor'" << endl;
-    std::cout << "                                  sets the color of the tip labels given in" << endl;
-    std::cout << "                                  parenthesis directly behind the color. 'width'" << endl;
-    std::cout << "                                  and 'height' are mandatory if you want to set" << endl;
-    std::cout << "                                  any other parameter than tip color. E.g. --svg" << endl;
-    std::cout << "                                  'width:300&height:400&tipcolor:red(taxon1," << endl;
-    std::cout << "                                  taxon2,taxon3)green(taxon4)'." << endl;*/
     std::cout << "--verbose / -v                    get additional output." << endl;
     std::cout << endl;
 }
