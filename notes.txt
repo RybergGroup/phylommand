@@ -4,6 +4,10 @@ export DISPLAY=localhost:0.0
 
 compile svg viewer: -lX11 -lXau -lws2_32
 
+github:
+git remote add github https://github.com/mr-y/phylommand.git
+git push -u github master
+
 Put treesplitter in treebender - done
 Moved superstat to contree - done
 Make alignmentgroups independent of sqlite - done
@@ -59,4 +63,4 @@ Write manuscript
 Add ability to add node depths to treebender.
 Check possible bug with split trees
 Test likelihood calculations
-Compare rooting times against Newick Utilities
+Compare rooting times against Newick Utilities - done

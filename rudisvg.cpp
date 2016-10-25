@@ -142,8 +142,8 @@ int main (int argc, char *argv[]) {
     cerr << "Entering loop" << endl;
     #endif // DEBUG
     if (!quiet) {
-	cerr << "Zoom in and out with + and - key, move right and left with arrow keys (Swedish" << endl;
-	cerr << "keyboard)." << endl;
+	cerr << "Zoom in with the + or p key and out with the - or m key, move right and left" << endl;
+	cerr << "with arrow keys (Swedish keyboard)." << endl;
     }
     while(1) {
         XNextEvent(dis, &report);
@@ -157,32 +157,32 @@ int main (int argc, char *argv[]) {
                 if (XLookupKeysym(&report.xkey,0)==XK_space || XLookupKeysym(&report.xkey,0)==65307 || XLookupKeysym(&report.xkey,0)==113) { // space + esc + q?
                     break;
                 }
-		else if (XLookupKeysym(&report.xkey,0) == 65364) { // neråt
+		else if (XLookupKeysym(&report.xkey,0) == 65364) { // down
 		    y_setoff -= 10;
 		    XClearWindow(dis, win);
 		    display_drawing(dis, win, green_gc, figure,x_setoff,y_setoff,scale);
 		}
-		else if (XLookupKeysym(&report.xkey,0) == 65362) { // uppåt
+		else if (XLookupKeysym(&report.xkey,0) == 65362) { // up
 		    y_setoff += 10;
 		    XClearWindow(dis, win);
 		    display_drawing(dis, win, green_gc, figure,x_setoff,y_setoff,scale);
 		}
-		else if (XLookupKeysym(&report.xkey,0) == 65363) { // höger
+		else if (XLookupKeysym(&report.xkey,0) == 65363) { // right
 		    x_setoff -= 10;
 		    XClearWindow(dis, win);
 		    display_drawing(dis, win, green_gc, figure,x_setoff,y_setoff,scale);
 		}
-		else if (XLookupKeysym(&report.xkey,0) == 65361) { // vänster
+		else if (XLookupKeysym(&report.xkey,0) == 65361) { // left
 		    x_setoff += 10;
 		    XClearWindow(dis, win);
 		    display_drawing(dis, win, green_gc, figure,x_setoff,y_setoff,scale);
 		}
-		else if (XLookupKeysym(&report.xkey,0) == 45) { // +?
+		else if (XLookupKeysym(&report.xkey,0) == 43 || XLookupKeysym(&report.xkey,0) == 112) { // +? or p
 		    scale *= 1.1;
 		    XClearWindow(dis, win);
 		    display_drawing(dis, win, green_gc, figure,x_setoff,y_setoff,scale);
 		}
-		else if (XLookupKeysym(&report.xkey,0) == 47) { //-?
+		else if (XLookupKeysym(&report.xkey,0) == 45 || XLookupKeysym(&report.xkey,0) == 109) { //-? or m
 		    scale *= 0.9;
 		    XClearWindow(dis, win);
 		    display_drawing(dis, win, green_gc, figure,x_setoff,y_setoff,scale);
@@ -260,9 +260,11 @@ bool pars_svg(istream& input, drawing& fig){
 	    else if (!strcmp("text", object->name())) {
 	        int x = atoi(object->attribute("x").value());
 	        int y = atoi(object->attribute("y").value());
-		std::string text_string = object->child_value();
+		unsigned int font_size = atoi(object->attribute("font-size").value());
+		string font = object->attribute("font").value();
+		string text_string = object->child_value();
 		//std::cout << "Splunch: " << object->child_value() << std::endl;
-		fig.add_text(x,y,text_string);
+		fig.add_text(x,y,text_string,font,font_size);
 		//std::cout << "Added text string: " << text_string << std::endl;
 		++n_objects;
 	    }
@@ -274,7 +276,7 @@ bool pars_svg(istream& input, drawing& fig){
     return true;
 }
 
-void display_drawing(Display* dis, Window& win, GC& gc, drawing& fig, int x_setoff, int y_setoff, float scale) {
+void display_drawing(Display* dis, Window& win, GC& gc, drawing& fig, const int x_setoff, const int y_setoff, const float scale) {
     fig.init();
     drawing::line line;
     while (fig.more_lines()) {
@@ -294,51 +296,58 @@ void display_drawing(Display* dis, Window& win, GC& gc, drawing& fig, int x_seto
     drawing::texttest text;
     // Font test
     Font font(BadName);
-    unsigned int size = 10*scale;
-    bool increase(false);
-    bool end(false);
-    int Nfonts(0);
-    while (font == BadName || font == BadAlloc || !Nfonts) {
-	//if (font != BadName) XUnloadFont(dis,font);
-	stringstream fontname;
-	#ifdef DEBUG
-	cerr << font << ' ' << BadName << ' ' << BadAlloc << endl;
-	#endif //DEBUG
-	fontname << "*x" << size;
-	#ifdef DEBUG
-	cerr << fontname.str()  << endl;
-	#endif //DEBUG
-	//char** possible_fonts = XListFonts(dis, fontname.str().c_str(),5,&Nfonts);
-	XListFonts(dis, fontname.str().c_str(),5,&Nfonts);
-	#ifdef DEBUG
-        cerr << "N: " << Nfonts  << endl;
-        #endif //DEBUG
-	if (Nfonts)
-	    font = XLoadFont(dis, fontname.str().c_str());    
-	else {
-	    if (((size < 5 && !increase) || (size > 30 && increase)) && end) {
-		fontname << "*x*";
-		font = XLoadFont(dis, fontname.str().c_str());
-		break;
-	    }
-	    else if (size > 30 && increase) { --size; increase=false; end = true; }
-	    else if (size < 5 && !increase)  { ++size; increase=true; end = true; }
-	    else if (increase) ++size;
-	    else --size;
-	}
-    }
-    #ifdef DEBUG
-    cerr << "Final font: " << font << ' ' << BadName << endl;
-    #endif //DEBUG
-    #ifdef DEBUG
-    int FontSet = XSetFont(dis,gc,font);
-    cerr << FontSet << endl;
-    #else
-    XSetFont(dis,gc,font);
-    #endif //DEBUG
-    ///////////
+    unsigned int font_size(0);
+    unsigned int size(0);
     while (fig.more_texts()) {
         text = fig.get_text();
+	if (size == 0 || text.font_size != font_size) {
+	    font_size = text.font_size;
+	    if (font_size >0) size = font_size;
+	    else size = 10;
+	    size *= scale;
+	    bool increase(false);
+	    bool end(false);
+	    int Nfonts(0);
+	    while (font == BadName || font == BadAlloc || !Nfonts) {
+		//if (font != BadName) XUnloadFont(dis,font);
+		stringstream fontname;
+		#ifdef DEBUG
+		cerr << font << ' ' << BadName << ' ' << BadAlloc << endl;
+		#endif //DEBUG
+		fontname << "*x" << size;
+		#ifdef DEBUG
+		cerr << fontname.str()  << endl;
+		#endif //DEBUG
+		//char** possible_fonts = XListFonts(dis, fontname.str().c_str(),5,&Nfonts);
+		XListFonts(dis, fontname.str().c_str(),5,&Nfonts);
+		#ifdef DEBUG
+		cerr << "N: " << Nfonts  << endl;
+		#endif //DEBUG
+		if (Nfonts)
+		    font = XLoadFont(dis, fontname.str().c_str());    
+		else {
+		    if (((size < 5 && !increase) || (size > 30 && increase)) && end) {
+			fontname << "*x*";
+			font = XLoadFont(dis, fontname.str().c_str());
+			break;
+		    }
+		    else if (size > 30 && increase) { --size; increase=false; end = true; }
+		    else if (size < 5 && !increase)  { ++size; increase=true; end = true; }
+		    else if (increase) ++size;
+		    else --size;
+		}
+	    }
+	    #ifdef DEBUG
+	    cerr << "Final font: " << font << ' ' << BadName << endl;
+	    #endif //DEBUG
+	    #ifdef DEBUG
+	    int FontSet = XSetFont(dis,gc,font);
+	    cerr << FontSet << endl;
+	    #else
+	    XSetFont(dis,gc,font);
+    	    #endif //DEBUG
+	}
+    ///////////
 	XDrawString(dis, win, gc, (text.start.x-x_setoff)*scale, (text.start.y-y_setoff)*scale, text.characters.c_str(),text.characters.length());
     }
     XUnloadFont(dis,font);
@@ -346,8 +355,9 @@ void display_drawing(Display* dis, Window& win, GC& gc, drawing& fig, int x_seto
 
 void help() {
     cout << "Rudisvg 0.1.0 is a rudimentary svg viewer. It can read and draw lines," << endl;
-    cout << "rectangles, ellipsoids, and text. It only display in one color. Zoom in and out" << endl;
-    cout << "with + and - key, move right and left with arrow keys (Swedish keyboard)." << endl;
+    cout << "rectangles, ellipsoids, and text. It only display in one color. Zoom in with the" << endl;
+    cerr << "+ or p key and out with the - or m key, move right and left with arrow keys" << endl;
+    cout << "(Swedish keyboard)." << endl;
     cout << "(c) Martin Ryberg 2016." << endl << endl;
     cout << "Usage:" << endl << "rudisvg < file.svg" << endl << "rudisvg file.svg" << endl << endl;
     cout << "Arguments:" << endl;

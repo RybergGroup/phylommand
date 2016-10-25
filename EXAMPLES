@@ -1,16 +1,16 @@
 Here are some examples on how phylommand can be used. The examples assumes a
 basic knowledge in how to work on the command line, for example that > will pipe
-the output from stdout (the screen) to a file which is the standard way or
+the output from stdout (the screen) to a file which is the standard way of
 getting the output to a file in phylommand, e.g.:
 
-    treebender --svg tree_file.tre > tree_file.svg
+    treebender --output svg tree_file.tre > tree_file.svg
  
 Many cases also assume that you are working in a bash shell or similar.
 
 To make and view a neighbour joining tree based on a mafft alignment:
 
     mafft alignment_file.fst | pairalign -A -j -n -m | treeator -n | treebender \
-    --svg | rudisvg
+    --output svg | rudisvg
 
 To create monophyletic OTUs based on the branch lengths in a tree (c.f. virtual
 taxa sensu Öpick et al 20XX):
@@ -24,7 +24,17 @@ Get the parsimony score of all nearest neighbour interchange trees from:
 Get alignable groups based on MAD score (Smith et al. 2009, BMC Evol. Biol.
 9:37):
 
-    pairalign --alignment_groups alignment_file.fst
+    pairalign --group alignment_groups alignment_file_with_taxon_string.fst
+
+The MAD score does not care about gaps, this means that if the pairwise
+alignments are over aligned (inserting more gaps than there should be to match
+the same type of bases to each other), alignment_groups may over estimate what
+can be aligned. Sometimes a multiple sequence alignment may be better in this
+respect, and programs like, for example, muscle and mafft may even be faster
+than pairalign in aligning. So it is possible to do something like:
+
+    mafft alignment_file_with_taxon_string.fst | pairalign --group \
+    alignment_groups -A
 
 Get conflict between trees that have more than given number of support in HTML
 format:

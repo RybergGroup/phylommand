@@ -30,6 +30,8 @@ class drawing {
 	struct texttest {
             coordinat start;
 	    string characters;
+	    unsigned int font_size;
+	    string font;
 	};
         void init() {
 	    line_it = lines.begin();
@@ -95,10 +97,12 @@ class drawing {
 	    add.end_angle = end_angle;
 	    ellipses.push_back(add);
 	};
-	void add_text(const int x, const int y, string characters){
+	void add_text(const int x, const int y, const string& characters, const string& font, const unsigned int font_size) {
 	    texttest add;
 	    add.start.x = x;
 	    add.start.y = y;
+	    add.font = font;
+	    add.font_size = font_size;
             add.characters = characters;
             texts.push_back(add);
 	};
