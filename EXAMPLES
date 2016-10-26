@@ -3,7 +3,7 @@ basic knowledge in how to work on the command line, for example that > will pipe
 the output from stdout (the screen) to a file which is the standard way of
 getting the output to a file in phylommand, e.g.:
 
-    treebender --output svg tree_file.tre > tree_file.svg
+    treebender --output svg tree_file.tree > tree_file.svg
  
 Many cases also assume that you are working in a bash shell or similar.
 
@@ -15,11 +15,11 @@ To make and view a neighbour joining tree based on a mafft alignment:
 To create monophyletic OTUs based on the branch lengths in a tree (c.f. virtual
 taxa sensu Öpick et al 20XX):
 
-    treebender --cluster branch_length:0.03 tree_file.tre 
+    treebender --cluster branch_length:0.03 tree_file.tree 
 
 Get the parsimony score of all nearest neighbour interchange trees from:
 
-    treebender --nni all tree_file.tree | treeator -f alignment.fst -p
+    treebender --nni all tree_file.tree | treeator -f alignment_file.fst -p
 
 Get alignable groups based on MAD score (Smith et al. 2009, BMC Evol. Biol.
 9:37):
@@ -36,14 +36,16 @@ than pairalign in aligning. So it is possible to do something like:
     mafft alignment_file_with_taxon_string.fst | pairalign --group \
     alignment_groups -A
 
-Get conflict between trees that have more than given number of support in HTML
-format:
+Delete old support values, and draw new one on a topology:
 
-    contree -c 70 -f tree_file.trees --html
+    treebender --clear_internal_node_labels tree_file.tree | contree -d \
+    tree_file.trees.nex -s
 
-Draw bootstrap supports on topology in tree_file.tree:
+Get conflict with supported above 70 based on an interval of 100 trees, compared
+the support in a given tree, output in HTML format:
 
-    contree -a -d tree_file.trees tree_file.tree
+    treebender --interval 533-632 tree_file.trees.nex | contree -d - -a \
+    tree_file.nex | contree -c 70 -d tree_file.tree --html
 
 Get the maximum clade credibility tree in a set of trees, removing burn-in (5000
 trees), and with help of awk:
@@ -54,8 +56,7 @@ trees), and with help of awk:
 The first value is which tree after burn-in, and the second the log sum of
 support values. The last printed values should be for the maximum clade
 credibility (MCC) tree. The second value is not the clade credibility since we
-do not divide the support by the number of trees, and we do not compare each
-tree with itself (which should add 1 to all nodes, for all trees).
+do not divide the support by the number of trees.
 
 If we want to change the names of many or all tips in a tree it may be convenient 
 to use a file with the name changes. We can get a nice start for such a file
@@ -70,7 +71,7 @@ text editor you may want to use other line break than \n), and then run:
     treebender -c file:name_changes.txt tree_file.tree
 
 Do not forget to add new name or delete the row if you do not want to change that
-name, otherwise these tip name will be deleted. If you like the output in svg
+name, otherwise these tip names will be deleted. If you like the output in svg
 format just add --output svg. Start files for the other arguments that take
 taxa as input can be gotten similarly:
 
@@ -79,10 +80,25 @@ taxa as input can be gotten similarly:
 To be able to pipe all information for the --group analyses it is possible to
 give the taxonomy in the sequence names. However, pairalign does not output the
 taxonomy as part of the sequence name. This may be irritating sometimes when you
-make a pairwise alignment to use for a latter --group analysis. To get the
+make a pairwise alignment to use for a later --group analysis. To get the
 taxonomy from the first fasta file into a separate file that can be used for the
 analysis you can do:
 
-    grep '>' sequences.fst | sed 's/^>//' | awk \
+    grep '>' alignment_file_with_taxon_string.fst | sed 's/^>//' | awk \
     'BEGIN { FS="|" } {print $2 "|" $1}' > taxonomy_file.txt
+
+If you want to summarize the rates in a MCC tree generated in with the BEAST
+package you can do:
+
+    treebender --internal_node_stats 1:rate_median tree_file.nex
+
+It is also possible to do:
+
+    treebender --internal_node_stats 1:rate tree_file.trees.nex
+
+if you want to look at the rates over all trees in the tree distribution
+produced by BEAST. This does however quickly become incomprehensible, so you
+will probably need a script to do something meaningful with the output. Tracer
+is probably also an better alternative, in most cases.
+
 
