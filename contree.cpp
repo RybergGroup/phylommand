@@ -440,7 +440,7 @@ void help () {
     std::cout << "--decisiveness / -D [genes]     calculates proportion of random trees for which" << endl;
     std::cout << "                                given gene sampling is decisive and the mean" << endl;
     std::cout << "                                proportion of branches that are distinguished." << endl;
-    std::cout << "                                (Sandersson et al. 2010, BMC Evol. Biol. 19:" << endl;
+    std::cout << "                                (Sanderson et al. 2010, BMC Evol. Biol. 19:" << endl;
     std::cout << "                                155). The genes for each taxon are given as a" << endl;
     std::cout << "                                comma (,) separated string, the genes for" << endl;
     std::cout << "                                different taxon are separated by a bar (|). E.g" << endl;
