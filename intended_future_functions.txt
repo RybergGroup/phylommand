@@ -1,0 +1,4 @@
+Maximum likelihood estimates of more than one character
+Likelihood models implementing stationary character frequencies
+Customization of of cost matrix for pairwise alignment
+Alignment for any alphabet
