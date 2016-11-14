@@ -4,10 +4,11 @@ execute
 
     make
 
-on the command line. To implement multi threading give PTHREADS=YES as extra
-argument. To implement optimization of likelihood score NLOPT needs to be
-installed (http://ab-initio.mit.edu/wiki/index.php/NLopt) and NLOPT=YES given as
-an extra argument to make. E.g.:
+on the command line. To to compile with the option to use multi threading in
+pairalign give PTHREADS=YES as extra argument (use the -T switch to pairalign to
+give the number of threads). To implement optimization of likelihood score NLOPT
+needs to be installed (http://ab-initio.mit.edu/wiki/index.php/NLopt) and
+NLOPT=YES given as an extra argument to make. E.g.:
 
     make PTHREADS=YES NLOPT=YES
 
