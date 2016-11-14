@@ -1,10 +1,29 @@
+/********************************************************************
+Copyright (C) 2016 Martin Ryberg
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+contact: martin.ryberg@ebc.uu.se
+*********************************************************************/
+
 #ifndef PHYLOMMAND_CONSTANTS
 #define PHYLOMMAND_CONSTANTS
 #include <map>
 #include <bitset>
 
 static const unsigned int SIZE = 24;
-static const char VERSION[] = "0.2.8";
+static const char VERSION[] = "0.9";
 static const char YEAR[] = "2016";
 
 namespace nexus_command {

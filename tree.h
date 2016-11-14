@@ -1,5 +1,5 @@
 /********************************************************************
-Copyright (C) 2014 Martin Ryberg
+Copyright (C) 2016 Martin Ryberg
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 contact: martin.ryberg@ebc.uu.se
 *********************************************************************/
+
 #ifndef TREEHEADER
 #define TREEHEADER
 
