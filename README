@@ -4,7 +4,7 @@ execute
 
     make
 
-on the command line. To to compile with the option to use multi threading in
+on the command line. To compile with the option to use multi threading in
 pairalign give PTHREADS=YES as extra argument (use the -T switch to pairalign to
 give the number of threads). To implement optimization of likelihood score NLOPT
 needs to be installed (http://ab-initio.mit.edu/wiki/index.php/NLopt) and
@@ -15,7 +15,7 @@ NLOPT=YES given as an extra argument to make. E.g.:
 If you are compiling on windows using MinGW give WIN=YES as extra argument. On
 OS X you may have to make sure that the nlopt library is installed in a folder
 that the linker can find, which is not always the case (this also go for x11
-below).If you want to recompile phylommand, first remove all object files,
+below). If you want to recompile phylommand, first remove all object files,
 
 
 rm *.o
@@ -28,16 +28,17 @@ and then compile again as above.
   
 Phylommand includes:
     treebender - for manipulating and getting basic statistics from trees.
-    treeator - for evaluating trees to calculate parsimony, or likelihood for
-        trees, or construct trees using Neighbour joining or stepwise addition.
+    treeator - to calculate parsimony or likelihood scores for trees or to
+        construct trees using Neighbour joining or stepwise addition.
     contree - to compare trees and estimate decisiveness.
-    pairalign - make pairwise comparisons between sequences, and can also do
-        pairwise alignments.
+    pairalign - make pairwise comparisons between sequences, and do pairwise
+        alignments.
 
-If RUDISVG=YES is given as an extra argument ito make a rudimentary svg viewer
+If RUDISVG=YES is given as an extra argument to make a rudimentary svg viewer
 will also be compiled. This viewer can be used to view svg representations of
 trees as outputted from treebender (except color aspects). It depends on there
-being a x11 server to accept the output (standard on linux and OS X).
+being a x11 server to accept the output (standard on linux and OS X). It also
+require the x11 developental library to compile.
 
 All programs accept input from standard in, or a file. This means that input can
 be piped from one (or another) program to the other. The program that deals with
@@ -69,7 +70,8 @@ mv treeator /usr/local/bin/
 mv pairalign /usr/local/bin/
 mv contree /usr/local/bin/
 
-, or put the folder with the programs into your PATH.
+on most UNIX like systems (e.g. LINUX and OS X), or put the folder with the
+programs into your PATH.
 
 Misc.:
 Phylommand work on fully resolved (bifurcating) trees and will arbitrarily
@@ -79,7 +81,7 @@ or queering monophyletic groups.
 Phylommand does not handle : ; , ( ) [ ] and white space in tip names very well.
 So avoid these characters, even if the names are surrounded by ' or ". It handles
 white space better in nexus format than in newick format, using the translate
-command.
+NEXUS command.
 
 Treeator uses the NLOPT LN_NELDERMEAD algorithm for optimization (Nelder JA &
 Mead R. 1965. A simplex method for function minimization. The Computer J. 7:308
@@ -104,22 +106,26 @@ then need to set the DISPLAY parameter in your bash window by:
 
     export DISPLAY=:0
 
+This option is not officially supported by Windows and may not work on all
+machines.
+
 The MAD score calculated in pairalign is only approximate, the precision needs
 to be set at compile time. To change the precision change the value of
-precision at line 14 in align_group.h (default 10000 i.e. 0.001). If clustering
+precision at line 33 in align_group.h (default 10000 i.e. 0.001). If clustering
 the calculation of MAD only include pairs that have a lower similarity than the
 cut off. If all your sequences are clustered together, the alignment group will
 be empty (this is also the case if no taxonomy was read).
 
 The calculation of decisiveness is based on randomly generated topologies. And is
-thus only an estimation.
+thus only an estimation. To increase the precision increase the number of
+iterations.
 
 Empty trees are printed as -1;. You may get this, for example, if you do nni on
 branch 1, and the sister lineage only have one tip (i.e. is a terminal branch).
 
-If a treebender gets a tip name that it does not recognize it usually just
-ignore it. So if a taxon to rcognize the most recent common ancestor is misspelt
-it is just ignored (show must go on).
+If treebender gets a tip name that it does not recognize it usually just ignore
+it. So if a taxon to recognize the most recent common ancestor is misspelt it is
+just ignored (show must go on).
 
 When drawing printing trees in SVG (and HTML) and there is no branch length, all
 branches will be printed with the length 0. To change this you can use the
