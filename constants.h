@@ -23,7 +23,7 @@ contact: martin.ryberg@ebc.uu.se
 #include <bitset>
 
 static const unsigned int SIZE = 24;
-static const char VERSION[] = "0.9";
+static const char VERSION[] = "1.0";
 static const char YEAR[] = "2016";
 
 namespace nexus_command {
