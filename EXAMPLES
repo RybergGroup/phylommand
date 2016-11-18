@@ -101,4 +101,22 @@ produced by BEAST. This does however quickly become incomprehensible, so you
 will probably need a script to do something meaningful with the output. Tracer
 is probably also an better alternative, in most cases.
 
+To reconstruct the ancestral state of the first trait in a DNA data matrix you
+can do:
+
+    treeator -a dna -t tree_file.tree --get_state_at_nodes \
+    -l alignment_file.fst
+
+If you want to make it a one rate model you can do:
+
+    treeator -a dna -t tree_file.tree --get_state_at_nodes -l \
+    -m 0,0,0,0,0,0,0,0,0,0,0,0 alignment_file.fst
+
+or as an symmetric model:
+
+    treeator -a dna -t tree_file.tree --get_state_at_nodes -l \
+    -m 0,1,2,0,3,4,1,3,5,2,4,5 alignment_file.fst
+
+Notice that these are not time reversible models. You may change the alphabet
+given to -a if you are working with other type of characters.
 
