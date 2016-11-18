@@ -1,6 +1,7 @@
-Phylommand is a software package for working with phylogenies. It can be compiled
-by gcc and g++ using make. Just go into the folder where the source code (src) is
-and execute
+Phylommand is a software package for working with phylogenies. Further
+documentation can be found at https://github.com/mr-y/phylommand/wiki. It can be
+compiled by gcc and g++ using make. Just go into the folder where the source
+code (src) is and execute
 
     make
 
