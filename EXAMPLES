@@ -13,7 +13,7 @@ To make and view a neighbour joining tree based on a mafft alignment:
     --output svg | rudisvg
 
 To create monophyletic OTUs based on the branch lengths in a tree (c.f. virtual
-taxa sensu Öpick et al 20XX):
+taxa sensu Öpick et al 2009):
 
     treebender --cluster branch_length:0.03 tree_file.tree 
 
