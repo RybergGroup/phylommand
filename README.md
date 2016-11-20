@@ -9,8 +9,8 @@ Phylommand is a commandline toolkit designed to be easily integrated in workflow
   - [Contree](#contree)
   - [Pairalign](#pairalign)
   - [Rudisvg](#rudisvg)
-- [Download/Install](#download-install)
-- [Compile/Build](#compile-build)
+- [Download/Install](#downloadinstall)
+- [Compile/Build](#compilebuild)
 - [Examples](#examples)
 
 
@@ -66,7 +66,6 @@ on most UNIX like systems (e.g. LINUX and OS X), or put the folder with the prog
 
 
 # Examples
-
 These examples are based on the EXAMPLE file distributed with phylommand. The examples assumes a
 basic knowledge in how to work on the command line, for example that > will pipe
 the output from stdout (the screen) to a file which is the standard way of
