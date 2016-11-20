@@ -9,10 +9,21 @@ Phylommand is a commandline toolkit designed to be easily integrated in workflow
   - [Contree](#contree)
   - [Pairalign](#pairalign)
   - [Rudisvg](#rudisvg)
-- [Download/Install](#downloadinstall)
+- [Download](#download)
 - [Compile/Build](#compilebuild)
 - [Examples](#examples)
+- [Miscellaneous](#miscellaneous)
 
+
+# The programs
+All programs accept input from standard in, or a file. This means that input can
+be piped from one (or another) program to the other. The program that deals with
+trees accept trees in newick or nexus format; treeator also accept character
+data matrices in fasta, sequential phylip, and sequential nexus format, and space
+separated left triangular distance matrices; for decisiveness estimates contree
+require a text file with the genes for each taxon on a separate row. Output is
+printed to stdout (the screen) and can be piped to a file using '>' in most
+command line environments.
 
 ## Treebender
 Is the major program in phylommand to manipulate and get statistics from individual trees. You may get the branch length, get the sum of the branch lengths, set all branch lengths to a given value, multiply branch lengths in whole tree, a defined clade, or after a certain distance from the root, set short branches to zero, get depth of tree, distance to the root of all tips, get patristic distances, get the number of nodes with more than given support, get the log of the product of the support values (if support is probabilities = clade credibility), get statistics on internal node values (including values given in treeannotator/figtree format), clear internal nodes, get the numbers of the branches (used by some other functions), get the number of tips, get the tip names, change tip names, drop tips from the tree, test if a group is monophyletic, root on midpoint or using outgroup, get an outgroup that maximize the proportion of given tips in the outgroup compared to the tips that are not in the given set (or root on this group directly), ladderize tree, do nni branch swapping, generate random topologies, cluster tips based on tree,  split trees, get a subset of trees from a file, get matrix representation of a (set of) tree(s), and convert tree format between newick and nexus. 
@@ -39,12 +50,13 @@ Rudisvg is a rudimentary svg viewer that can be used to view trees output as svg
 
 <img src="https://github.com/mr-y/phylommand/wiki/rudisvg_tree.png" width="300" alt="Tree displayed by rudisvg">
 
-# Download/Install
-There are pre-compiled packages for the following OS:
+# Download
+There are pre-compiled binaries for the following OS:
 - [Windows](https://github.com/mr-y/phylommand/tree/master/bin)
 - [OsX](https://github.com/mr-y/phylommand/tree/master/bin)
+(For Linux and if you have problems with the pre-compiled files, see [Compile/Build](#compilebuild) below)
 
-To be able to execute the phylommand programs from any folder, move the programs
+To be able to execute the phylommand programs from any folder, download and move the programs 
 to a folder in your PATH, e.g.
 
 ```bash
@@ -53,16 +65,34 @@ sudo mv treeator /usr/local/bin/
 sudo mv pairalign /usr/local/bin/
 sudo mv contree /usr/local/bin/
 ```
-or 
-```bash
-su
-mv treebender /usr/local/bin/
-mv treeator /usr/local/bin/
-mv pairalign /usr/local/bin/
-mv contree /usr/local/bin/
-```
 
 on most UNIX like systems (e.g. LINUX and OS X), or put the folder with the programs into your PATH.
+
+# Compile/Build
+Phylommand is written in C++ and can be compiled using make and the gnu compilers. The basic version with the four core programs can be compiled executing make on the command line in the folder with the phylommand code (the downloaded files):
+
+    make
+
+Phylommand has been successfully compiled on linux (Ubuntu) and MacOS X, and also on Windows using MinGW, but then with the WIN=YES option:
+
+    make WIN=YES
+
+On Bash on Ubuntu on Windows (available for Windows 10 anniversary update), phylommand has been installed just as on linux (i.e. without the WIN=YES option).
+There are three major additional options for phylommand.
+
+PTHREADS=YES enables the use of multi-threading when working with pairwise alignments (not compatible with WIN=YES).
+
+NLOPT=YES require that the library [NLopt](http://ab-initio.mit.edu/wiki/index.php/NLopt) is installed. On Ubuntu 16.04 this is available as a package an can be installed from on the command line by:
+
+     sudo apt-get install libnlopt-dev
+
+This option is needed to optimize model parameters using Maximum Likelihood, if you do not want to do that using phylommand you do not need this option.
+
+RUDISVG=YES will compile a rudimentary SVG viewer (rudisvg) as well. This option require the x11 developmental libraries. If rudisvg is installed on bash on Ubuntu on Windows you will need a X server as well, for example [Xming](https://sourceforge.net/projects/xming/), and set the DISPLAY variable:
+
+    export DISPLAY=localhost:0.0
+
+There is no need to do this on OS X or ordinary linux distributions (like Ubuntu).
 
 
 # Examples
@@ -186,6 +216,65 @@ or as an symmetric model:
 
 Notice that these are not time reversible models. You may change the alphabet
 given to -a if you are working with other type of characters.
+
+#Miscellaneous
+Phylommand work on fully resolved (bifurcating) trees and will arbitrarily
+resolve any polytomies. This needs to be especially considered when defining
+or queering monophyletic groups.
+
+Phylommand does not handle : ; , ( ) [ ] and white space in tip names very well.
+So avoid these characters, even if the names are surrounded by ' or ". It handles
+white space better in nexus format than in newick format, using the translate
+NEXUS command.
+
+Treeator uses the NLOPT LN_NELDERMEAD algorithm for optimization (Nelder JA &
+Mead R. 1965. A simplex method for function minimization. The Computer J. 7:308
+-313).
+
+Treeator only do likelihood on one character at the time. If given a multi
+character matrix it will calculate the likelihood of the first character. This
+may change in future editions, so do not count on this behaviour. 
+
+Treeator calculate likelihoods even if there are negative branches in the tree.
+So look out for warnings about negative branches.
+
+The neighbour-joining implementation will produce the optimal solution, even if
+this include negative branches.
+
+When colon (:) is used to separate options in extra arguments, back slash (\) can
+be used as an escape character or to help denote newline (\n/\r) and tab (\t).
+The special meaning of the back slash can be escaped by a back slash.
+
+It is possible to run rudisvg on ubuntu on windows using the Xming X11 server. You
+then need to set the DISPLAY parameter in your bash window by:
+
+    export DISPLAY=:0
+
+This option is not officially supported by Windows and may not work on all
+machines.
+
+The MAD score calculated in pairalign is only approximate, the precision needs
+to be set at compile time. To change the precision change the value of
+precision at line 33 in align_group.h (default 10000 i.e. 0.001). If clustering
+the calculation of MAD only include pairs that have a lower similarity than the
+cut off. If all your sequences are clustered together, the alignment group will
+be empty (this is also the case if no taxonomy was read).
+
+The calculation of decisiveness is based on randomly generated topologies. And is
+thus only an estimation. To increase the precision increase the number of
+iterations.
+
+Empty trees are printed as -1;. You may get this, for example, if you do nni on
+branch 1, and the sister lineage only have one tip (i.e. is a terminal branch).
+
+If treebender gets a tip name that it does not recognize it usually just ignore
+it. So if a taxon to recognize the most recent common ancestor is misspelt it is
+just ignored (show must go on).
+
+When drawing printing trees in SVG (and HTML) and there is no branch length, all
+branches will be printed with the length 0. To change this you can use the
+--set_branch_lengths option in treebender, for example setting all branch lengths
+to 1.
 
 
 
