@@ -9,8 +9,8 @@ Phylommand is a commandline toolkit designed to be easily integrated in workflow
   - [Contree](#contree)
   - [Pairalign](#pairalign)
   - [Rudisvg](#rudisvg)
-- [Download](#download/install)
-- [Compile/Build](#compile/build)
+- [Download/Install](#download-install)
+- [Compile/Build](#compile-build)
 - [Examples](#examples)
 
 
