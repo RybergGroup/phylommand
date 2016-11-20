@@ -22,11 +22,17 @@ Is the major program in phylommand to manipulate and get statistics from individ
 ## Treeator
 Treeator is the main program to construct and evaluate trees in phylommand. It can construct neighbor-joining trees from distance matrices as produced by pairalign (see below). It can also calculate the parsimony score and do parsimony ancestral state reconstruction for a tree and datamatrix, as well as do parsimony stepwise addition to construct a tree. In addition it is possible to calculate likelihood scores and get the normalized likelihood for each trait at each internal node for one character and a given model, parameters, and tree. If compiled with NLOPT (see [installation instructions](Phylommand installation)), it is possible to optimize all or selected parameters of the substitution model. Treeator can read fasta, and sequential nexus and phylip formats but also require the alphabet for the character traits. The DNA, protein, and binary (0 1 -) alphabets are hardcoded into treeator, but other alphabets need to be given in a file (look in the example_files for an example of the DNA alphabet).
  
+[Complete command line reference for Treeator in Wiki](https://github.com/mr-y/phylommand/wiki/treeator)
+ 
 ## Contree
 Contree mainly compares trees, but it can also estimate decisiveness ([Sanderson et al. 2010](http://bmcevolbiol.biomedcentral.com/articles/10.1186/1471-2148-10-155). It is possible to compare all trees in a file against each other, or compare one set of trees against another. Topologies can be compared to calculate support values, conflicts between splits with more than given support can be determined, tips not present in the other tree can be identified, and [Robinson-Foulds metric](https://en.wikipedia.org/wiki/Robinson%E2%80%93Foulds_metric) can be calculated. 
 
+[Complete command line reference for Contree in Wiki](https://github.com/mr-y/phylommand/wiki/contree)
+
 ## Pairalign
 Pairalign calculates statistics, and performs pairwise alignments from DNA sequences. It can calculate the proportion different sites (or similarity) and Jukes-Cantor distance, and the difference between the two. And it can output these sequential or as a matrix. It can calculate approximate MAD scores ([Smith et al. 2009](http://bmcevolbiol.biomedcentral.com/articles/10.1186/1471-2148-9-37)) to determine at which taxonomic level multiple sequences can be "easily" aligned, and perform clustering based on sequence distance.
+
+[Complete command line reference for Pairalign in Wiki](https://github.com/mr-y/phylommand/wiki/pairalign)
 
 ## Rudisvg
 Rudisvg is a rudimentary svg viewer that can be used to view trees output as svg by treebender (except for colors and different fonts). It is not meant to be a complete svg viewer but only a way to get a quick look at a tree.You should be able to move the tree around using the arrow keys, and zoom in and out with + and -.
