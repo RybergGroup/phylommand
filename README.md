@@ -25,6 +25,8 @@ require a text file with the genes for each taxon on a separate row. Output is
 printed to stdout (the screen) and can be piped to a file using '>' in most
 command line environments.
 
+The programs can be [downloaded](bin) as binaries for Windows (basic version) or OsX (with rudisvg and multithread) or [compiled](#compilebuild) for other operating systems and/or other versions of the programs.
+
 ## Treebender
 Is the major program in phylommand to manipulate and get statistics from individual trees. You may get the branch length, get the sum of the branch lengths, set all branch lengths to a given value, multiply branch lengths in whole tree, a defined clade, or after a certain distance from the root, set short branches to zero, get depth of tree, distance to the root of all tips, get patristic distances, get the number of nodes with more than given support, get the log of the product of the support values (if support is probabilities = clade credibility), get statistics on internal node values (including values given in treeannotator/figtree format), clear internal nodes, get the numbers of the branches (used by some other functions), get the number of tips, get the tip names, change tip names, drop tips from the tree, test if a group is monophyletic, root on midpoint or using outgroup, get an outgroup that maximize the proportion of given tips in the outgroup compared to the tips that are not in the given set (or root on this group directly), ladderize tree, do nni branch swapping, generate random topologies, cluster tips based on tree,  split trees, get a subset of trees from a file, get matrix representation of a (set of) tree(s), and convert tree format between newick and nexus. 
 
