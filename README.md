@@ -54,6 +54,7 @@ Rudisvg is a rudimentary svg viewer that can be used to view trees output as svg
 There are pre-compiled binaries for the following OS:
 - [Windows](https://github.com/mr-y/phylommand/tree/master/bin)
 - [OsX](https://github.com/mr-y/phylommand/tree/master/bin)
+
 (For Linux and if you have problems with the pre-compiled files, see [Compile/Build](#compilebuild) below)
 
 To be able to execute the phylommand programs from any folder, download and move the programs 
