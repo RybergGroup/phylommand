@@ -61,16 +61,20 @@ To be able to execute the phylommand programs from any folder, download and move
 to a folder in your PATH, e.g.
 
 ```bash
+# make sure dir is there
+sudo mkdir /usr/local/bin
+
 sudo mv treebender /usr/local/bin/
 sudo mv treeator /usr/local/bin/
 sudo mv pairalign /usr/local/bin/
 sudo mv contree /usr/local/bin/
 ```
+**Note:** You might need to install XQuarts(https://www.xquartz.org/) on some osX distributions for rudisvg to work.
 
 on most UNIX like systems (e.g. LINUX and OS X), or put the folder with the programs into your PATH.
 
 # Compile/Build
-Phylommand is written in C++ and can be compiled using make and the gnu compilers. The basic version with the four core programs can be compiled executing make on the command line in the folder with the phylommand code (the downloaded files):
+Phylommand is written in C++ and can be compiled using make and the gnu compilers. The basic version with the four core programs can be compiled executing make on the command line in the folder with the phylommand code (you get the files either by cloning the github repo or downloading it as a zip-file):
 
     make
 
@@ -97,7 +101,7 @@ There is no need to do this on OS X or ordinary linux distributions (like Ubuntu
 
 
 # Examples
-These examples are based on the EXAMPLE file distributed with phylommand. The examples assumes a
+These examples are based on the [example_files/](example_files/) distributed with phylommand. The examples assumes a
 basic knowledge in how to work on the command line, for example that > will pipe
 the output from stdout (the screen) to a file which is the standard way of
 getting the output to a file in phylommand, e.g.:
