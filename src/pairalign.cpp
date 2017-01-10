@@ -235,33 +235,6 @@ int main (int argc, char *argv[]) {
 		#endif //DEBUG
 	    }
 	}
-	/// From alignment_groups
-	/*else if ( !strcmp(argv[i],"-c") || !strcmp(argv[i],"--cut_off") ) {
-	    ++i;
-	    if (i < argc && argv[i][0] != '-') { 
-		cut_off = argv[i];
-	    }
-	    else {
-	       	std::cerr << "--cut_off or -c must be followed by a number or a comma separated string. Quitting quietly." << endl;
-		return 0; 
-	    }
-	}
-	else if ( !strcmp(argv[i],"-m") || !strcmp(argv[i],"--min_length") ) {
-	    ++i;
-	    if (i < argc && argv[i][0] != '-') {
-	     	min_length = atoi(argv[i]);
-	    }
-	    else {
-	       	std::cerr << "--min_length or -m must be followed by a integer value, e.g. -m 100. Quitting quietly." << endl;
-		return 0;
-	    }
-	}
-	else if ( !strcmp(argv[i],"-P") || !strcmp(argv[i],"--previous_clusters") ) {
-           only_lead = 1;
-	}
-	else if ( !strcmp(argv[i],"-O") || !strcmp(argv[i],"--no_cluster") ) {
-	    perform_clustering = false;
-	}*/
 	#ifdef DATABASE
 	else if ( !strcmp(argv[i],"-D") || !strcmp(argv[i],"--db_type") ) {
 	    if (i+1 < argc && argv[i+1][0] != '-') {
@@ -278,7 +251,6 @@ int main (int argc, char *argv[]) {
 	    }
 	}
 	#endif //DATABASE
-	////////////////
 	else if ( !strcmp(argv[i],"-h") || !strcmp(argv[i],"--help") ) {
 	    help();
 	    return 0;
@@ -345,18 +317,6 @@ void help() {
     std::cout << "Arguments:" << endl;
     std::cout << "--aligned / -A                  input file is already aligned." << endl;
     std::cout << "--alignments / -a               output aligned sequences pairwise." << endl;
-////////////////////////////
-    /*std::cout << "--cut_off / -c [value/s]        sets the cut off value in pairwise similarity" << endl;
-    std::cout << "                                for clustering of each gene. Should be comma" << endl;
-    std::cout << "                                separated string with gene name first and value" << endl;
-    std::cout << "                                second. If all genes should have same cut off" << endl;
-    std::cout << "                                'all' could be given as gene. E.g. -c all,0.99" << endl;
-    std::cout << "                                or ITS,0.97,LSU,0.99." << endl;
-    #ifdef DATABASE
-    std::cout << "--db_type / -D [sqlite/fasta]   sets if the database is in sqlite or fasta" << endl;
-    std::cout << "                                format." << endl;
-    #endif // DATABASE*/
-/////////////////////////////////
     std::cout << "--difference / -i               output difference between the Jukes-Cantor (JC)" << endl;
     std::cout << "                                distance and proportion different sites." << endl;
     std::cout << "--distances / -d                output proportion different sites, JC distance," << endl;
@@ -428,19 +388,9 @@ void help() {
     std::cout << "--jc_distance / -j              output Jukes-Cantor (JC) distance." << endl;
     std::cout << "--matrix / -m                   output in the form of a space separated" << endl;
     std::cout << "                                left-upper triangular matrix." << endl;
-    //std::cout << "--min_length / -m [value]       sets the minimum length of sequences to consider"<< endl;
-    //std::cout << "                                for clustering, e.g. -m 100." << endl;
     std::cout << "--names / -n                    output sequence names (if outputting alignments" << endl;
     std::cout << "                                then in fasta format)." << endl;
-    //std::cout << "--no_cluster / -O               turn clustering off when running" << endl;
-    //std::cout << "                                --alignment_groups. Only calculating alignment" << endl;
-    //std::cout << "                                groups." << endl;
-    //#ifdef DATABASE
-    //std::cout << "--previous_clusters / -P        only consider sequences with cluster marked as" << endl;
-    //std::cout << "                                'lead' for further clustering." << endl;
-    //#endif // DATABASE
     std::cout << "--proportion_difference / -p    output proportion sites that are different." << endl;
-//    std::cout << "--quiet / -q                    suppress additional output regarding the run of the program." << endl;
     std::cout << "--similarity / -s               output similarity between sequences (1-proportion" << endl;
     std::cout << "                                different)." << endl;
     #ifdef PTHREAD
@@ -505,7 +455,7 @@ void cluster_each_table ( const string& file, const char* databasetype, const st
     for (vector<string>::const_iterator table = tables.begin(); table != tables.end(); ++table) {
 	if (!table->compare("gb_data") || !table->compare("alignments") || !table->compare("alignment_groups")) continue;
 	float present_cut_off=0.0;
-	if (output == 'B' || output == 'C') { //perform_clustering) {
+	if (output == 'B' || output == 'C') { 
 	    int length = cut_off.length();
 	    string gene;
 	    int i(0);
@@ -536,10 +486,6 @@ void cluster_each_table ( const string& file, const char* databasetype, const st
 	}
 	if (!quiet) std::cerr << "Checking " << *table << endl;
 	cluster(database, *table, present_cut_off, min_length, only_lead, aligned, output, output_names, matrix, quiet);
-	//#ifdef DEBUG
-	//cerr << "Output: " << output << " | " << "Database type: " << databasetype << endl;
-	//database.print_clusters(cerr);
-	//#endif //DEBUG
 	if ((output == 'B' || output == 'C') && (!strcmp(databasetype,"fasta") || !strcmp(databasetype,"pairfa"))) {
 	    cout << "### Clusters " << *table << ", cut-off: " << present_cut_off << " ###" << endl;
 	    database.print_clusters(cout);
@@ -549,7 +495,7 @@ void cluster_each_table ( const string& file, const char* databasetype, const st
 
 void cluster( seqdatabase& db, const string table, const float cut_off, const int min_length, const bool only_lead, const bool aligned, const char output, const bool output_names, const bool matrix, const bool quiet ) {
     #ifdef DEBUG
-    cerr << "Starting my buisness" << endl;
+    cerr << "Starting my buisness for " << table << endl;
     #endif //DEBUG
 
     #ifdef PTHREAD
@@ -558,20 +504,14 @@ void cluster( seqdatabase& db, const string table, const float cut_off, const in
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
     void *status;
-    //string sequence1;
-    //string accno1;
-    //string cluster1;
     unsigned int next_thread=0;
     bool activated[n_threads];
     for (unsigned int i=0; i < n_threads; ++i) activated[i] = false;
     print_queue output_queue;
-    //#else /* PTHREAD */
-    //sequence_package two_sequences;
     #endif /* PTHREAD */
     vector<sequence_package> two_sequences;
     for (unsigned int i=0;i < n_threads; ++i) two_sequences.push_back(sequence_package());
     align_group deviations;
-    //char mode='1';
     stringstream converter;
     converter << min_length;
     string char_min_length(converter.str());

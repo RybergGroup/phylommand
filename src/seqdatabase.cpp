@@ -200,9 +200,12 @@ void seqdatabase::move_to_next_pair_sql (bool only_lead) {
     else if (mode == '0') mode = '1';
     if (mode != '9') {
 	while (1) {
-	    if(sqlite3_step(statement) == SQLITE_ROW) {
+	    if (sqlite3_step(statement) == SQLITE_ROW) {
 		if (only_lead) { // if only doing lead sequences
 		    string cluster = (char*)sqlite3_column_text(statement,2);
+		    #ifdef DEBUG
+		    cerr << "Cluster: " << cluster << endl;
+		    #endif //DEBUG
 		    if (cluster.compare("lead")) { // if not lead sequence move on
 			if (mode == '1') previous_taxon = (char*)sqlite3_column_text(statement,0); // if looking for first seq save accno
 			continue; // if not lead sequence continue
@@ -213,11 +216,17 @@ void seqdatabase::move_to_next_pair_sql (bool only_lead) {
 		    previous_taxon = accno1;
 		    sequence1 = (char*)sqlite3_column_text(statement,1);
 		    mode = '2';
+		    #ifdef DEBUG
+		    cerr << "Accno 1: " << accno1 << " | " << sequence1 << endl;
+		    #endif //DEBUG
 		}
 		else if ( mode == '2' || mode == '3') {
 		    accno2 = (char*)sqlite3_column_text(statement,0);
-		    sequence2 = (char*)sqlite3_column_text(statement,0);
+		    sequence2 = (char*)sqlite3_column_text(statement,1);
 		    if (mode == '2') mode = '3';
+		    #ifdef DEBUG
+		    cerr << "Accno 2: " << accno2 << " | " << sequence2 << endl;
+		    #endif //DEBUG
 		    break;
 		}
 	    }
