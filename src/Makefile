@@ -1,4 +1,4 @@
-# Makefile to compile phylcommand
+# Makefile to compile phylommand
 # using gcc and g++
 # If compiling on windows using MinGW add WIN=YES to make command
 
@@ -161,3 +161,6 @@ ifeq ($(RUDISVG),YES)
 pugixml.o: $(PUGIXML)
 	$(PP) -c $(PUGIXML) $(EXTRAS)
 endif
+
+clean:
+	$(RM) $(PHYLOMMAND) *.o
