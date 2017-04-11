@@ -61,8 +61,11 @@ To be able to execute the phylommand programs from any folder, download and move
 to a folder in your PATH, e.g.
 
 ```bash
-# make sure dir is there
-sudo mkdir /usr/local/bin
+# Check what dirs are in your PATH
+echo $PATH
+
+# Usually /usr/local/bin/ is there and is a suitable dir
+# otherwise choose another, then:
 
 sudo mv treebender /usr/local/bin/
 sudo mv treeator /usr/local/bin/
