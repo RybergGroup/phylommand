@@ -182,8 +182,8 @@ void tree::tree_file_parser( istream& infile, map<string,string> label_translati
         else if ( temp == ':') read_mode = 'b';
         else if ( temp == ';' ) {
             if (present_node == root ) { //check so we are back at root, if so we happily finish
-		if (!label_string.empty() || !extra_label_string.empty()) {
-		    if (!label_translation.empty()) {
+		if (!label_string.empty() || !extra_label_string.empty()) { // if a lable has bee read
+		    if (!label_translation.empty()) { // if translating labels (e.g. nexus with translations)
 			map<string,string>::const_iterator translation = label_translation.find(label_string);
 			if (translation != label_translation.end()) label_string = translation->second;
 		    }
@@ -195,6 +195,17 @@ void tree::tree_file_parser( istream& infile, map<string,string> label_translati
 		if (!branch_length_annotation.empty()) {
 		    present_node->branchlength = atof(branch_length_annotation.c_str());
 		    branch_length_annotation.clear();
+		}
+		if (present_node->right == 0) {
+		    if (present_node->left != 0 &&  present_node->nodelabel !=0) { // Rooted on leaf
+			present_node->right = new node;
+			present_node->right->nodelabel=present_node->nodelabel;
+			present_node->nodelabel = 0;
+			present_node->right->branchlength = present_node->branchlength;
+			present_node->branchlength = 0.0;
+			present_node->right->parent = present_node;
+		    }
+		    else cerr << "Only one child to root, this may cause problems for some functions." << endl;
 		}
 		break;
 	    }
