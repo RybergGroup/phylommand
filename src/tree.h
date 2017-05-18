@@ -270,6 +270,17 @@ class tree {
 	    node *parent; //the parent of the node
 	    //double *other;
 	};
+	class midpoint_data { // to store data to return in recursive function to find mid point root
+            public:
+            midpoint_data ():left(0), right(0),mrca(0),left_path(0.0),right_path(0.0) {};
+	    //midpoint_data (node* init_node, double distance):leaf(init_node), longest_path(0.0), dist_to_tip(distance) {};
+	    //midpoint_data (node* init_node, double path_length, double distance):leaf(init_node), longest_path(path_length), dist_to_tip(distance) {};
+	    node* left;
+	    double left_path;
+	    node* right;
+	    double right_path;
+	    node* mrca;
+	}; 
 	//struct node_double_char {node* leaf; double support; char mono; };
 	struct int_double2 { int n; double a; double c; };
 	// Variables
@@ -387,7 +398,10 @@ class tree {
 	node* max_proportion_taxa(node* leaf, const string& taxa); // returns the node that has hoghest (N ingroup - N outgroup)/N total of ingroup
 	node* max_proportion_taxa(node* leaf, const set<string*>& taxa, unsigned int& in_taxa_above, unsigned int& out_taxa_above, const unsigned int tot_n_taxa, double& max_proportion);
 	bool is_nested_in ( const node* ancestor, const node* descendent);
-        node* find_midpoint_node ( node* leaf );
+        // node* find_midpoint_node ( node* leaf );
+	double find_midpoint_node ( node*& leaf );
+	double find_mid_path ( node*& midpoint_node, node* start, const node* stop, const double path_length );
+	double find_longest_path ( node* leaf,midpoint_data& path_data );
         void turn_nodes ( node *leaf, bool clockwise );
         inline void turn_node_clockwise ( node *leaf );
         inline void turn_node_anticlockwise ( node *leaf );

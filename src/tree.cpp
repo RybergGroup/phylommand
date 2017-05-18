@@ -536,14 +536,124 @@ void tree::print_non_descendants( ostream& output, node *leaf, node* done, const
     node *present = most_recent_common_ancestor (taxa);
     re_root(present);
 }*/
+void tree::midpoint_root() {
+    node* midpoint_node = root;
+    double branch_length1 = find_midpoint_node(midpoint_node); // find node with midpoint
+    re_root(midpoint_node); // root on that node
+    // Adjust branchlengths from the root
+    double root_branch = root->left->branchlength + root->right->branchlength;
+    midpoint_node->branchlength = root_branch-branch_length1;
+    #ifdef DEBUG
+    cerr << "Branch length: " << branch_length1 << " Root branch: " << root_branch <<endl << root << " vs " << midpoint_node << endl;
+    #endif //DEBUG
+    if (root->left == midpoint_node)
+	root->right->branchlength = branch_length1;
+    else if (root->right == midpoint_node)
+	root->left->branchlength = branch_length1;
+    else cerr << "Warning! Failure in midpoint rooting." << endl;
+
+}
+
+double tree::find_midpoint_node (node*& leaf ) {
+    midpoint_data midpoint_path;
+    double longest_to_root = find_longest_path (leaf,midpoint_path);
+    if (midpoint_path.left == 0 || midpoint_path.right == 0 || midpoint_path.mrca == 0) return 0.0;
+    #ifdef DEBUG
+    cerr << "longest path is between " << *midpoint_path.left->nodelabel << " (" << midpoint_path.left_path << ") and " << *midpoint_path.right->nodelabel << " (" << midpoint_path.right_path << ")" << endl;
+    #endif //DEBUG
+    if (midpoint_path.left_path > midpoint_path.right_path)
+	return find_mid_path(leaf,midpoint_path.left,midpoint_path.mrca,(midpoint_path.left_path+midpoint_path.right_path)/2.0);
+    else
+	return find_mid_path(leaf,midpoint_path.right,midpoint_path.mrca,(midpoint_path.left_path+midpoint_path.right_path)/2.0);
+}
+
+double tree::find_mid_path ( node*& midpoint_node, node* start, const node* stop, const double path_length ) {
+    if (start == 0) return 0.0;
+    #ifdef DEBUG
+    cerr << path_length << " left to midpoint" << " (" << start << ")" << endl;
+    #endif //DEBUG
+    if (start->branchlength > path_length) {
+	midpoint_node = start;
+	return start->branchlength - path_length;
+    }
+    else if (start->parent != 0 && start->parent != stop)
+	return find_mid_path(midpoint_node, start->parent, stop, path_length-start->branchlength);
+    else {
+	cerr << "Warning! Could not find mid point." << endl;
+	return 0.0;
+    }
+}
+
+double tree::find_longest_path ( node* leaf, midpoint_data& path_data ) {
+    if (leaf == 0) return 0.0;
+    if (leaf->left == 0 && leaf->right == 0 && leaf->parent != 0) {
+	if (leaf == leaf->parent->left) {
+	    path_data.left = leaf;
+	    //path_data.left_path = leaf->branchlength;
+	}
+	else if (leaf == leaf->parent->right) {
+	    path_data.right = leaf;
+	    //path_data.right_path = leaf->branchlength;
+	}
+	return leaf->branchlength;
+    }
+    else {
+	midpoint_data data_left;
+	double longest_left(0.0);
+	midpoint_data data_right;
+	double longest_right(0.0);
+	if (leaf->left != 0) longest_left = find_longest_path(leaf->left,data_left);
+	if (leaf->right != 0) longest_right = find_longest_path(leaf->right,data_right);
+	if (longest_left+longest_right > data_left.right_path+data_left.left_path && longest_left+longest_right > data_right.right_path+data_right.left_path) { // if longest path through this node
+	    path_data.mrca = leaf;
+	    if (data_left.left == 0)
+		path_data.left = data_left.right;
+	    else if (data_left.right == 0)
+		path_data.left = data_left.left;
+	    else if (data_left.left_path > data_left.right_path)
+		path_data.left = data_left.left;
+	    else
+		path_data.left = data_left.right;
+	    path_data.left_path = longest_left;
+	    if (data_right.left == 0)
+		path_data.right = data_right.right;
+            else if (data_right.right == 0)
+		path_data.right = data_right.left;
+	    else if (data_right.left_path > data_right.right_path)
+		path_data.right = data_right.left;
+	    else
+		path_data.right = data_right.right;
+	    path_data.right_path = longest_right;
+	    //if (path_data.left_path > path_data.right_path)
+	//	return path_data.left_path+leaf->branchlength;
+	 //   else
+	//	return path_data.right_path+leaf->branchlength;
+	}
+	else if (data_left.right_path+data_left.left_path > data_right.right_path+data_right.left_path) {
+	    path_data = data_left;
+	}
+	else {
+	    path_data = data_right;
+	}
+	// If the longest path is not through this node deside which path is the longest through this node and return it
+	if (longest_left > longest_right)
+	    return longest_left+leaf->branchlength;
+	else
+	    return longest_right+leaf->branchlength;
+    }
+}
+
+/*
+
 void tree::midpoint_root ( ) {
     node *present = find_midpoint_node( root );
     double length_left;
     double length_right;
+    const int precision = 100000; // precission for seting midpoint root
     re_root(present);
     length_left = longest_to_tip (root->left);
     length_right = longest_to_tip (root->right);
-    if (fabs(length_left-length_right) > (root->left->branchlength+root->right->branchlength)) {
+    if (fabs(length_left-length_right) > (root->left->branchlength+root->right->branchlength)+(1.0/precision)) {
         std::cerr << "WARNING!!! Midpoint rooting failed!!!" << endl;
     }
     else {
@@ -564,6 +674,7 @@ tree::node* tree::find_midpoint_node ( node* leaf ) {
     double goal = 0.0; // the length from tip goal
     double length_left; // the longest length to tip to the left
     double length_right; // same for right
+    const int precision = 100000; // precission for seting midpoint root
     while (1) {
         length_left = longest_to_tip (present->left); // get lengths
         length_right = longest_to_tip (present->right);
@@ -571,13 +682,13 @@ tree::node* tree::find_midpoint_node ( node* leaf ) {
         if ( present->right == 0 || present->left == 0 ) { // if at a tip
             break; // break
         }
-        else if ( length_left-length_right < goal/10000 && length_right-length_left < goal/10000 ) { // if close to equal longest length to tip
+        else if ( length_left-length_right < goal/precision && length_right-length_left < goal/precision ) { // if close to equal longest length to tip
             break;
         }
-        else if ( length_left-length_right > goal/10000 && length_left > goal ) { // if it is longer to tip to the left move to the left
+        else if ( length_left-length_right > goal/precision && length_left > goal ) { // if it is longer to tip to the left move to the left
             present = present->left;
         }
-        else if ( length_right-length_left > goal/10000 && length_right > goal ) { // same but right
+        else if ( length_right-length_left > goal/precision && length_right > goal ) { // same but right
             present = present->right;
         }
         else { // if neither the right or left path is longer we are at the midpoint
@@ -586,7 +697,7 @@ tree::node* tree::find_midpoint_node ( node* leaf ) {
     }
     return present;
 }
-
+*/
 void tree::re_root ( node *leaf ) {
     if ( leaf != root && leaf != 0 && leaf->parent != 0 && leaf->parent!=root) {
         if (leaf == leaf->parent->left) {
@@ -1107,7 +1218,8 @@ void tree::split_at_midpoint ( node* leaf, tree* tree ) {
         std::cerr << "Basal node must be bifurcating. No split made." << endl;
         return;
     }
-    node* split_node = find_midpoint_node ( leaf );
+    node* split_node = leaf;
+    find_midpoint_node ( split_node );
     if (split_node == root) {
         int n_left=n_sub_tips( leaf->left );
         int n_right=n_sub_tips( leaf->right );
