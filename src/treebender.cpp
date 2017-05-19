@@ -394,6 +394,9 @@ int main (int argc, char *argv []) {
 			//n_taxa = atoi(argv[++i]);
 		    }
             }
+	    else if (!strcmp(argv[i],"--Yule") || !strcmp(argv[i],"--yule")) {
+		method = 'B';
+	    }
             else if (!strcmp(argv[i],"--interval")) {
                 if ( i < argc-1 && argv[i+1][0] != '-' ) {
 		    string argument(argv[++i]);
@@ -894,6 +897,10 @@ int main (int argc, char *argv []) {
 		if (split_stop == 't')
 		    if ( in_tree.size() < max_size ) cont = true;
 	    }
+	}
+	else if (method == 'B') {
+	    in_tree.back().set_br_length( 0.0 );
+	    in_tree.back().add_Yule_node_depths();
 	}
 	// Print tree
 	if (print_tree) {

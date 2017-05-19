@@ -92,6 +92,9 @@ class tree {
 	    else return false;
 	};
         void rand_topology ( const int n  );
+	void add_Yule_node_depths () {
+	    add_Yule_node_depths(root);
+	}
         void print_newick( bool include_br_length, bool int_node_label ) {
             print_newick_subtree( root, include_br_length, int_node_label );
             std::cout << ";" << endl;
@@ -272,7 +275,7 @@ class tree {
 	};
 	class midpoint_data { // to store data to return in recursive function to find mid point root
             public:
-            midpoint_data ():left(0), right(0),mrca(0),left_path(0.0),right_path(0.0) {};
+            midpoint_data ():left(0), left_path(0.0), right(0), right_path(0.0), mrca(0) {};
 	    //midpoint_data (node* init_node, double distance):leaf(init_node), longest_path(0.0), dist_to_tip(distance) {};
 	    //midpoint_data (node* init_node, double path_length, double distance):leaf(init_node), longest_path(path_length), dist_to_tip(distance) {};
 	    node* left;
@@ -423,6 +426,9 @@ class tree {
         }
 	// functions for adjusted MPL //
 	void adjustedMPL(map<node*,double>& given_nodeages, unsigned int n_char);
+	void add_Yule_node_depths (node* leaf);
+	void set_tip_branch_lengths (node* leaf, const double tip_branch);
+	//unsigned int add_node_depth ( node* leaf, const double node_depth, double dist_from_root, unsigned int no_lineages );
 	int_double2 calculate_mean_path_root( node* leaf, map<node*,double>& given_nodeages);
 	double local_adjustedMPL(node* leaf, map<node*,double>& given_nodeages, unsigned int n_char);
 	int_double2 calculate_mean_path( node* leaf, const double root_age, map<node*,double>& given_nodeages);

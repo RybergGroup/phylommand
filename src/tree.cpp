@@ -508,8 +508,8 @@ bool tree::tip_is_in_list (const string* tip, const string* list, const char sep
 int tree::print_tips ( ostream& output, node *leaf, string leading_n, int n, string leading, string trailing ) {
     if ( leaf == 0 ) return n;
     if ( leaf->left != 0 || leaf->right != 0 ) {
-        if ( leaf->left != 0) n=print_tips( leaf->left, leading_n, n, leading, trailing );
-        if ( leaf->right != 0) n=print_tips( leaf->right, leading_n, n, leading, trailing );
+        if ( leaf->left != 0) n=print_tips( output, leaf->left, leading_n, n, leading, trailing );
+        if ( leaf->right != 0) n=print_tips( output, leaf->right, leading_n, n, leading, trailing );
     }
     else {
         if (n < 0 && leaf->nodelabel!=0) output << leading << *leaf->nodelabel << trailing;
@@ -542,21 +542,21 @@ void tree::midpoint_root() {
     re_root(midpoint_node); // root on that node
     // Adjust branchlengths from the root
     double root_branch = root->left->branchlength + root->right->branchlength;
-    midpoint_node->branchlength = root_branch-branch_length1;
+    midpoint_node->branchlength = branch_length1;
     #ifdef DEBUG
     cerr << "Branch length: " << branch_length1 << " Root branch: " << root_branch <<endl << root << " vs " << midpoint_node << endl;
     #endif //DEBUG
     if (root->left == midpoint_node)
-	root->right->branchlength = branch_length1;
+	root->right->branchlength = root_branch-branch_length1;
     else if (root->right == midpoint_node)
-	root->left->branchlength = branch_length1;
+	root->left->branchlength = root_branch-branch_length1;
     else cerr << "Warning! Failure in midpoint rooting." << endl;
 
 }
 
 double tree::find_midpoint_node (node*& leaf ) {
     midpoint_data midpoint_path;
-    double longest_to_root = find_longest_path (leaf,midpoint_path);
+    find_longest_path (leaf,midpoint_path);
     if (midpoint_path.left == 0 || midpoint_path.right == 0 || midpoint_path.mrca == 0) return 0.0;
     #ifdef DEBUG
     cerr << "longest path is between " << *midpoint_path.left->nodelabel << " (" << midpoint_path.left_path << ") and " << *midpoint_path.right->nodelabel << " (" << midpoint_path.right_path << ")" << endl;
@@ -572,9 +572,11 @@ double tree::find_mid_path ( node*& midpoint_node, node* start, const node* stop
     #ifdef DEBUG
     cerr << path_length << " left to midpoint" << " (" << start << ")" << endl;
     #endif //DEBUG
-    if (start->branchlength > path_length) {
+    if (start->branchlength >= path_length) {
 	midpoint_node = start;
-	return start->branchlength - path_length;
+	//if (start->parent == stop)
+      	return path_length;
+	//return start->branchlength - path_length;
     }
     else if (start->parent != 0 && start->parent != stop)
 	return find_mid_path(midpoint_node, start->parent, stop, path_length-start->branchlength);
@@ -1402,6 +1404,80 @@ void tree::rand_topology ( const int n  ) {
     }
 }
 
+void tree::add_Yule_node_depths (node* leaf) {
+    unsigned int n_tips = n_sub_tips(leaf);
+    double node_depth(0.0);
+    set<node*> lineages;
+    if (leaf->left != 0 && leaf->left->left != 0 && leaf->left->right != 0) lineages.insert(leaf->left);
+    if (leaf->right != 0 && leaf->right->left != 0 && leaf->right->right != 0) lineages.insert(leaf->right);
+    for (unsigned int node_no = 2; node_no < n_tips; ++node_no) {
+	node_depth += log(((double) rand()/(RAND_MAX))+1)/(node_no);
+	unsigned int rand_node(0);
+       	if (lineages.size()>0) rand_node = rand() % (lineages.size());
+	double dist_from_root(0.0);
+	#ifdef DEBUG
+	cerr << "node_depth: " << node_depth << " Node selected: " << rand_node << endl;
+	#endif
+	node* selected_node;
+	set<node*>::const_iterator i = lineages.begin();
+	for (; i !=lineages.end() && rand_node > 0; ++i) --rand_node;
+	selected_node = *i;
+	node* parent = selected_node->parent;
+	#ifdef DEBUG
+	cerr << "Made it here (" << rand_node << ')' << endl;
+	print_tips(cerr,selected_node);
+	cerr << endl;
+	#endif //DEBUG
+	while (parent != 0 && parent != leaf) {
+	    dist_from_root += parent->branchlength;
+	    parent = parent->parent;
+	}
+	selected_node->branchlength = node_depth-dist_from_root;
+	lineages.erase(selected_node);
+	if (selected_node->left != 0 && selected_node->left->left != 0 && selected_node->left->right != 0)
+	    lineages.insert(selected_node->left);
+	if (selected_node->right != 0 && selected_node->right->left != 0 && selected_node->right->right != 0)
+	    lineages.insert(selected_node->right);
+	#ifdef DEBUG
+	cerr << "Number of nodes: " << lineages.size() << endl;
+	#endif //DEBUG
+    }
+    #ifdef DEBUG
+    cerr << "Will set tip labels." << endl;
+    #endif //DEBUG
+    set_tip_branch_lengths(leaf,node_depth+log(((double) rand()/(RAND_MAX))+1)/n_tips);
+}
+
+void tree::set_tip_branch_lengths (node* leaf, const double tip_branch) {
+    if (leaf == 0) return;
+    if (leaf->left == 0 && leaf->right == 0 && leaf->parent != 0 ) leaf->branchlength = tip_branch;
+    if (leaf->left != 0) set_tip_branch_lengths (leaf->left,tip_branch-leaf->branchlength);
+    if (leaf->right != 0) set_tip_branch_lengths (leaf->right,tip_branch-leaf->branchlength);
+}
+
+/*
+unsigned int tree::add_node_depth ( node* leaf, const double node_depth, double dist_from_root, unsigned int no_lineages ) {
+    if (leaf == 0) return no_lineages;
+    if (leaf->left == 0 && leaf->right == 0) return no_lineages;
+    if (no_lineages == 0) return 0;
+    #ifdef DEBUG
+    cerr << "Node_depth: " << node_depth << " Dist. from root: " << dist_from_root << " lineage: " << no_lineages << " present branch length: " << leaf->branchlength << endl;
+    #endif //DEBUG
+    if (leaf != root && dist_from_root <= node_depth) {
+	#ifdef DEBUG
+	cerr << "Pertinent node." << endl;
+	#endif //DEBUG
+	--no_lineages;
+	if (no_lineages == 0)
+	    leaf->branchlength = node_depth-dist_from_root;
+	return no_lineages;
+    }
+    else {
+	if (leaf->left != 0) add_node_depth (leaf->left, node_depth, dist_from_root+leaf->branchlength, no_lineages);
+	if (leaf->right != 0) add_node_depth (leaf->right, node_depth, dist_from_root+leaf->branchlength, no_lineages);
+    }
+}
+*/
 /*** Sub to count the number of nodes with support value above or equal to given value ***/
 int tree::n_supported (node* leaf, float cutoff) {
     if (leaf->left != 0 && leaf->right != 0) {
