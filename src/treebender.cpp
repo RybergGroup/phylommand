@@ -52,6 +52,7 @@ int main (int argc, char *argv []) {
     unsigned int tree_interval_end(UINT_MAX);
     string taxastring;
     vector<string> taxon_vector;
+    vector< pair<float,float> > skyline_cut_offs;
     string separator(",");
     string separator2(" ");
     string tree_separator;
@@ -318,18 +319,23 @@ int main (int argc, char *argv []) {
 	    		cut_off = atof(arguments[1].c_str());
 		    }
 		}
-		/*if ( i < argc-1 && argv[i+1][0] != '-') {
+	    }
+	    else if (!strcmp(argv[i],"-S") || !strcmp(argv[i],"--multiply_branch_lengths_skyline")) {
+		method='$';
+                if ( i < argc-1 && argv[i+1][0] != '-') {
 		    ++i;
-		    string temp;
-		    for (unsigned int j=0; argv[i][j] != '\0'; ++j) {
-			if (argv[i][j] == ':') {
-			    cut_off = atof(temp.c_str());
-			    temp.clear();
-			}
-			else temp += argv[i][j];
+		    vector<string> arguments;
+		    argv_parser::pars_sub_args(argv[i], ',', arguments );
+		    for (vector<string>::iterator i=arguments.begin(); i != arguments.end(); ++i) {
+			vector<string> second_level;
+			argv_parser::pars_sub_args(i->c_str(), ':', second_level);
+			skyline_cut_offs.push_back(make_pair(atof(second_level[0].c_str()),atof(second_level[1].c_str())));
 		    }
-		    value = atof(temp.c_str());
-		}*/
+		    #ifdef DEBUG
+	    	    cerr << "Number of cut offs " << skyline_cut_offs.size() << endl;
+    		    #endif //DEBUG
+		}
+		else { cerr << "-S/--multiply_branch_lengths_skyline require a list of time cut offs and rate multipliers as second argument." << endl; return 1; }
 	    }
 	    else if (!strcmp(argv[i],"-V") || !strcmp(argv[i],"--multiply_branch_lengths_clade")) {
                 method = 'V';
@@ -378,6 +384,11 @@ int main (int argc, char *argv []) {
                 method = 'd';
                 if ( i < argc-1 && argv[i+1][0] != '-' ) taxastring = argv_parser::pars_string( argv[++i]);
             }
+	    else if (!strcmp(argv[i],"--drop_tips_on_short_branches")) {
+		method = '>';
+                if ( i < argc-1 && argv[i+1][0] != '-' ) cut_off = atof(argv[++i]);
+		else { cerr << "--drop_tips_on_short_branches require a number to use as cut off as next argument." << endl; return 1; } 
+	    }
             else if (!strcmp(argv[i],"-r") || !strcmp(argv[i],"--random_tree")) {
                 tree_source = 'r';
                 if ( i < argc-1 && (argv[i+1][0] == '0' || argv[i+1][0] == '1' || argv[i+1][0] == '2'
@@ -767,6 +778,7 @@ int main (int argc, char *argv []) {
 	}
 	else if (method == 'l') in_tree.back().ladderize(right_ladderize);
 	else if (method == 'd') in_tree.back().drop_tips( taxastring );
+	else if (method == '>') in_tree.back().drop_tips_on_short_branches (cut_off);
 	else if (method == 'c') in_tree.back().change_tip_names( taxastring );
 	else if (method == 'n') {
 	    if (!quiet) cerr << "Number of tips:" << endl;
@@ -791,6 +803,7 @@ int main (int argc, char *argv []) {
 	}
 	else if (method == 'u') in_tree.back().multiply_br_length( value );
 	else if (method == 'U') in_tree.back().multiply_br_length_cut_off( cut_off, value );
+	else if (method == '$') in_tree.back().multiply_br_length_skyline(skyline_cut_offs);
 	else if (method == 'V') in_tree.back().multiply_br_length_clades( taxon_vector, value );
 	else if (method == '<') in_tree.back().null_short_branches(value);
 	else if (method == 'b') in_tree.back().set_br_length( value );
@@ -1030,6 +1043,9 @@ void help () {
     std::cout << "                                  given after another colon" << endl;
     std::cout << "--drop_tips / -d [taxa]           drop the given tips from the tree, e.g. -d" << endl;
     std::cout << "                                  taxon1,taxon2,taxon3." << endl;
+    std::cout << "--drop_tips_on_short_branches     drop tips on branches shorter than given cut" << endl;
+    std::cout << "                                  off (given as next argument). Tips to the left" << endl;
+    std::cout << "                                  are dropped before tips to the right." << endl;
     std::cout << "--get_tip_names / -t [sep.]       get the names of the tips in the tree, a" << endl;
     std::cout << "                                  separator can be specified, e.g. -t \\\\n (each" << endl;
     std::cout << "                                  name on separate rows; ',' is the default" << endl;

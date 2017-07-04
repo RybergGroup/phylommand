@@ -331,7 +331,14 @@ void tree::print_nexus_tree_head( ostream& output, node *leaf, map<string,string
     output << endl;
     output << ";" << endl;
 }
-
+void tree::drop_tips_on_short_branches (node* leaf, const float cut_off) {
+    if (leaf->left == 0 && leaf->right == 0 && leaf->parent != 0 && leaf->branchlength < cut_off)
+	drop_tips(leaf->parent,*leaf->nodelabel);
+    else {
+	if (leaf->left != 0) drop_tips_on_short_branches(leaf->left, cut_off);
+	if (leaf->right != 0) drop_tips_on_short_branches(leaf->right, cut_off);
+    }
+}
 char tree::drop_tips (node *leaf, const string taxa) {
     if (leaf->left == 0 && leaf->right == 0) {
         int length = taxa.length();
@@ -881,6 +888,35 @@ void tree::multiply_br_length_subtree ( node *leaf, const float multiplier ) {
         if (leaf->right != 0) multiply_br_length_subtree ( leaf->right, multiplier );
     }
 }
+
+void tree::multiply_br_length_skyline (node *leaf, const vector<pair<float,float> >& cut_offs, const float distance_to_root) {
+    vector<pair<float,float> >::const_iterator pos;
+    const double branch_end = distance_to_root+leaf->branchlength;
+    double new_br_length(0.0);
+    double previous_cut_off(0.0);
+    for (pos = cut_offs.begin(); pos != cut_offs.end(); ++pos) {
+	if ( distance_to_root < pos->first && branch_end > previous_cut_off) {
+	    if (distance_to_root > previous_cut_off && branch_end < pos->first)
+		new_br_length += (branch_end-distance_to_root)*pos->second;
+    	    else if (distance_to_root < previous_cut_off && branch_end < pos->first)
+    		new_br_length += (branch_end-previous_cut_off)*pos->second;
+	    else if (distance_to_root > previous_cut_off && branch_end > pos->first)
+		new_br_length += (pos->first-distance_to_root)*pos->second;
+	    else if (distance_to_root < previous_cut_off && branch_end > pos->first)
+		new_br_length += (pos->first-previous_cut_off)*pos->second;
+	}
+	previous_cut_off = pos->first;
+    }
+    if (branch_end > previous_cut_off)
+	new_br_length += branch_end-previous_cut_off;
+    #ifdef DEBUG
+    cerr << "Branch start: " << distance_to_root << "; end: " << branch_end << "; old length: " << leaf->branchlength << "; new length: " << new_br_length << endl;
+    #endif //DEBUG
+    leaf->branchlength = new_br_length;
+    if (leaf->left != 0) multiply_br_length_skyline(leaf->left, cut_offs, branch_end);
+    if (leaf->right != 0) multiply_br_length_skyline(leaf->right, cut_offs, branch_end);
+}
+
 void tree::multiply_br_length_cut_off_subtree (node *leaf, const float cut_off, const float multiplier ) {
     if (leaf == 0) return;
     else {

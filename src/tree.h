@@ -149,6 +149,9 @@ class tree {
         void drop_tips ( const string taxa ) {
             drop_tips (root, taxa);
         };
+	void drop_tips_on_short_branches (const float cut_off) {
+	    drop_tips_on_short_branches (root,cut_off);
+	};
         string tip_names() {
             return tip_names( root );
         };
@@ -198,6 +201,17 @@ class tree {
         };
 	void multiply_br_length_cut_off ( const float cut_off, const float multiplier ) {
 	    multiply_br_length_cut_off_subtree (root, cut_off, multiplier);
+	};
+        void multiply_br_length_skyline (const vector<pair<float,float> >& cut_offs) {
+	    float prev_cut_off(-0.0);
+	    for (vector<pair<float,float> >::const_iterator i=cut_offs.begin(); i != cut_offs.end(); ++i) {
+		if (i->first < prev_cut_off) { cerr << "Cut offs not in order. Interrupt." << endl; return; }
+		prev_cut_off = i->first;
+		#ifdef DEBUG
+		cerr << "Cut off " << i->first << " multiplier " << i->second << endl;
+		#endif //DEBUG
+	    }
+	    multiply_br_length_skyline( root, cut_offs, 0.0 );
 	};
 	void multiply_br_length_clades ( const vector<string> &clades, const float multiplier );
         void set_br_length (const float value) {
@@ -393,6 +407,7 @@ class tree {
         int print_tips ( ostream& output, node *leaf, string leading_n, int n, string leading, string trailing );
 	void print_non_descendants( ostream& output, node *leaf, node* done, const string leading, const string trailing );
         char drop_tips (node *leaf, const string taxa);
+	void drop_tips_on_short_branches (node* leaf, const float cut_off);
         void re_root ( node *leaf );
         bool is_monophyletic ( node* leaf, set<string*>& taxa );
         bool is_monophyletic ( node* leaf, string& taxa );
@@ -441,6 +456,7 @@ class tree {
         void change_tip_name( node *leaf, const string tip_name, const string new_tip_name);
         void multiply_br_length_subtree ( node *leaf, const float multiplier );
 	void multiply_br_length_cut_off_subtree (node *leaf, const float cut_off, const float multiplier );
+        void multiply_br_length_skyline (node *leaf, const vector<pair<float,float> >& cut_offs, const float distance_to_root);
         void set_br_length_subtree ( node *leaf, const float value );
         double sum_br_length( node *leaf );
         double two_taxa_distance ( const string* taxon1, const string* taxon2 );

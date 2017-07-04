@@ -185,17 +185,6 @@ int main (int argc, char *argv []) {
 		    for (vector<string>::const_iterator i=numbers.begin(); i != numbers.end(); ++i)
 	    		model_parameters.push_back(atof(i->c_str()));
 		}
-		/*    //unsigned int j(0);
-		    while (true) {
-			if ((argv[i][j] == '\0' || argv[i][j] == ',') && !number.empty()) {
-			    model_parameters.push_back(atof(number.c_str()));
-			    number.clear();
-			}
-			else number += argv[i][j];
-			if (argv[i][j] == '\0') break;
-			++j;
-		    }
-		}*/
 		else {
 		    cerr << "-P/--parameters require a comma separated real number string as next argument.";
 		    return 1;
@@ -203,18 +192,7 @@ int main (int argc, char *argv []) {
             }
             else if (!strcmp(argv[i],"-N") || !strcmp(argv[i],"--no_optim")) optimize_param = false;
             else if (!strcmp(argv[i],"-l") || !strcmp(argv[i],"--likelihood")) {
-                /*if ( i < argc-1 && argv[i+1][0] != '-' ) {
-                    string method_name = argv[++i];
-                    if (!method_name.compare("const")) method = 'o';
-                    else if (!method_name.compare("time")) method='t';
-                    else {
-                        std::cerr << "Do not recognize method \"" << method_name << "\"." << endl;
-                        return 1;
-                    }
-                }
-                else {*/
-		    method = 'o';
-                //}
+		    if (method != 't') method = 'o';
             }
             else if (!strcmp(argv[i],"-R") || !strcmp(argv[i],"--rate_mod")) {
                 if ( i < argc-1 && argv[i+1][0] != '-' )
@@ -223,6 +201,7 @@ int main (int argc, char *argv []) {
                     std::cerr << "-R/--rate_mod require a number as next argument." << endl;
                     return 1;
                 }
+		method='t';
             }
             else if (!strcmp(argv[i],"-T") || !strcmp(argv[i],"--time")) {
                 if ( i < argc-1 && argv[i+1][0] != '-' )
@@ -231,6 +210,7 @@ int main (int argc, char *argv []) {
                     std::cerr << "-T/--time require a number as next argument." << endl;
                     return 1;
                 }
+		method='t';
             }
 	    else if (!strcmp(argv[i],"--get_state_at_nodes")) {
 		print_state_on_nodelabel = true;
