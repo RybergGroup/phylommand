@@ -173,9 +173,6 @@ int main (int argc, char *argv []) {
 		    for (vector<string>::const_iterator i=arguments.begin(); i != arguments.end(); ++i)
 			fixed_parameters.insert(atoi(i->c_str()));
 		}
-                //while (i < argc-1 && argv[i+1][0] != '-') {
-                  //  fixed_parameters.insert(atoi(argv[++i]));
-                //}
             }
             else if (!strcmp(argv[i],"-P") || !strcmp(argv[i],"--parameters")) {
                 if (i < argc-1 && argv[i+1][0] != '-') {
@@ -291,10 +288,10 @@ int main (int argc, char *argv []) {
             return 1;
         }
     }
-    #ifdef DEBUG
+    /*#ifdef DEBUG
     if (*data_input.file_stream == cin) cerr << "Possible data read from standard in." << endl;
     else cerr << "Possible data read from " << data_file_name << endl;
-    #endif //DEBUG
+    #endif //DEBUG*/
     /// if doing NJ do that now
     if (method == 'n') { // Neigbour Joining
 	njtree tree;
@@ -407,10 +404,6 @@ int main (int argc, char *argv []) {
 	    if (!tree_input.set_file_type("newick")) cerr << "Failed to set default file type." << endl;
 	}
 	if (!quiet) cerr << "Tree file format: " << tree_input.get_file_type() << endl;
-	#ifdef DEBUG
-	if (*tree_input.file_stream == cin) cerr << "Possible trees read from standard in." << endl;
-	else cerr << "Possible trees read from " << tree_file_name << endl;
-	#endif
 /////////////////////////////////
 	if (method == 'p') {
 	    if (!quiet) cerr << "Calculating parsimony scores:" << endl;
@@ -519,12 +512,18 @@ int main (int argc, char *argv []) {
 		for (unsigned int i=0; i < n_parameters; ++i) model_parameters.push_back(0.1);
 	    }
 	    // Adjust number of parameters according to rate change model and add extra parameters to vector
+	    #ifdef DEBUG
+	    cerr << "N parameters: " << n_parameters << ", method=" << method << endl;
+	    #endif //DEBUG
 	    if (method == 't') {
 		n_parameters+=2;
 		model_parameters.push_back(cut_off);
 		model_parameters.push_back(rate_mod);
 	    }
 	    // check fixed_parameters
+	    #ifdef DEBUG
+	    cerr << "N parameters: " << n_parameters << ", method=" << method << endl;
+	    #endif //DEBUG
 	    for (set<unsigned int>::iterator i=fixed_parameters.begin(); i != fixed_parameters.end(); ++i) {
 		if (*i > n_parameters-1) {
 		    cerr << "Can not fix parameter " << *i << ". It is out of bound (n parameters=" << n_parameters << ")." << endl;
@@ -532,7 +531,7 @@ int main (int argc, char *argv []) {
 		}
 	    }
 	    if (!quiet) 
-		cerr << "Model has " << n_parameters << ", of which " << fixed_parameters.size() << " are fixed." << endl;
+		cerr << "Model has " << n_parameters << " parameters, of which " << fixed_parameters.size() << " are fixed." << endl;
 	    n_parameters-=fixed_parameters.size();
 	    if (n_parameters==0)
 		optimize_param=false;
@@ -778,7 +777,7 @@ double opt_rate_in_time(const std::vector<double> &x, std::vector<double> &grad,
 }
 
 void change_non_fixed(const std::vector<double> &x, std::vector<double>* values, const std::set<unsigned int>* fixed) {
-    #if DEBUG
+    /*#if DEBUG
         std::cerr << "No. fixed "<< fixed->size();
         std::cerr << " (";
         for (set<int>::iterator i=fixed->begin(); i!=fixed->end(); ++i) std::cerr << *i << ' ';
@@ -787,7 +786,7 @@ void change_non_fixed(const std::vector<double> &x, std::vector<double>* values,
         std::cerr << "Values to assign: ";
         for (vector<double>::const_iterator i=x.begin(); i!=x.end(); ++i) std::cerr << *i << ' ';
         std::cerr << endl;
-    #endif //DEBUG
+    #endif //DEBUG*/
     unsigned int z(0);
     unsigned int j(0);
     for (std::vector<double>::iterator i=values->begin(); i != values->end(); ++i) {

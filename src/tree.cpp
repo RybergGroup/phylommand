@@ -895,17 +895,17 @@ void tree::multiply_br_length_skyline (node *leaf, const vector<pair<float,float
     double new_br_length(0.0);
     double previous_cut_off(0.0);
     for (pos = cut_offs.begin(); pos != cut_offs.end(); ++pos) {
-	if ( distance_to_root < pos->first && branch_end > previous_cut_off) {
-	    if (distance_to_root > previous_cut_off && branch_end < pos->first)
-		new_br_length += (branch_end-distance_to_root)*pos->second;
-    	    else if (distance_to_root < previous_cut_off && branch_end < pos->first)
-    		new_br_length += (branch_end-previous_cut_off)*pos->second;
-	    else if (distance_to_root > previous_cut_off && branch_end > pos->first)
-		new_br_length += (pos->first-distance_to_root)*pos->second;
-	    else if (distance_to_root < previous_cut_off && branch_end > pos->first)
-		new_br_length += (pos->first-previous_cut_off)*pos->second;
+	if ( distance_to_root < pos->second && branch_end > previous_cut_off) {
+	    if (distance_to_root > previous_cut_off && branch_end < pos->second)
+		new_br_length += (branch_end-distance_to_root)*pos->first;
+    	    else if (distance_to_root < previous_cut_off && branch_end < pos->second)
+    		new_br_length += (branch_end-previous_cut_off)*pos->first;
+	    else if (distance_to_root > previous_cut_off && branch_end > pos->second)
+		new_br_length += (pos->second-distance_to_root)*pos->first;
+	    else if (distance_to_root < previous_cut_off && branch_end > pos->second)
+		new_br_length += (pos->second-previous_cut_off)*pos->first;
 	}
-	previous_cut_off = pos->first;
+	previous_cut_off = pos->second;
     }
     if (branch_end > previous_cut_off)
 	new_br_length += branch_end-previous_cut_off;

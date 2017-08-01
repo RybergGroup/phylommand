@@ -215,13 +215,28 @@ bool file_parser::read_fixage( map<string,string>& ages) {
 
 void file_parser::read_translate_parameters( map<string,string>& translations ) {
     if (file_type != 'N') return;
+    #ifdef DEBUG
+    cerr << "Reading translation block." << endl;
+    #endif //DEBUG
     string key;
     string value;
     char type = 'k';
     char temp;
     temp = file_stream->get();
+    unsigned int number_of_sq_brakets(0);
     while (*file_stream) {
-	if (type == 'k' || type == 'K') {
+	if (temp == '[') {
+	    ++number_of_sq_brakets;
+	    while (*file_stream && number_of_sq_brakets) {
+		#ifdef DEBUG
+		cerr << "comment: " << temp << endl;
+		#endif //DEBUG
+		temp = file_stream->get();
+		if (temp == ']') --number_of_sq_brakets;
+		else if (temp == '[') ++number_of_sq_brakets;
+	    }
+	}
+	else if (type == 'k' || type == 'K') {
 	    if (temp != ' ' && temp != '\n' && temp != '\t' && temp != '\r') {
 		key += temp;
 		type = 'K';
@@ -253,6 +268,9 @@ void file_parser::read_translate_parameters( map<string,string>& translations ) 
 	    break;
 	}
     }
+    #ifdef DEBUG
+    cerr << "Read: " << translations.size() << " taxon translations." << endl;
+    #endif //DEBUG
 }
 
 bool file_parser::move_to_start_of_tree ( ) {

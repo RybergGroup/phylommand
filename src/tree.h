@@ -205,7 +205,7 @@ class tree {
         void multiply_br_length_skyline (const vector<pair<float,float> >& cut_offs) {
 	    float prev_cut_off(-0.0);
 	    for (vector<pair<float,float> >::const_iterator i=cut_offs.begin(); i != cut_offs.end(); ++i) {
-		if (i->first < prev_cut_off) { cerr << "Cut offs not in order. Interrupt." << endl; return; }
+		if (i->second < prev_cut_off) { cerr << "Cut offs not in order. Interrupt." << endl; return; }
 		prev_cut_off = i->first;
 		#ifdef DEBUG
 		cerr << "Cut off " << i->first << " multiplier " << i->second << endl;

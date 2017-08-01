@@ -713,7 +713,7 @@ int main (int argc, char *argv []) {
 		}
 		if (method == 'C') { // clustertree
 		    clustertree tree;
-		    tree.tree_file_parser( *(input.file_stream) );
+		    tree.tree_file_parser( *(input.file_stream), taxa_trans, read_figtree_annotations );
 		    ++read_trees;
     		    if (tree.empty()) break;
 		    cout << "### tree " << read_trees << " ###" << endl;
@@ -1099,6 +1099,11 @@ void help () {
     std::cout << "   -U [value:cut off]             distance (cut off) from root with the given" << endl;
     std::cout << "                                  value (separated by colon), e.g. 2:40 (default" << endl;
     std::cout << "                                  1.0:0.0)." << endl;
+    std::cout << "--multiply_branch_lengths_skyline like --multiply_branch_lengths_until but it is" << endl;
+    std::cout << "/ -S                              posible to give comma separated list of rates" << endl;
+    std::cout << "                                  and distances, where each rate will be applied" << endl;
+    std::cout << "                                  between the previous distance and given" << endl;
+    std::cout << "                                  distance. e.g. -S 2:40,1:50,10:60." << endl;
     std::cout << "--n_supported [value]             get the number of nodes with higher support" << endl;
     std::cout << "                                  than given value. Should be followed by value," << endl;
     std::cout << "                                  e.g. --n_supported 70.0." << endl;
