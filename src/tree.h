@@ -486,7 +486,7 @@ class tree {
 	void add_taxa_to_matrix(node* leaf, map<string,vector<char> >& matrix, unsigned int length);
 	void interchange(node* leaf, bool left);
 	unsigned int fitch_parsimony (node* leaf, map<node*, parsimony_character_vector>& characters, const unsigned int start_char, const unsigned int end_char );
-	void fitch_parsimony_second_pass (node* leaf, map<node*, parsimony_character_vector > characters, parsimony_character_vector prefered, bool calc_branch_length, bool draw_ancestral_state, const unsigned int start_char, const unsigned int end_char, map<char, bitset<SIZE> >& alphabet);
+	void fitch_parsimony_second_pass (node* leaf, map<node*, parsimony_character_vector > characters, parsimony_character_vector prefered, bool calc_branch_length, bool draw_ancestral_state, bool reconstruct_tip_state, const unsigned int start_char, const unsigned int end_char, map<char, bitset<SIZE> >& alphabet);
 	unsigned int assign_branch_number_to_internal_nodes (node* leaf, unsigned int number);
 	bool add_tip_to_branch_parsimony(node* new_taxon, map<node*, parsimony_character_vector>& node_states, const unsigned int start_char, const unsigned int end_char);
 	unsigned int parsimony_score_if_tip_added_to_branch (const unsigned int branch_no, map<node*, parsimony_character_vector>& node_states, parsimony_character_vector taxa_state, const unsigned int start_char, const unsigned int end_char);

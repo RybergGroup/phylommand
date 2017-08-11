@@ -58,6 +58,7 @@ int main (int argc, char *argv []) {
     bool labels = true;
     char method = 'p';
     bool print_br_length(true);
+    bool calc_br_length(true);
     bool print_state_on_nodelabel(false);
     char print_tree = 'w';
     bool quiet(true);
@@ -144,6 +145,7 @@ int main (int argc, char *argv []) {
                 method = 'r';
             }
             else if (!strcmp(argv[i],"-0") || !strcmp(argv[i],"--no_branch_length")) print_br_length = false;
+	    else if (!strcmp(argv[i],"-c") || !strcmp(argv[i],"--do_not_calc_br_length")) calc_br_length = false;
 ///////////// From ancon
             else if (!strcmp(argv[i],"-m") || !strcmp(argv[i],"--model")) {
                 if (i < argc-1 && argv[i+1][0] != '-') {
@@ -429,7 +431,7 @@ int main (int argc, char *argv []) {
 		tree.tree_file_parser( *tree_input.file_stream, taxa_trans, false );
 		if (tree.empty()) break;
 		++read_trees;
-		unsigned int score  = tree.fitch_parsimony( characters, print_state_on_nodelabel, print_br_length, alphabet );
+		unsigned int score  = tree.fitch_parsimony( characters, print_state_on_nodelabel, calc_br_length, alphabet );
 		if (print_br_length || print_state_on_nodelabel) {
 		    if (print_tree == 'w') {
 			cout << "[score: " << score << "] ";
@@ -688,6 +690,11 @@ void help () {
     std::cout << "                                 respectively binary (0 1) alphabets (default:" << endl;
     std::cout << "                                 dna)." << std::endl;
     std::cout << "--data_file / -d [file]          give the data file."<< std::endl;
+    std::cout << "--do_not_calc_br_length / -c     do not save branch length when doing parsimony" << endl;
+    std::cout << "                                 reconstruction. This means that the branch" << endl;
+    std::cout << "                                 lengths of the input tree are kept. If you do" << endl;
+    std::cout << "                                 not want branch length in the output tree use" << endl;
+    std::cout << "                                 --no_branch_length/-0." << endl;
     std::cout << "--fixed / -e [number/s]          give parameter to fix. First parameter is" << endl;
     std::cout << "                                 indexed 0. Several parameters can be given in a" << endl;
     std::cout << "                                 comma separated string, e.g. -e 0,2,3." << endl;

@@ -2467,7 +2467,7 @@ unsigned int tree::fitch_parsimony (vector<character_vector>& characters, bool a
 	else {
 	    decoded_characters[taxa] = parsimony_character_vector(*i);
 	    unsigned int n_char = i->n_char();
-	    if (max_n_char != 0 && max_n_char != n_char) std::cerr << "WARNING!!! Different number of characters between taxa." << std::endl;
+	    if (max_n_char != 0 && max_n_char != n_char) std::cerr << "WARNING!!! " << *(taxa->nodelabel) << " has " << n_char << " chatacters while previous taxa has had up to " << max_n_char << " characters." << std::endl;
 	    if (n_char > max_n_char) max_n_char = n_char;
 	}
     }
@@ -2480,24 +2480,24 @@ unsigned int tree::fitch_parsimony (vector<character_vector>& characters, bool a
 	unsigned int n = decoded_characters[root].n_char();
 	parsimony_character_vector prefered;
 	bitset<SIZE> temp;
-	for (unsigned int i=0; i<n; ++i) {
+	for (unsigned int i=0; i<n; ++i) { // prefered is used to select along what branch a character change
 	    temp = support_functions::pick_a_random_true_bit(decoded_characters[root].get_character(i));
 	    prefered.add_character(i,temp);
 	}
-	fitch_parsimony_second_pass(root, decoded_characters, prefered, get_branch_lengths, ancestral_states, 0, max_n_char-1, alphabet);
+	fitch_parsimony_second_pass(root, decoded_characters, prefered, get_branch_lengths, ancestral_states, false, 0, max_n_char-1, alphabet);
     }
     return score;
 }
 
-void tree::fitch_parsimony_second_pass (node* leaf, map<node*, parsimony_character_vector > characters, parsimony_character_vector prefered, bool calc_branch_length, bool draw_ancestral_state, const unsigned int start_char, const unsigned int end_char, map<char, bitset<SIZE> >& alphabet ) {
+void tree::fitch_parsimony_second_pass (node* leaf, map<node*, parsimony_character_vector > characters, parsimony_character_vector prefered, bool calc_branch_length, bool draw_ancestral_state, bool reconstruct_tip_state, const unsigned int start_char, const unsigned int end_char, map<char, bitset<SIZE> >& alphabet ) {
     if (leaf==0) return;
     if (leaf->parent !=0 && characters.find(leaf->parent) != characters.end()) {
 	unsigned int branch(0);
 	for (unsigned int i=start_char; i<=end_char; ++i) {
 	    bitset<SIZE> temp = characters[leaf].get_character(i);
 	    temp &= characters[leaf->parent].get_character(i);
-	    prefered.get_character(i) &= temp;
-	    if (temp.any())
+	    prefered.get_character(i) &= temp; // prefered is used to select along what branch a character change
+	    if (temp.any() && (reconstruct_tip_state || leaf->left != 0 || leaf-> right != 0))
 		characters[leaf].add_character(i,temp);
 	    if (!prefered.get_character(i).any()) {
 		++branch;
@@ -2516,8 +2516,8 @@ void tree::fitch_parsimony_second_pass (node* leaf, map<node*, parsimony_charact
 	if (calc_branch_length) leaf->branchlength = 0;
 	if (draw_ancestral_state) add_characters_as_node_comments(leaf, characters[leaf], start_char, end_char, alphabet);
     }
-    if (leaf->left!=0) fitch_parsimony_second_pass(leaf->left, characters, prefered, calc_branch_length, draw_ancestral_state, start_char, end_char, alphabet);
-    if (leaf->right!=0) fitch_parsimony_second_pass(leaf->right, characters, prefered, calc_branch_length, draw_ancestral_state, start_char, end_char, alphabet);
+    if (leaf->left!=0) fitch_parsimony_second_pass(leaf->left, characters, prefered, calc_branch_length, draw_ancestral_state, reconstruct_tip_state, start_char, end_char, alphabet);
+    if (leaf->right!=0) fitch_parsimony_second_pass(leaf->right, characters, prefered, calc_branch_length, draw_ancestral_state, reconstruct_tip_state, start_char, end_char, alphabet);
 }
 
 void tree::add_characters_as_node_comments(node* leaf, parsimony_character_vector& characters, const unsigned int start_char, const unsigned int end_char, map<char, bitset<SIZE> >& alphabet) {

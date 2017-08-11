@@ -122,7 +122,7 @@ void matrix_parser::pars_fasta() {
 	    cerr << "Read " << n_taxa << " taxa." << endl;
 	    #endif //DEBUG
 	}
-	else if (character != '\n' && character != '\r' && character != '\t') {
+	else if (character != '\n' && character != '\r' && character != '\t' && character != ' ') {
 	    if (read_mode == 't') taxon += character;
 	    else if (read_mode == 's') {
 		map<char, bitset<SIZE> > alphabet = regions.get_partition_alphabet(pos);
