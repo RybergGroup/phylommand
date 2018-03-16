@@ -182,7 +182,7 @@ void tree::tree_file_parser( istream& infile, map<string,string> label_translati
         else if ( temp == ':') read_mode = 'b';
         else if ( temp == ';' ) {
             if (present_node == root ) { //check so we are back at root, if so we happily finish
-		if (!label_string.empty() || !extra_label_string.empty()) { // if a lable has bee read
+		if (!label_string.empty() || !extra_label_string.empty()) { // if a lable has been read
 		    if (!label_translation.empty()) { // if translating labels (e.g. nexus with translations)
 			map<string,string>::const_iterator translation = label_translation.find(label_string);
 			if (translation != label_translation.end()) label_string = translation->second;
@@ -1439,37 +1439,40 @@ void tree::rand_topology ( const int n  ) {
 	}
     }
 }
-
+/*
 void tree::add_Yule_node_depths (node* leaf) {
     unsigned int n_tips = n_sub_tips(leaf);
     double node_depth(0.0);
     set<node*> lineages;
     if (leaf->left != 0 && leaf->left->left != 0 && leaf->left->right != 0) lineages.insert(leaf->left);
     if (leaf->right != 0 && leaf->right->left != 0 && leaf->right->right != 0) lineages.insert(leaf->right);
-    for (unsigned int node_no = 2; node_no < n_tips; ++node_no) {
-	node_depth += log(((double) rand()/(RAND_MAX))+1)/(node_no);
+    for (unsigned int node_no = 2; node_no < n_tips; ++node_no) { // for all nodes
+	node_depth += log(((double) rand()/(RAND_MAX))+1)/(node_no); // get random node deapth
 	unsigned int rand_node(0);
-       	if (lineages.size()>0) rand_node = rand() % (lineages.size());
+       	if (lineages.size()>0) rand_node = rand() % (lineages.size()); // select random node
 	double dist_from_root(0.0);
 	#ifdef DEBUG
 	cerr << "node_depth: " << node_depth << " Node selected: " << rand_node << endl;
 	#endif
+	// get randomly selected node
 	node* selected_node;
 	set<node*>::const_iterator i = lineages.begin();
 	for (; i !=lineages.end() && rand_node > 0; ++i) --rand_node;
 	selected_node = *i;
+	///////
 	node* parent = selected_node->parent;
 	#ifdef DEBUG
 	cerr << "Made it here (" << rand_node << ')' << endl;
 	print_tips(cerr,selected_node);
 	cerr << endl;
 	#endif //DEBUG
-	while (parent != 0 && parent != leaf) {
+	while (parent != 0 && parent != leaf) { // get distance from root
 	    dist_from_root += parent->branchlength;
 	    parent = parent->parent;
 	}
-	selected_node->branchlength = node_depth-dist_from_root;
-	lineages.erase(selected_node);
+	selected_node->branchlength = node_depth-dist_from_root; // assign branch length
+	lineages.erase(selected_node); // remove node that has gotten branch length
+	// add its daughters as possible nodes to assign branch lengths to
 	if (selected_node->left != 0 && selected_node->left->left != 0 && selected_node->left->right != 0)
 	    lineages.insert(selected_node->left);
 	if (selected_node->right != 0 && selected_node->right->left != 0 && selected_node->right->right != 0)
@@ -1482,6 +1485,84 @@ void tree::add_Yule_node_depths (node* leaf) {
     cerr << "Will set tip labels." << endl;
     #endif //DEBUG
     set_tip_branch_lengths(leaf,node_depth+log(((double) rand()/(RAND_MAX))+1)/n_tips);
+}
+*/
+void tree::add_rand_node_depths (node* leaf, char model) {
+    unsigned int n_tips = n_sub_tips(leaf);
+    double node_depth(0.0);
+    set<node*> lineages;
+    if (leaf->left != 0 && leaf->left->left != 0 && leaf->left->right != 0) lineages.insert(leaf->left);
+    if (leaf->right != 0 && leaf->right->left != 0 && leaf->right->right != 0) lineages.insert(leaf->right);
+    forward_list<double> node_depths;
+    if (model == 'c') {
+    node_depths.push_front(-log((double) rand()/(RAND_MAX))/(n_tips*(n_tips-1)/2.0));
+      	#ifdef DEBUG
+	    cerr << "node_depth: " << node_depths.front() << endl;
+        #endif
+	for (unsigned int i=n_tips-1; i > 1; --i) {
+	    node_depths.push_front(-log((double) rand()/(RAND_MAX))/(i*(i-1)/2.0)+node_depths.front());
+	    #ifdef DEBUG
+		cerr << "node_depth: " << node_depths.front() << endl;
+	    #endif
+	}
+	if (!node_depths.empty()) {
+	    double root_age = node_depths.front();
+	    forward_list<double>::iterator previous = node_depths.begin();
+	    forward_list<double>::iterator i=node_depths.begin();
+	    ++i;
+	    for (; i != node_depths.end(); ++i) {
+		*previous = root_age-*i;
+		previous = i;
+	    }
+	    *previous = root_age;
+	}
+    }
+    for (unsigned int node_no = 2; node_no < n_tips; ++node_no) { // for all nodes
+	if (model == 'c') {
+	    node_depth = node_depths.front();
+	    node_depths.pop_front();
+	}
+	else {
+	    node_depth += log(((double) rand()/(RAND_MAX))+1)/(node_no); // get random node deapth
+	}
+	unsigned int rand_node(0);
+       	if (lineages.size()>0) rand_node = rand() % (lineages.size()); // select random node
+	double dist_from_root(0.0);
+	#ifdef DEBUG
+	cerr << "node_depth: " << node_depth << " Node selected: " << rand_node << endl;
+	#endif
+	// get randomly selected node
+	node* selected_node;
+	set<node*>::const_iterator i = lineages.begin();
+	for (; i !=lineages.end() && rand_node > 0; ++i) --rand_node;
+	selected_node = *i;
+	///////
+	node* parent = selected_node->parent;
+	#ifdef DEBUG
+	cerr << "Made it here (" << rand_node << ')' << endl;
+	print_tips(cerr,selected_node);
+	cerr << endl;
+	#endif //DEBUG
+	while (parent != 0 && parent != leaf) { // get distance from root
+	    dist_from_root += parent->branchlength;
+	    parent = parent->parent;
+	}
+	selected_node->branchlength = node_depth-dist_from_root; // assign branch length
+	lineages.erase(selected_node); // remove node that has gotten branch length
+	// add its daughters as possible nodes to assign branch lengths to
+	if (selected_node->left != 0 && selected_node->left->left != 0 && selected_node->left->right != 0)
+	    lineages.insert(selected_node->left);
+	if (selected_node->right != 0 && selected_node->right->left != 0 && selected_node->right->right != 0)
+	    lineages.insert(selected_node->right);
+	#ifdef DEBUG
+	cerr << "Number of nodes: " << lineages.size() << endl;
+	#endif //DEBUG
+    }
+    #ifdef DEBUG
+    cerr << "Will set tip labels." << endl;
+    #endif //DEBUG
+    if (model == 'c') set_tip_branch_lengths(leaf,node_depths.front());
+    else set_tip_branch_lengths(leaf,node_depth+log(((double) rand()/(RAND_MAX))+1)/n_tips);
 }
 
 void tree::set_tip_branch_lengths (node* leaf, const double tip_branch) {
@@ -2781,4 +2862,51 @@ void tree::null_short_branches( node* leaf, const double value ) {
 	if (leaf->branchlength < value) leaf->branchlength = 0.0;
     }
 }
+// add the distance from the root of each internal node to given vector and return longest distance to a tip
+double tree::get_node_heights (node* leaf, const double parent_height, vector<double>& heights) { 
+    if (leaf->left != 0 || leaf->right != 0) {
+	heights.push_back(parent_height+leaf->branchlength);
+	double dist_left(0.0);
+	double dist_right(0.0);
+	if (leaf->left != 0) dist_left = get_node_heights(leaf->left, parent_height+leaf->branchlength, heights);
+	if (leaf->right != 0) dist_right = get_node_heights(leaf->right, parent_height+leaf->branchlength, heights);
+	if (dist_left > dist_right) return dist_left;
+	else return dist_right;
+    }
+    else return parent_height+leaf->branchlength;
+}
 
+double tree::gamma (node* leaf) {
+    vector<double> node_heights;
+    node_heights.push_back(get_node_heights(leaf, 0, node_heights));
+    sort(node_heights.begin(),node_heights.end());
+    #ifdef DEBUG
+    cerr << "N node heights: " << node_heights.size() << endl;
+    #endif //DEBUG
+    double sum(0.0);
+    double T(0.0);
+    for (unsigned int i=1; i < node_heights.size(); ++i) {
+	T += (i+1) * (node_heights[i] - node_heights[i-1]);
+ 	if (i < node_heights.size()-1) {
+	    for (unsigned int k=1; k<=i; ++k) {
+		sum += (k+1) * (node_heights[k] - node_heights[k-1]);
+	    }
+	}
+	#ifdef DEBUG
+	cerr << "T: " << T << " sum: " << sum << endl;
+	#endif //DEBUG
+    }
+    double value = (1.0/(node_heights.size()-2)) * sum;
+    #ifdef DEBUG
+    cerr << "value: " << value << endl;
+    #endif //DEBUG
+    value -= T/2.0;
+    #ifdef DEBUG
+    cerr << "value: " << value << endl;
+    #endif //DEBUG
+    value /= T * sqrt(1.0/(12*(node_heights.size()-2)));
+    #ifdef DEBUG
+    cerr << "value: " << value << endl;
+    #endif //DEBUG
+    return value;
+}

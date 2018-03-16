@@ -25,6 +25,7 @@ contact: martin.ryberg@ebc.uu.se
 #include <map>
 #include <vector>
 #include <set>
+#include <forward_list>
 #include <bitset>
 #include <algorithm>
 #include <fstream>
@@ -93,8 +94,11 @@ class tree {
 	};
         void rand_topology ( const int n  );
 	void add_Yule_node_depths () {
-	    add_Yule_node_depths(root);
+	    add_rand_node_depths(root, 'y');
 	}
+	void add_Coal_node_depths () {
+            add_rand_node_depths(root, 'c');
+        }
         void print_newick( bool include_br_length, bool int_node_label ) {
             print_newick_subtree( root, include_br_length, int_node_label );
             std::cout << ";" << endl;
@@ -276,6 +280,7 @@ class tree {
 	void add_to_support(tree* B, const bool rooted);
 	void add_to_support(tree* B) { add_to_support(B, false); };
 	void add_one_to_each_support(const bool rooted) { add_one_to_each_support(root, rooted); };
+	double gamma() { gamma(root); }
     protected:
 	class node { //store the information for each node of the tree
 	    public:
@@ -441,8 +446,9 @@ class tree {
         }
 	// functions for adjusted MPL //
 	void adjustedMPL(map<node*,double>& given_nodeages, unsigned int n_char);
-	void add_Yule_node_depths (node* leaf);
-	void set_tip_branch_lengths (node* leaf, const double tip_branch);
+	//void add_Yule_node_depths (node* leaf);
+	void add_rand_node_depths (node* leaf, char model); // set branch length acording to y(uel) or c(oalescens) model
+	void set_tip_branch_lengths (node* leaf, const double tip_branch); // set branch lengths of the tips so that the tree is ultrametric, based on tip distance from node
 	//unsigned int add_node_depth ( node* leaf, const double node_depth, double dist_from_root, unsigned int no_lineages );
 	int_double2 calculate_mean_path_root( node* leaf, map<node*,double>& given_nodeages);
 	double local_adjustedMPL(node* leaf, map<node*,double>& given_nodeages, unsigned int n_char);
@@ -495,5 +501,7 @@ class tree {
 	void add_to_support(node* leaf, tree* B, set<string*>& split, const bool rooted);
 	void add_one_to_each_support(node* leaf, const bool rooted);
 	void add_characters_as_node_comments(node* leaf, parsimony_character_vector& characters, const unsigned int start_char, const unsigned int end_char, map<char, bitset<SIZE> >& alphabet);
+	double gamma(node* leaf);
+	double get_node_heights (node* leaf, const double parent_height, vector<double>& heights);
 };
 #endif //TREEHEADER

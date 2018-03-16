@@ -48,6 +48,7 @@ int main (int argc, char *argv []) {
     char tree_source('s');
     char output_format('w');
     char inverse_taxa('n');
+    char randBr('y');
     unsigned int tree_interval_start(0);
     unsigned int tree_interval_end(UINT_MAX);
     string taxastring;
@@ -405,9 +406,15 @@ int main (int argc, char *argv []) {
 			//n_taxa = atoi(argv[++i]);
 		    }
             }
-	    else if (!strcmp(argv[i],"--Yule") || !strcmp(argv[i],"--yule")) {
+	    else if (!strcmp(argv[i],"--rand_node_depths")) { // || !strcmp(argv[i],"--yule")) {
 		method = 'B';
+		if (i < argc-1 && argv[i+1][0] != '-' ) {
+		    ++i;
+		    if (argv[i][0] == 'Y' || argv[i][0] == 'y')	randBr='y';
+		    else if (argv[i][0] == 'C' || argv[i][0] == 'c') randBr='c';
+		}
 	    }
+	    else if (!strcmp(argv[i],"--gamma")) method = '!';
             else if (!strcmp(argv[i],"--interval")) {
                 if ( i < argc-1 && argv[i+1][0] != '-' ) {
 		    string argument(argv[++i]);
@@ -834,13 +841,18 @@ int main (int argc, char *argv []) {
 	}
 	else if (method == 'p') {
 	    std::cout << tree_separator;
-	    if (!quiet) cerr << "Patristic distances:" << endl;
+	    if (!quiet) cerr << "Patristic distances: " << endl;
 	    in_tree.back().print_distances_to_all_for_each_taxa ( separator2, separator );
 	    print_tree = false;
 	}
 	else if (method == 'Y') {
 	    if (!quiet) cerr << "Number of nodes with support above " << value << ":" << endl;
 	    std::cout << in_tree.back().n_supported(value) << endl;
+	    print_tree = false;
+	}
+	else if (method == '!') {
+	    if (!quiet) cerr << "Gamma: " << endl;
+	    std::cout << in_tree.back().gamma() << endl;
 	    print_tree = false;
 	}
        	else if (method == 'A') {
@@ -913,7 +925,8 @@ int main (int argc, char *argv []) {
 	}
 	else if (method == 'B') {
 	    in_tree.back().set_br_length( 0.0 );
-	    in_tree.back().add_Yule_node_depths();
+	    if (randBr == 'c') in_tree.back().add_Coal_node_depths();
+	    else in_tree.back().add_Yule_node_depths();
 	}
 	// Print tree
 	if (print_tree) {
@@ -1046,6 +1059,8 @@ void help () {
     std::cout << "--drop_tips_on_short_branches     drop tips on branches shorter than given cut" << endl;
     std::cout << "                                  off (given as next argument). Tips to the left" << endl;
     std::cout << "                                  are dropped before tips to the right." << endl;
+    std::cout << "--gamma                           get the gamma value (Pybus & Harvey 2000," << endl;
+    std::cout << "                                  Proc. R. Soc. Lond. B 267, 2267-2272)"<< endl;
     std::cout << "--get_tip_names / -t [sep.]       get the names of the tips in the tree, a" << endl;
     std::cout << "                                  separator can be specified, e.g. -t \\\\n (each" << endl;
     std::cout << "                                  name on separate rows; ',' is the default" << endl;
@@ -1151,6 +1166,13 @@ void help () {
     std::cout << "                                  (default is new line and space). A separator" << endl;
     std::cout << "                                  between output from different trees can be" << endl;
     std::cout << "                                  given after another colon." << endl;
+    /// Secret function ///
+/*    std::cout << "--rand_node_depths                assign random node depths according to the Yule" << endl;
+    std::cout << "                                  or Coalescence model (given as extra argument," << endl;
+    std::cout << "                                  default Yule). The Yule model will have rate 1" << endl;
+    std::cout << "                                  and the Coalescence branch lengths will be" << endl;
+    std::cout << "                                  scaled by population size and generation time." << endl;
+    std::cout << "                                  e.g. --rand_node_depths Coalescence." << endl; */
     std::cout << "--random_tree / -r                get a random topology (no branch lengths) with" << endl;
     std::cout << "                                  given number of taxa, e.g. -r 20 (default 0)." << endl;
     std::cout << "                                  Number of random trees can be given behind a" << endl;
