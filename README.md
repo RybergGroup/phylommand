@@ -1,5 +1,5 @@
 # Phylommand
-Phylommand (**Phylo**genetics c**ommand** line) is a software package for **creating**, **manipulating**, and/or **getting statistics** from **trees** or working with **pairwise alignments**.
+Phylommand (**Phylo**genetics on the c**ommand** line) is a software package for **creating**, **manipulating**, and/or **getting statistics** from **trees** or working with **pairwise alignments**.
 Phylommand is a commandline toolkit designed to be easily integrated in workflow pipelines.
 
 ## Table of Contents
