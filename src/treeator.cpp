@@ -458,7 +458,10 @@ int main (int argc, char *argv []) {
 	    tree tree;
 	    if (method == 'r') random_shuffle(characters.begin(),characters.end());
 	    tree.stepwise_addition(characters);
-	    if (print_br_length) tree.fitch_parsimony( characters, print_br_length );
+	    if (print_br_length) {
+		if (!quiet) cerr << "Calculating branch lengths." << endl;
+		tree.fitch_parsimony( characters, print_br_length );
+	    }
 	    if (print_tree == 'w') tree.print_newick(print_br_length);
 	    else if (print_tree == 'x') tree.print_nexus(print_br_length);
 	}

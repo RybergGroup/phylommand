@@ -1360,7 +1360,7 @@ void tree::print_svg_subtree ( node* leaf, poly_line_start* branch_start, bool n
         print_svg_subtree( leaf->right, right_branch, node_lable, n, x, x_unit, y_unit, offset, stroke_width, font_size, font, tip_color );
         n = right_branch->n;
     }
-    if (left_branch->line_start.compare(0,9,"<polyline") == 0 || right_branch->line_start.compare(0,9,"<polyline") == 0) { // or instead of ||?
+    if (left_branch->line_start.compare(0,9,"<polyline") == 0 || right_branch->line_start.compare(0,9,"<polyline") == 0) { //
         if (left_branch->line_start.compare(0,9,"<polyline") == 0 and right_branch->line_start.compare(0,9,"<polyline") == 0) {
             y = left_branch->y + ((right_branch->y - left_branch->y)/2);
             std::cout << left_branch->line_start << " " << x << "," << left_branch->y << " " << x << "," << y << "\"\nstyle=\"fill:none;stroke:black;stroke-width:" << stroke_width << "\" />" << endl;
@@ -2559,9 +2559,9 @@ unsigned int tree::fitch_parsimony (vector<character_vector>& characters, bool a
     unsigned int score = fitch_parsimony(root, decoded_characters, 0, max_n_char-1);
     if (ancestral_states || get_branch_lengths) {
 	unsigned int n = decoded_characters[root].n_char();
-	parsimony_character_vector prefered;
+	parsimony_character_vector prefered; // prefered is used to select along what branch a character change
 	bitset<SIZE> temp;
-	for (unsigned int i=0; i<n; ++i) { // prefered is used to select along what branch a character change
+	for (unsigned int i=0; i<n; ++i) { // pick random possible root state for each character
 	    temp = support_functions::pick_a_random_true_bit(decoded_characters[root].get_character(i));
 	    prefered.add_character(i,temp);
 	}
@@ -2575,12 +2575,34 @@ void tree::fitch_parsimony_second_pass (node* leaf, map<node*, parsimony_charact
     if (leaf->parent !=0 && characters.find(leaf->parent) != characters.end()) {
 	unsigned int branch(0);
 	for (unsigned int i=start_char; i<=end_char; ++i) {
-	    bitset<SIZE> temp = characters[leaf].get_character(i);
+	    bitset<SIZE> preliminary = characters[leaf].get_character(i);
+	    bitset<SIZE> temp = characters[leaf->parent].get_character(i);
+	    temp ^= preliminary;
 	    temp &= characters[leaf->parent].get_character(i);
-	    prefered.get_character(i) &= temp; // prefered is used to select along what branch a character change
-	    if (temp.any() && (reconstruct_tip_state || leaf->left != 0 || leaf-> right != 0))
-		characters[leaf].add_character(i,temp);
-	    if (!prefered.get_character(i).any()) {
+	    // get final node set
+	    if (temp.none() && (reconstruct_tip_state || leaf->left != 0 || leaf-> right != 0)) { // Fitch second round first option
+		preliminary &= characters[leaf->parent].get_character(i);
+		characters[leaf].add_character(i,preliminary);
+	    }
+	    else if (leaf->left != 0) {
+		temp = characters[leaf->left].get_character(i);
+		temp ^= preliminary; // get bits unique for any set
+		temp &= preliminary; // get bits unique for preliminary
+		//test if formed by union
+		if (temp.any()) { // if any bits is uniqe for preliminary it was a union
+		    preliminary |= characters[leaf->parent].get_character(i);
+		    characters[leaf].add_character(i,preliminary); // add any states in ancestor
+		}
+		else if (leaf->right != 0) {
+		    temp = characters[leaf->left].get_character(i) | characters[leaf->right].get_character(i);
+		    temp &= characters[leaf->parent].get_character(i);
+		    preliminary |= temp;
+		    characters[leaf].add_character(i,preliminary); // add ancestral states also in descendants
+		}
+	    }
+	    // calc branchlength
+	    prefered.get_character(i) &= characters[leaf].get_character(i); // prefered is used to select along what branch a character change
+	    if (prefered.get_character(i).none()) {
 		++branch;
 		temp=support_functions::pick_a_random_true_bit(characters[leaf].get_character(i));
 		prefered.add_character(i,temp);
@@ -2593,7 +2615,7 @@ void tree::fitch_parsimony_second_pass (node* leaf, map<node*, parsimony_charact
 	cerr << "Diff score: " << (characters[leaf->parent].get_score()-characters[leaf].get_score()) << endl;
 	#endif //DEBUGTREEATOR
     }
-    else {
+    else { // For root, should not happen otherwise
 	if (calc_branch_length) leaf->branchlength = 0;
 	if (draw_ancestral_state) add_characters_as_node_comments(leaf, characters[leaf], start_char, end_char, alphabet);
     }
@@ -2717,7 +2739,7 @@ void tree::stepwise_addition (vector<character_vector>& characters) {
     }
 }
 
-void tree::recalc_fitch_parsimony_given_added_tip ( node* leaf, map<node*, parsimony_character_vector>& node_states, unsigned int start_char, unsigned int end_char ) {
+/*void tree::recalc_fitch_parsimony_given_added_tip ( node* leaf, map<node*, parsimony_character_vector>& node_states, unsigned int start_char, unsigned int end_char ) {
     node* prev_leaf = leaf;
     if (leaf !=0) leaf = leaf->parent;
     unsigned int score = 0;
@@ -2755,7 +2777,7 @@ void tree::recalc_fitch_parsimony_given_added_tip ( node* leaf, map<node*, parsi
         prev_leaf = leaf;
         leaf = leaf->parent;
     }
-}
+}*/
 
 bool tree::add_tip_to_branch_parsimony(node* new_taxon, map<node*, parsimony_character_vector>& node_states, unsigned int start_char, unsigned int end_char) {
     const unsigned int number_of_tips = n_tips();

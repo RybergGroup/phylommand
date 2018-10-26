@@ -496,7 +496,7 @@ class tree {
 	unsigned int assign_branch_number_to_internal_nodes (node* leaf, unsigned int number);
 	bool add_tip_to_branch_parsimony(node* new_taxon, map<node*, parsimony_character_vector>& node_states, const unsigned int start_char, const unsigned int end_char);
 	unsigned int parsimony_score_if_tip_added_to_branch (const unsigned int branch_no, map<node*, parsimony_character_vector>& node_states, parsimony_character_vector taxa_state, const unsigned int start_char, const unsigned int end_char);
-	void recalc_fitch_parsimony_given_added_tip ( node* leaf, map<node*, parsimony_character_vector>& node_states, unsigned int start_char, unsigned int end_char );
+	//void recalc_fitch_parsimony_given_added_tip ( node* leaf, map<node*, parsimony_character_vector>& node_states, unsigned int start_char, unsigned int end_char );
 	void clear_node_states_from_tip ( node* leaf, map<node*, parsimony_character_vector>& node_states );
 	void add_to_support(node* leaf, tree* B, set<string*>& split, const bool rooted);
 	void add_one_to_each_support(node* leaf, const bool rooted);
