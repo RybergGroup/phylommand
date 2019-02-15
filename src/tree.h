@@ -467,7 +467,7 @@ class tree {
         double sum_br_length( node *leaf );
         double two_taxa_distance ( const string* taxon1, const string* taxon2 );
         node* most_recent_common_ancestor ( const string* taxon1, const string* taxon2 );
-        node* most_recent_common_ancestor ( const string taxa ); // comma separated list of taxa
+        node* most_recent_common_ancestor ( const string& taxa ); // comma separated list of taxa
 	node* most_recent_common_ancestor ( set<string*> taxa );
 	node* most_recent_common_ancestor ( vector<node*>& nodes );
         node* find_taxon_tip ( node *leaf, string taxon );

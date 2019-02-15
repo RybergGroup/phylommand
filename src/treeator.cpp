@@ -1,5 +1,5 @@
 /********************************************************************
-Copyright (C) 2016 Martin Ryberg
+Copyright (C) 2019 Martin Ryberg
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@ void help ();
 
 double opt_function(const std::vector<double> &x, std::vector<double> &grad, void* data);
 double opt_rate_in_time(const std::vector<double> &x, std::vector<double> &grad, void* data);
+double opt_rate_for_clades_function(const std::vector<double> &x, std::vector<double> &grad, void* data);
 void change_non_fixed(const std::vector<double> &x, std::vector<double>* values, const std::set<unsigned int>* fixed);
 
 struct tree_modelspec_struct {
@@ -73,6 +74,7 @@ int main (int argc, char *argv []) {
     string tree_file_format;
     string data_file_format;
     map<string,string> taxa_trans;
+    vector<string> taxon_sets;
     ///// Variables for ancon
     #ifdef NLOPT
     bool optimize_param = true;
@@ -81,7 +83,7 @@ int main (int argc, char *argv []) {
     #endif //NLOPT
     vector<unsigned int> model_specifications;
     double cut_off = 0.0;
-    double rate_mod = 1.0;
+    vector <double> rate_mod;
     set<unsigned int> fixed_parameters;
     vector<double> model_parameters;
     ///////////
@@ -194,8 +196,14 @@ int main (int argc, char *argv []) {
 		    if (method != 't') method = 'o';
             }
             else if (!strcmp(argv[i],"-R") || !strcmp(argv[i],"--rate_mod")) {
-                if ( i < argc-1 && argv[i+1][0] != '-' )
-                    rate_mod = atof(argv[++i]);
+                if ( i < argc-1 && argv[i+1][0] != '-' ) {
+		    vector<string> temp;
+		    argv_parser::pars_sub_args(argv[++i], ';', temp);
+		    for (vector<string>::iterator t=temp.begin(); t != temp.end(); ++t) {
+			rate_mod.push_back(atof(t->c_str()));
+		    }
+		}
+                //    rate_mod = atof(argv[++i]);
                 else {
                     std::cerr << "-R/--rate_mod require a number as next argument." << endl;
                     return 1;
@@ -211,6 +219,14 @@ int main (int argc, char *argv []) {
                 }
 		method='t';
             }
+	    else if (!strcmp(argv[i],"-A") || !strcmp(argv[i],"--taxon_sets")) {
+		if ( i < argc-1 && argv[i+1][0] != '-' )
+		    argv_parser::pars_sub_args(argv[++i],';',taxon_sets);
+		else {
+		    cerr << "-A / --taxon_sets require at least one set of taxa given as a commaseparated string as next argument." << endl;
+		}
+		method = 'A';
+	    }
 	    else if (!strcmp(argv[i],"--get_state_at_nodes")) {
 		print_state_on_nodelabel = true;
 	    }
@@ -290,6 +306,14 @@ int main (int argc, char *argv []) {
             return 1;
         }
     }
+    if (method == 't' && rate_mod.empty()) {
+	rate_mod.push_back(1.0);
+    }
+    else if (method == 'A' && rate_mod.size() < taxon_sets.size()) {
+	for (int i = rate_mod.size(); i < taxon_sets.size(); ++i) {
+	    rate_mod.push_back(1.0);
+	}
+    }
     /*#ifdef DEBUG
     if (*data_input.file_stream == cin) cerr << "Possible data read from standard in." << endl;
     else cerr << "Possible data read from " << data_file_name << endl;
@@ -313,7 +337,7 @@ int main (int argc, char *argv []) {
 	return 0;
     }
     /// For parsimony and ML
-    if (method == 'p' || method == 's' || method == 'r' || method == 'o' || method == 't') { // ML or parsimony
+    if (method == 'p' || method == 's' || method == 'r' || method == 'o' || method == 't' || method == 'A') { // ML or parsimony
 	vector<character_vector> characters;
 	map<char, bitset<SIZE> > alphabet;
 	alphabet::set_alphabet_dna(alphabet);
@@ -465,7 +489,7 @@ int main (int argc, char *argv []) {
 	    if (print_tree == 'w') tree.print_newick(print_br_length);
 	    else if (print_tree == 'x') tree.print_nexus(print_br_length);
 	}
-	else if (method == 'o' || method == 't') {
+	else if (method == 'o' || method == 't' || method == 'A') {
 	    if (characters.begin()->n_char() > 1) cerr << "Warning!!! Will only calculate likelihood of first character in matrix." << endl;
 	    unsigned int n_states = 0;
 	    unsigned int n_parameters = 0;
@@ -523,7 +547,13 @@ int main (int argc, char *argv []) {
 	    if (method == 't') {
 		n_parameters+=2;
 		model_parameters.push_back(cut_off);
-		model_parameters.push_back(rate_mod);
+		model_parameters.push_back(rate_mod[0]);
+	    }
+	    else if (method == 'A') {
+		n_parameters += taxon_sets.size();
+		for (int i = 0; i < taxon_sets.size(); ++i) {
+		    model_parameters.push_back(rate_mod[i]);
+		}
 	    }
 	    // check fixed_parameters
 	    #ifdef DEBUG
@@ -567,6 +597,7 @@ int main (int argc, char *argv []) {
 		tree.tree_file_parser( *tree_input.file_stream, taxa_trans, false );
 		if (tree.empty()) break;
 		++read_trees;
+		if (!taxon_sets.empty()) tree.add_taxon_sets(taxon_sets);
 		if (tree.shortest_branch() < 0.0) cerr << "Warning!!! Tree " << read_trees << " contains negative branches." << endl;
 		tree.init(n_states); // need to fix this
 		for (vector<character_vector>::iterator i=characters.begin(); i!=characters.end(); ++i)
@@ -615,6 +646,18 @@ int main (int argc, char *argv []) {
 			model_out << "Time from root to rate change: " << model_parameters[model_parameters.size()-2] << endl;
 			model_out << "Rate multiplier: " << model_parameters[model_parameters.size()-1] << endl;
 		    }
+		    else if (method == 'A') {
+			maximize.set_max_objective(opt_rate_for_clades_function,&data);
+			model_out << "Number of parameters to optimize: " << maximize.get_dimension() << endl;
+			nlopt::result result = maximize.optimize(variable_values,LogL);
+			if (result < 0) {
+			    cerr << "Failure when optimizing!!!" << endl;
+			    return 1;
+			}
+			for (int i=0; i < taxon_sets.size(); ++i) {
+			    model_out << taxon_sets[i] << ": " << model_parameters[model_parameters.size()-taxon_sets.size()+i] << endl;
+			}
+		    }
 		    else {
 			cerr << "Unrecognized method. Nothing to do." << endl;
 			return 1;
@@ -643,8 +686,11 @@ int main (int argc, char *argv []) {
 		    }
 		    else if (method == 't') {
 			tree.set_Q_matrix(&model_specifications[0],&model_parameters[0]);
-			model_out << "Log likelihood= " << tree.calculate_likelihood_rate_change_in_time(cut_off,rate_mod) << endl;
-			model_out << "Time from root: " << cut_off << " Rate modifier: " << rate_mod << endl;
+			model_out << "Log likelihood= " << tree.calculate_likelihood_rate_change_in_time(cut_off,rate_mod[0]) << endl;
+			model_out << "Time from root: " << cut_off << " Rate modifier: " << rate_mod[0] << endl;
+		    }
+		    else if (method == 'A') {
+
 		    }
 		    else {
 			cerr << "Unrecognized method. Nothing to do." << endl;
@@ -680,91 +726,95 @@ int main (int argc, char *argv []) {
 }
 
 void help () {
-    std::cout << "Treeator " << VERSION <<  " is a command line program to construct trees. The program take" << endl;
-    std::cout << "either a left triangular similarity matrix (neighbour joining) or a data matrix" << endl;
-    std::cout << "of fasta, nexus, or relaxed phylip format (not interleaved; parsimony/maximum" << endl;
-    std::cout << "likelihood) as input through standard in/ last argument/ as given below. For" << endl;
-    std::cout << "character data an alphabet is also needed, default is binary (0 1 -)." << endl;
-    std::cout << "(c) Martin Ryberg " << YEAR << "." << endl << endl;
-    std::cout << "Usage:" << endl << "treeator [arguments] data_file.txt" << endl << endl;
-    std::cout << "Arguments:" << endl;
-    std::cout << "--alphabet_file / -a [file/type] give file with character alphabet, or dna," << endl;
-    std::cout << "                                 protein, or binary for dna, amino acid," << endl;
-    std::cout << "                                 respectively binary (0 1) alphabets (default:" << endl;
-    std::cout << "                                 dna)." << std::endl;
-    std::cout << "--data_file / -d [file]          give the data file."<< std::endl;
-    std::cout << "--do_not_calc_br_length / -c     do not save branch length when doing parsimony" << endl;
-    std::cout << "                                 reconstruction. This means that the branch" << endl;
-    std::cout << "                                 lengths of the input tree are kept. If you do" << endl;
-    std::cout << "                                 not want branch length in the output tree use" << endl;
-    std::cout << "                                 --no_branch_length/-0." << endl;
-    std::cout << "--fixed / -e [number/s]          give parameter to fix. First parameter is" << endl;
-    std::cout << "                                 indexed 0. Several parameters can be given in a" << endl;
-    std::cout << "                                 comma separated string, e.g. -e 0,2,3." << endl;
-    std::cout << "--file / -f [file]               give data file name, or if data file name" << endl;
-    std::cout << "                                 already given, then tree file name. If nexus" << endl;
-    std::cout << "                                 format and no tree file name is given, tree is" << endl;
-    std::cout << "                                 assumed to be in same file as data." << endl;
-    std::cout << "--format [format]                give the format of the input files. For" << endl;
-    std::cout << "                                 character file fasta, phylip and nexus are the" << endl;
-    std::cout << "                                 options. For the tree file the options are" << endl;
-    std::cout << "                                 newick and nexus. Give the character file" << endl;
-    std::cout << "                                 format first, and the tree file format after a" << endl;
-    std::cout << "                                 comma, e.g. --format phylip,newick. Fasta is" << endl;
-    std::cout << "                                 the default character file format, and newick" << endl;
-    std::cout << "                                 is the default tree file format (unless" << endl;
-    std::cout << "                                 character file is set to nexus, then nexus is" << endl;
-    std::cout << "                                 also default for tree file, e.g. --format" << endl;
-    std::cout << "                                 nexus)." << endl;
-    std::cout << "--get_state_at_nodes             will give the states at internal nodes as" << endl;
-    std::cout << "                                 comments (readable in FigTree)." << endl;
-    std::cout << "--help / -h                      print this help." << endl;
-    std::cout << "--likelihood / -l                calculate likelihood for data given tree." << endl;
-    /*std::cout << "--likelihood / -l [const/time]   calculate likelihood for data given tree." << endl;
-    std::cout << "                                 Either with constant rate through time (const)" << endl;
-    std::cout << "                                 or with rate changing (multiplied by a" << endl;
-    std::cout << "                                 variable) at a certain time point (time)." << endl;*/
-    std::cout << "--model / -m [number/s]          give the model by numbering the rate parameters" << endl;
-    std::cout << "                                 for different transition, e.g. -m 0,1,0,2,1,2." << endl;
-    std::cout << "                                 The order is by row, i.e. from parameter 0 to" << endl;
-    std::cout << "                                 parameter 1 first then, 0 to 2, and so on to" << endl;
-    std::cout << "                                 all other parameters, then 1 to 0, and so" << endl;
-    std::cout << "                                 forth." << endl;
-    std::cout << "--neighbour_joining / -n         compute neighbour joining tree for given data." << endl;
-    std::cout << "                                 The data should be  a left triangular" << endl;
-    std::cout << "                                 similarity matrix." << std::endl;
-    std::cout << "--no_branch_length / -0          do not print branch lengths and do not" << endl;
-    std::cout << "                                 calculate branch lengths for parsimony trees." << std::endl;
-    std::cout << "--no_label / -L                  will tell treeator that there are no taxon" << endl;
-    std::cout << "                                 labels in the similarity matrix." << endl;
+    cout << "Treeator " << VERSION <<  " is a command line program to construct trees. The program take" << endl;
+    cout << "either a left triangular similarity matrix (neighbour joining) or a data matrix" << endl;
+    cout << "of fasta, nexus, or relaxed phylip format (not interleaved; parsimony/maximum" << endl;
+    cout << "likelihood) as input through standard in/ last argument/ as given below. For" << endl;
+    cout << "character data an alphabet is also needed, default is binary (0 1 -)." << endl;
+    cout << "(c) Martin Ryberg " << YEAR << "." << endl << endl;
+    cout << "Usage:" << endl << "treeator [arguments] data_file.txt" << endl << endl;
+    cout << "Arguments:" << endl;
+    cout << "--alphabet_file / -a [file/type] give file with character alphabet, or dna," << endl;
+    cout << "                                 protein, or binary for dna, amino acid," << endl;
+    cout << "                                 respectively binary (0 1) alphabets (default:" << endl;
+    cout << "                                 dna)." << endl;
+    cout << "--data_file / -d [file]          give the data file."<< endl;
+    cout << "--do_not_calc_br_length / -c     do not save branch length when doing parsimony" << endl;
+    cout << "                                 reconstruction. This means that the branch" << endl;
+    cout << "                                 lengths of the input tree are kept. If you do" << endl;
+    cout << "                                 not want branch length in the output tree use" << endl;
+    cout << "                                 --no_branch_length/-0." << endl;
+    cout << "--fixed / -e [number/s]          give parameter to fix. First parameter is" << endl;
+    cout << "                                 indexed 0. Several parameters can be given in a" << endl;
+    cout << "                                 comma separated string, e.g. -e 0,2,3." << endl;
+    cout << "--file / -f [file]               give data file name, or if data file name" << endl;
+    cout << "                                 already given, then tree file name. If nexus" << endl;
+    cout << "                                 format and no tree file name is given, tree is" << endl;
+    cout << "                                 assumed to be in same file as data." << endl;
+    cout << "--format [format]                give the format of the input files. For" << endl;
+    cout << "                                 character file fasta, phylip and nexus are the" << endl;
+    cout << "                                 options. For the tree file the options are" << endl;
+    cout << "                                 newick and nexus. Give the character file" << endl;
+    cout << "                                 format first, and the tree file format after a" << endl;
+    cout << "                                 comma, e.g. --format phylip,newick. Fasta is" << endl;
+    cout << "                                 the default character file format, and newick" << endl;
+    cout << "                                 is the default tree file format (unless" << endl;
+    cout << "                                 character file is set to nexus, then nexus is" << endl;
+    cout << "                                 also default for tree file, e.g. --format" << endl;
+    cout << "                                 nexus)." << endl;
+    cout << "--get_state_at_nodes             will give the states at internal nodes as" << endl;
+    cout << "                                 comments (readable in FigTree)." << endl;
+    cout << "--help / -h                      print this help." << endl;
+    cout << "--likelihood / -l                calculate likelihood for data given tree." << endl;
+    /*cout << "--likelihood / -l [const/time]   calculate likelihood for data given tree." << endl;
+    cout << "                                 Either with constant rate through time (const)" << endl;
+    cout << "                                 or with rate changing (multiplied by a" << endl;
+    cout << "                                 variable) at a certain time point (time)." << endl;*/
+    cout << "--model / -m [number/s]          give the model by numbering the rate parameters" << endl;
+    cout << "                                 for different transition, e.g. -m 0,1,0,2,1,2." << endl;
+    cout << "                                 The order is by row, i.e. from parameter 0 to" << endl;
+    cout << "                                 parameter 1 first then, 0 to 2, and so on to" << endl;
+    cout << "                                 all other parameters, then 1 to 0, and so" << endl;
+    cout << "                                 forth." << endl;
+    cout << "--neighbour_joining / -n         compute neighbour joining tree for given data." << endl;
+    cout << "                                 The data should be  a left triangular" << endl;
+    cout << "                                 similarity matrix." << endl;
+    cout << "--no_branch_length / -0          do not print branch lengths and do not" << endl;
+    cout << "                                 calculate branch lengths for parsimony trees." << endl;
+    cout << "--no_label / -L                  will tell treeator that there are no taxon" << endl;
+    cout << "                                 labels in the similarity matrix." << endl;
     #ifdef NLOPT
-    std::cout << "--no_optim / -N                  calculate likelihood for given parameters. No" << endl;
-    std::cout << "                                 optimization." << endl;
+    cout << "--no_optim / -N                  calculate likelihood for given parameters. No" << endl;
+    cout << "                                 optimization." << endl;
     #endif //NLOPT
-    std::cout << "--output [newick/nexus]          give tree format for output, nexus (nex or x" << endl;
-    std::cout << "                                 for short) or newick (new or w for short), e.g" << endl;
-    std::cout << "                                 --output x. (default w)." << endl; 
-    std::cout << "--parameters / -P [values]       give corresponding parameter values for" << endl;
-    std::cout << "                                 parameters.";
+    cout << "--output [newick/nexus]          give tree format for output, nexus (nex or x" << endl;
+    cout << "                                 for short) or newick (new or w for short), e.g" << endl;
+    cout << "                                 --output x. (default w)." << endl; 
+    cout << "--parameters / -P [values]       give corresponding parameter values for" << endl;
+    cout << "                                 parameters.";
     #ifdef NLOPT
-    std::cout << " If optimizing these will be" << endl;
-    std::cout << "                                 starting values, e.g.";
+    cout << " If optimizing these will be" << endl;
+    cout << "                                 starting values, e.g.";
     #else
-    std::cout << " E.g.";
+    cout << " E.g.";
     #endif //NLOPT
-    std::cout << " -P 0.1,0.01,0.05.";
-    std::cout << endl;
-    std::cout << "--parsimony / -p                 calculate parsimony score for given tree and" << endl;
-    std::cout << "                                 data." << std::endl;
-    /*std::cout << "--rate_mod / -R [value]        give modifier for rate compared to rate at root" << endl;
-    std::cout << "                                 e.g. -r 0.5. Default: 1.0." << endl;*/
-    std::cout << "--random / -r                    do stepwise addition in random order." << endl;
-    /*std::cout << "--time / -T [value]            give branch length distance from root where" << endl;
-    std::cout << "                                 change in rate occur, e.g. -t 10. Default: 0." << endl;*/
-    std::cout << "--tree_file / -t [file]          give tree file name." << std::endl;
-    std::cout << "--step_wise / -s                 do parsimony stepwise addition." << std::endl;
-    std::cout << "--verbose / -v                   get additional output." << endl;
-    std::cout << endl;
+    cout << " -P 0.1,0.01,0.05.";
+    cout << endl;
+    cout << "--parsimony / -p                 calculate parsimony score for given tree and" << endl;
+    cout << "                                 data." << endl;
+    /*cout << "--rate_mod / -R [value]        give modifier for rate compared to rate at root" << endl;
+    cout << "                                 e.g. -r 0.5. Default: 1.0." << endl;*/
+    cout << "--random / -r                    do stepwise addition in random order." << endl;
+    /*cout << "--time / -T [value]            give branch length distance from root where" << endl;
+    cout << "                                 change in rate occur, e.g. -t 10. Default: 0." << endl;*/
+    cout << "--tree_file / -t [file]          give tree file name." << endl;
+    /*cout << "--taxon_sets / -A                give sets of taxa. Different sets should be" << endl;
+    cout << "                                 separated by semicolon (;), taxa in set should" << endl;
+    cout << "                                 be separated by comma, e.g. -A \"Taxon1,Taxon2;" << endl;
+    cout << "                                 Taxon3,Taxon4\"." << endl;*/
+    cout << "--step_wise / -s                 do parsimony stepwise addition." << endl;
+    cout << "--verbose / -v                   get additional output." << endl;
+    cout << endl;
 }
 
 double opt_function(const std::vector<double> &x, std::vector<double> &grad, void* data) {
@@ -785,6 +835,14 @@ double opt_rate_in_time(const std::vector<double> &x, std::vector<double> &grad,
     #endif //DEBUG
     return LogLH;
 }
+
+double opt_rate_for_clades_function(const std::vector<double> &x, std::vector<double> &grad, void* data) {
+    change_non_fixed(x,static_cast<tree_modelspec_struct*>(data)->values,static_cast<tree_modelspec_struct*>(data)->fixed);
+    double LogLH = static_cast<tree_modelspec_struct*>(data)->tree->calculate_likelihood_rate_change_at_nodes(&(static_cast<tree_modelspec_struct*>(data)->specifications->front()),&(static_cast<tree_modelspec_struct*>(data)->values->at(0)), &(static_cast<tree_modelspec_struct*>(data)->values->at(static_cast<tree_modelspec_struct*>(data)->values->size()-static_cast<tree_modelspec_struct*>(data)->tree->n_taxon_sets())));
+    return LogLH;
+
+}
+
 
 void change_non_fixed(const std::vector<double> &x, std::vector<double>* values, const std::set<unsigned int>* fixed) {
     /*#if DEBUG

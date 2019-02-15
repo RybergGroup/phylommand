@@ -92,6 +92,20 @@ void simpleML::calculate_likelihood (const node* leaf) {
     }
 }
 
+void simpleML::calculate_likelihood_rate_change_at_nodes (const node* leaf, double rate, const map<node*, double>& rate_changes) {
+    map<node*, double>::const_iterator change = rate_changes.find(const_cast<node*>(leaf));
+    if (change != rate_changes.end()) rate = change->second;
+    if (leaf->left != 0) {
+	calculate_likelihood_rate_change_at_nodes(leaf->left, rate, rate_changes);
+	branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->left)),leaf->left->branchlength*rate,false);
+    }
+    if (leaf->right != 0) {
+	calculate_likelihood_rate_change_at_nodes(leaf->right, rate, rate_changes);
+	if (leaf->left != 0) branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),leaf->right->branchlength*rate,true);
+	else branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),leaf->right->branchlength*rate,false);
+    }
+}
+
 void simpleML::calculate_likelihood_rate_change_in_time(const node* leaf, const double dist_from_root, const double cut_off, double rate) {
     if (leaf->left != 0) {
 	calculate_likelihood_rate_change_in_time(leaf->left, dist_from_root+leaf->left->branchlength,cut_off,rate);

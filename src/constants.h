@@ -1,5 +1,5 @@
 /********************************************************************
-Copyright (C) 2016 Martin Ryberg
+Copyright (C) 2019 Martin Ryberg
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,8 +23,8 @@ contact: martin.ryberg@ebc.uu.se
 #include <bitset>
 
 static const unsigned int SIZE = 24;
-static const char VERSION[] = "1.0";
-static const char YEAR[] = "2016";
+static const char VERSION[] = "1.1";
+static const char YEAR[] = "2019";
 
 namespace nexus_command {
     const char END = 'e';

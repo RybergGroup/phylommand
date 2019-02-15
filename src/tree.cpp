@@ -539,10 +539,6 @@ void tree::print_non_descendants( ostream& output, node *leaf, node* done, const
 	}
     }
 }
-/*void tree::outgroup_root ( const string taxa ) {
-    node *present = most_recent_common_ancestor (taxa);
-    re_root(present);
-}*/
 void tree::midpoint_root() {
     node* midpoint_node = root;
     double branch_length1 = find_midpoint_node(midpoint_node); // find node with midpoint
@@ -1027,7 +1023,7 @@ tree::node * tree::most_recent_common_ancestor ( const string* taxon1, const str
     return mrca;
 }
 
-tree::node * tree::most_recent_common_ancestor ( const string taxa ) {
+tree::node * tree::most_recent_common_ancestor ( const string& taxa ) {
     string taxon;
     int str_length=taxa.length();
     vector<node*> nodes;

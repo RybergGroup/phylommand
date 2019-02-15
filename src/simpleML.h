@@ -63,6 +63,29 @@ class simpleML : public tree {
 	    set_Q_matrix(values);
 	    return calculate_log_likelihood();
 	}
+	void add_taxon_sets(vector<string>& taxon_sets) {
+	    for (int i = 0; i < taxon_sets.size(); ++i) {
+		clades.push_back(most_recent_common_ancestor(taxon_sets[i]));
+	    }
+	}
+	double calculate_likelihood_rate_change_at_nodes ( const double* rates ) {
+	    map<node*, double> rate_changes;
+	    for (int i = 0; i < clades.size() && i < clades.size(); ++i) {
+		if (clades[i] != 0) rate_changes[clades[i]] = rates[i];
+	    }
+	    calculate_likelihood_rate_change_at_nodes(root,1.0,rate_changes);
+	    double likelihood=0;
+	    for (unsigned int i=0; i < n_states; ++i) likelihood += likelihoods[root][i];
+            return log(likelihood);
+	}
+	double calculate_likelihood_rate_change_at_nodes (const double* values, const double* rates) {
+	    set_Q_matrix(values);
+	    return calculate_likelihood_rate_change_at_nodes( rates);
+	}
+	double calculate_likelihood_rate_change_at_nodes (const unsigned int* parameters, const double* values, const double* rates) {
+	    set_Q_matrix(parameters,values);
+	    return calculate_likelihood_rate_change_at_nodes( rates);
+	}
 	double calculate_likelihood_rate_change_in_time(const double cut_off, const double rate) {
 	    if (!check_nodes ( root )) return 0.0;
 	    calculate_likelihood_rate_change_in_time( root, 0.0, cut_off, rate );
@@ -81,9 +104,11 @@ class simpleML : public tree {
 	void print_Q_matrix ( ostream& output_stream ) { Q_matrix.print( output_stream ); };
 	void print_Q_matrix () { Q_matrix.print( std::cout ); };
 	void draw_normalized_likelihood_on_nodes() { draw_normalized_likelihood_on_nodes( root ); };
+	unsigned int n_taxon_sets() { return clades.size(); }
     private:
 	// variables
 	map<node*,vector<double> > likelihoods;
+	vector<node*> clades;
 	unsigned int n_states;
 	marth::square_matrix Q_matrix;
 	// functions
@@ -92,6 +117,7 @@ class simpleML : public tree {
 	bool check_nodes ( const node* leaf );
 	void calculate_likelihood ( const node* leaf );
 	void calculate_likelihood_rate_change_in_time(const node* leaf, const double dist_from_root, const double cut_off, const double rate);
+	void calculate_likelihood_rate_change_at_nodes(const node* leaf, double rate, const map<node*, double>& rate_changes);
 	void draw_normalized_likelihood_on_nodes( node* leaf );
 	void branch_likelihood ( map<node*,vector<double> >::iterator LHbins, map<node*,vector<double> >::iterator startLHs, double branch_length, bool multiply);
 };
