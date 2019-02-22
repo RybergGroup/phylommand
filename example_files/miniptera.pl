@@ -146,7 +146,7 @@ sub in_array{
     return 0;
 }
 sub help {
-    print "miniptera is a script to find the largest alignabe group acording to MAD score\nusing the phylommand package. Phylommand needs to be in the users PATH. The\ninput should be in fasta format and given in a file as last argument\n\n";
+    print "miniptera is a script to find the largest alignabel group acording to MAD score\nusing the phylommand package. Phylommand needs to be in the users PATH. The\ninput should be in fasta format and given in a file as last argument\n\n";
     print "miniptera.pl [-A/-h] file.fst\n\n";
     print "--aligned / -A    will tell miniptera that the sequences are already aligned.\n";
     print "--help / -h       will print this help.\n";

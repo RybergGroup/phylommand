@@ -50,6 +50,7 @@ struct tree_modelspec_struct {
     const vector<unsigned int>* specifications; // which parameter represents which rate i.e. 0,0,1,1,2,2 represents same rates going from 0->1 as 0->2, and 1->0 as 1->2, and so on.
     vector<double>* values;
     const set<unsigned int>* fixed;
+    bool tr;
 };
 
 int main (int argc, char *argv []) {
@@ -63,6 +64,7 @@ int main (int argc, char *argv []) {
     bool print_state_on_nodelabel(false);
     char print_tree = 'w';
     bool quiet(true);
+    bool tr(false);
     bool non_as_uncertain(true);
     string tree_file_name;
     ifstream tree_file;
@@ -86,6 +88,7 @@ int main (int argc, char *argv []) {
     vector <double> rate_mod;
     set<unsigned int> fixed_parameters;
     vector<double> model_parameters;
+    vector<double>char_freqs;
     ///////////
     bool tree_same_as_data_when_nexus(false);
     /// Reading arguments ///
@@ -191,9 +194,26 @@ int main (int argc, char *argv []) {
 		    return 1;
 		}
             }
+	    else if (!strcmp(argv[i],"-F") || !strcmp(argv[i],"--frequencies")) {
+		if (i < argc-1 && argv[i+1][0] != '-') {
+		    ++i;
+		    vector<string> numbers;
+		    argv_parser::pars_sub_args(argv[i], ',', numbers);
+		    while (vector<string>::const_iterator i=numbers.begin(); i != numbers.end(); ++i) {
+                        char_freqs.push_back(atof(i->c_str()));
+			numbers.pop_back();
+		    }
+		}
+                else {
+                    cerr << "-F/--frequencies require a comma separated real number string as next argument.";
+                    return 1;
+                }
+		tr = true;
+		if (method != 'A' && method != 't') method = 'o';
+	    }
             else if (!strcmp(argv[i],"-N") || !strcmp(argv[i],"--no_optim")) optimize_param = false;
             else if (!strcmp(argv[i],"-l") || !strcmp(argv[i],"--likelihood")) {
-		    if (method != 't') method = 'o';
+		    if (method != 't' && method != 'A') method = 'o';
             }
             else if (!strcmp(argv[i],"-R") || !strcmp(argv[i],"--rate_mod")) {
                 if ( i < argc-1 && argv[i+1][0] != '-' ) {
@@ -208,7 +228,7 @@ int main (int argc, char *argv []) {
                     std::cerr << "-R/--rate_mod require a number as next argument." << endl;
                     return 1;
                 }
-		method='t';
+		if (method != 'A') method='t';
             }
             else if (!strcmp(argv[i],"-T") || !strcmp(argv[i],"--time")) {
                 if ( i < argc-1 && argv[i+1][0] != '-' )
@@ -223,7 +243,7 @@ int main (int argc, char *argv []) {
 		if ( i < argc-1 && argv[i+1][0] != '-' )
 		    argv_parser::pars_sub_args(argv[++i],';',taxon_sets);
 		else {
-		    cerr << "-A / --taxon_sets require at least one set of taxa given as a commaseparated string as next argument." << endl;
+		    cerr << "-A / --taxon_sets require at least one set of taxa given as a comma separated string as next argument." << endl;
 		}
 		method = 'A';
 	    }
@@ -264,6 +284,7 @@ int main (int argc, char *argv []) {
 		    ++i;
 		    if (!strcmp(argv[i],"nexus") || !strcmp(argv[i],"nex") || (argv[i][0] == 'x' && argv[i][1] == '\0')) print_tree = 'x';
 		    else if (!strcmp(argv[i],"newick") || !strcmp(argv[i],"new") || (argv[i][0] == 'w' && argv[i][1] == '\0')) print_tree = 'w';
+		    else if (!strcmp(argv[i],"no")) print_tree = 'N';
 		    else {
 			std::cerr << "Do not recognize format " << argv[i] << "." << endl;
 			return 1;
@@ -497,7 +518,7 @@ int main (int argc, char *argv []) {
 	    for (vector<character_vector>::iterator i=characters.begin(); i!=characters.end(); ++i)
 		if (i->highest_char_state()+1 > n_states) n_states = i->highest_char_state()+1;
 	    if (!model_specifications.empty()) {
-		// check model specifications
+    		// check model specifications
 		vector<unsigned int> temp = model_specifications;
 		sort(temp.begin(),temp.end());
 		for (vector<unsigned int>::const_iterator i=temp.begin(); i!=temp.end(); ++i) {
@@ -520,12 +541,17 @@ int main (int argc, char *argv []) {
 		}
 		n_parameters=parameters.size();
 	    }
-	    else {
-		for (unsigned int i=0; i < (n_states*n_states)-n_states; ++i) model_specifications.push_back(i);
+	    else { 
+		if (tr) {
+			for (unsigned int i=0; i < (((n_states*n_states)-n_states)/2)+n_states-1; ++i) model_specifications.push_back(i);
+		}
+		else {
+		    for (unsigned int i=0; i < (n_states*n_states)-n_states; ++i) model_specifications.push_back(i);
+		}
 		n_parameters=model_specifications.size();
 	    }
-// Set parameter values
-	    if(!model_parameters.empty()) {
+    // Set parameter values
+    	    if(!model_parameters.empty()) {
 		if (model_parameters.size() != n_parameters) {
 		    cerr << "The number of parameter values (" << model_parameters.size() << ") must be as many as parameters (" << n_parameters << ")." << endl;
 		    return 1;
@@ -538,7 +564,12 @@ int main (int argc, char *argv []) {
 		}
 	    }
 	    else {
-		for (unsigned int i=0; i < n_parameters; ++i) model_parameters.push_back(0.1);
+		if (tr) {
+		    for (unsigned int i=0; i < n_states-1; ++i) model_parameters.push_back(1.0/n_states);
+		}
+		else {
+		    for (unsigned int i=0; i < n_parameters; ++i) model_parameters.push_back(0.1);
+		}
 	    }
 	    // Adjust number of parameters according to rate change model and add extra parameters to vector
 	    #ifdef DEBUG
@@ -607,7 +638,7 @@ int main (int argc, char *argv []) {
 		if (optimize_param) {
 		    #ifdef NLOPT
 		    nlopt::opt maximize(nlopt::LN_NELDERMEAD, n_parameters);
-		    tree_modelspec_struct data = {&tree, &model_specifications, &model_parameters, &fixed_parameters};
+		    tree_modelspec_struct data = {&tree, &model_specifications, &model_parameters, &fixed_parameters,tr};
 		    vector<double> variable_values;
 		    for (unsigned int i=0; i<model_parameters.size(); ++i) {
 			if (fixed_parameters.find(i)==fixed_parameters.end()) variable_values.push_back(model_parameters[i]);
@@ -655,7 +686,7 @@ int main (int argc, char *argv []) {
 			    return 1;
 			}
 			for (int i=0; i < taxon_sets.size(); ++i) {
-			    model_out << taxon_sets[i] << ": " << model_parameters[model_parameters.size()-taxon_sets.size()+i] << endl;
+			    model_out << "Rate mod for \"" << taxon_sets[i] << "\": " << model_parameters[model_parameters.size()-taxon_sets.size()+i] << endl;
 			}
 		    }
 		    else {
@@ -690,7 +721,11 @@ int main (int argc, char *argv []) {
 			model_out << "Time from root: " << cut_off << " Rate modifier: " << rate_mod[0] << endl;
 		    }
 		    else if (method == 'A') {
-
+			tree.set_Q_matrix(&model_specifications[0],&model_parameters[0]);
+			model_out << "Log likelihood= " << tree.calculate_likelihood_rate_change_at_nodes ( rate_mod.data() ) << endl;
+			for (int i=0; i < taxon_sets.size(); ++i) {
+			    model_out << "Rate mod for \"" << taxon_sets[i] << "\": " <<  rate_mod[i] << endl;
+			}
 		    }
 		    else {
 			cerr << "Unrecognized method. Nothing to do." << endl;
@@ -715,6 +750,7 @@ int main (int argc, char *argv []) {
 		    tree.print_tree_to_nexus( tree_name, print_br_length, true, taxa_trans );
 		    //tree.print_tree_to_nexus();
 		}
+		else {}
 		cout << model_out.str();
 /////////////////////////////
 	    }
@@ -819,7 +855,10 @@ void help () {
 
 double opt_function(const std::vector<double> &x, std::vector<double> &grad, void* data) {
     change_non_fixed(x,static_cast<tree_modelspec_struct*>(data)->values,static_cast<tree_modelspec_struct*>(data)->fixed);
-    double LogLH = static_cast<tree_modelspec_struct*>(data)->tree->calculate_log_likelihood(&(static_cast<tree_modelspec_struct*>(data)->specifications->front()),&(static_cast<tree_modelspec_struct*>(data)->values->at(0)));
+    if (static_cast<tree_modelspec_struct*>(data)->tr) static_cast<tree_modelspec_struct*>(data)->tree->set_Q_matrix(&(static_cast<tree_modelspec_struct*>(data)->specifications->front()),&(static_cast<tree_modelspec_struct*>(data)->values->at(0)),&(static_cast<tree_modelspec_struct*>(data)->values->at(static_cast<tree_modelspec_struct*>(data)->tree->get_n_states()-1))); 
+    else static_cast<tree_modelspec_struct*>(data)->tree->set_Q_matrix(&(static_cast<tree_modelspec_struct*>(data)->specifications->front()),&(static_cast<tree_modelspec_struct*>(data)->values->at(0)));
+    double LogLH = static_cast<tree_modelspec_struct*>(data)->tree->calculate_log_likelihood();
+    //double LogLH = static_cast<tree_modelspec_struct*>(data)->tree->calculate_log_likelihood(&(static_cast<tree_modelspec_struct*>(data)->specifications->front()),&(static_cast<tree_modelspec_struct*>(data)->values->at(0)));
     #if DEBUG
         std::cerr << "Likelihood: " << LogLH << endl;
     #endif //DEBUG

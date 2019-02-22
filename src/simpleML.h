@@ -55,6 +55,7 @@ class simpleML : public tree {
 	};
 	void set_Q_matrix ( const unsigned int* parameters, const double* values );
 	void set_Q_matrix ( const double* values );
+	void set_Q_matrix ( const unsigned int* parameters, const double* frequencies, const double* values );
 	double calculate_log_likelihood( const unsigned int* parameters, const double* values ) {
 	    set_Q_matrix(parameters,values);
 	    return calculate_log_likelihood();
@@ -105,6 +106,7 @@ class simpleML : public tree {
 	void print_Q_matrix () { Q_matrix.print( std::cout ); };
 	void draw_normalized_likelihood_on_nodes() { draw_normalized_likelihood_on_nodes( root ); };
 	unsigned int n_taxon_sets() { return clades.size(); }
+	unsigned int get_n_states() { return n_states; }
     private:
 	// variables
 	map<node*,vector<double> > likelihoods;
@@ -120,4 +122,5 @@ class simpleML : public tree {
 	void calculate_likelihood_rate_change_at_nodes(const node* leaf, double rate, const map<node*, double>& rate_changes);
 	void draw_normalized_likelihood_on_nodes( node* leaf );
 	void branch_likelihood ( map<node*,vector<double> >::iterator LHbins, map<node*,vector<double> >::iterator startLHs, double branch_length, bool multiply);
+	unsigned int par_pos (const unsigned int n);
 };

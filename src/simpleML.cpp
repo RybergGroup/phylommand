@@ -80,6 +80,32 @@ void simpleML::set_Q_matrix ( const unsigned int* parameters, const double* valu
     }
 }
 
+void simpleML::set_Q_matrix ( const unsigned int* parameters, const double* frequencies, const double* values ) {
+    for (unsigned char i=0; i < n_states; ++i) {
+	for (unsigned char j=0; j < n_states; ++j) {
+	    if (i == j) {
+		double value = 0;
+		for (unsigned int k = 0; k < n_states; ++k) {
+		    if (k > i) value-= values[parameters[par_pos(i)+k-i-1]]*frequencies[k];
+		    else if (k < i) value-= values[parameters[par_pos(k)+i-k-1]]*frequencies[k];
+		}
+	    }
+	    else {
+		if (j>i) Q_matrix.set_value(i,j,values[parameters[par_pos(i)+j-i-1]]*frequencies[j]);
+		else Q_matrix.set_value(i,j,values[parameters[par_pos(j)+i-j-1]]*frequencies[j]);
+	    }
+	}
+    }
+}
+
+unsigned int simpleML::par_pos (const unsigned int n) {
+    unsigned int pos(0);
+    for (unsigned int e = 1; e <= n; ++e) {
+	pos += n_states-e;
+    }
+    return pos;
+}
+
 void simpleML::calculate_likelihood (const node* leaf) {
     if (leaf->left != 0) {
 	calculate_likelihood (leaf->left);
