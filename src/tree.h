@@ -238,8 +238,9 @@ class tree {
 	double longest_to_tip () {
 	    return longest_to_tip(root);
 	};
-	void adjustedMPL (const string nodes_and_ages);
-	void test_clock_likness() { test_clock_likness(root); }
+	void adjustedMPL (const string nodes_and_ages) { adjustedMPL(nodes_and_ages, 1); };
+	void adjustedMPL (const string nodes_and_ages, const int n_char);
+	void test_clock_likness( const int n_char ) { test_clock_likness(root, n_char); }
         void print_distance_to_root_for_all ( string value_sep, string row_sep ) {
             print_distance_to_root ( root->left, 0.0, 0, value_sep, row_sep );
             print_distance_to_root ( root->right, 0.0, 0, value_sep, row_sep );
@@ -280,7 +281,7 @@ class tree {
 	void add_to_support(tree* B, const bool rooted);
 	void add_to_support(tree* B) { add_to_support(B, false); };
 	void add_one_to_each_support(const bool rooted) { add_one_to_each_support(root, rooted); };
-	double gamma() { gamma(root); }
+	double gamma() { return gamma(root); }
     protected:
 	class node { //store the information for each node of the tree
 	    public:
@@ -455,7 +456,7 @@ class tree {
 	int_double2 calculate_mean_path( node* leaf, const double root_age, map<node*,double>& given_nodeages);
 	void assign_branches_based_on_nodeheights(node* leaf, map<node*,double>& node_depths, map<node*,double> given_nodeages); 
 	int_double2 calculate_node_depth(node* leaf, const double root_age, const double path_to_root, const double rate, map<node*,double>& given_nodeages, map<node*,double>& calculated_node_depths);
-	int_double2 test_clock_likness(node* leaf);
+	int_double2 test_clock_likness(node* leaf, const int n_char);
 	///////////////////////////////
         string not_present ( node *leaf, const string taxa );
         bool taxon_present( node *leaf, const string taxon );

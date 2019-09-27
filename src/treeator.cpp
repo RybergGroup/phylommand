@@ -199,8 +199,8 @@ int main (int argc, char *argv []) {
 		    ++i;
 		    vector<string> numbers;
 		    argv_parser::pars_sub_args(argv[i], ',', numbers);
-		    while (vector<string>::const_iterator i=numbers.begin(); i != numbers.end(); ++i) {
-                        char_freqs.push_back(atof(i->c_str()));
+		    while (!numbers.empty()) {
+                        char_freqs.push_back(atof(numbers.back().c_str()));
 			numbers.pop_back();
 		    }
 		}
@@ -842,7 +842,7 @@ void help () {
     cout << "                                 e.g. -r 0.5. Default: 1.0." << endl;*/
     cout << "--random / -r                    do stepwise addition in random order." << endl;
     /*cout << "--time / -T [value]            give branch length distance from root where" << endl;
-    cout << "                                 change in rate occur, e.g. -t 10. Default: 0." << endl;*/
+    cout << "                                 change in rate occur, e.g. -T 10. Default: 0." << endl;*/
     cout << "--tree_file / -t [file]          give tree file name." << endl;
     /*cout << "--taxon_sets / -A                give sets of taxa. Different sets should be" << endl;
     cout << "                                 separated by semicolon (;), taxa in set should" << endl;

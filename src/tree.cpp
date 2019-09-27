@@ -2057,7 +2057,7 @@ unsigned int tree::shared_tips(tree* B) {
     return B->tips_present_in_set(B->root, taxa);
 }
 
-void tree::adjustedMPL (const string nodes_and_ages){
+void tree::adjustedMPL (const string nodes_and_ages, const int n_char){
     map<node*,double> given_nodeages;
     string taxa;
     string age;
@@ -2084,20 +2084,21 @@ void tree::adjustedMPL (const string nodes_and_ages){
 	else if (mode == 'T') taxa+=nodes_and_ages[i];
 	else if (mode == 'A') age+=nodes_and_ages[i];
     }
-    adjustedMPL(given_nodeages,1);
+    adjustedMPL(given_nodeages,n_char);
 }
 
 void tree::adjustedMPL(map<node*,double>& given_nodeages, unsigned int n_char) {
     vector<double> rates;
     for (map<node*,double>::iterator i=given_nodeages.begin(); i != given_nodeages.end(); ++i) {
 	rates.push_back(local_adjustedMPL(i->first, given_nodeages, n_char));
+	// Add rate to nodelabel for nodes with ages given
 	std::stringstream converter;
 	converter << "[&rate=" << rates.back() << ']';
 	string temp;
 	if (i->first->nodelabel != 0) temp=*(i->first->nodelabel);
 	temp += converter.str();
-       	i->first->nodelabel = nodelabels.add_string(temp);
-   }
+ 	i->first->nodelabel = nodelabels.add_string(temp);
+    }
     if (given_nodeages.find(root) == given_nodeages.end()) {
 	if (!rates.empty()) {
 	    sort(rates.begin(),rates.end());
@@ -2122,7 +2123,7 @@ void tree::adjustedMPL(map<node*,double>& given_nodeages, unsigned int n_char) {
     }
 }
 
-tree::int_double2 tree::calculate_mean_path_root( node* leaf, map<node*,double>& given_nodeages) {
+tree::int_double2 tree::calculate_mean_path_root( node* leaf, map<node*,double>& given_nodeages ) {
     int_double2 values_left = {0,0.0,0.0};
     if (leaf==0) return values_left;
     else {
@@ -2188,8 +2189,18 @@ tree::int_double2 tree::calculate_mean_path( node* leaf, const double root_age, 
 
 void tree::assign_branches_based_on_nodeheights(node* leaf, map<node*,double>& node_depths, map<node*,double> given_nodeages) {
     for (map<node*,double>::iterator i=node_depths.begin(); i != node_depths.end(); ++i) {
-        if (i->first->parent == leaf) i->first->branchlength = given_nodeages[leaf] - i->second;
-        else i->first->branchlength = node_depths[i->first->parent] - i->second;
+        if (i->first->parent == leaf) {
+	    i->first->branchlength = given_nodeages[leaf] - i->second;
+	    #ifdef DEBUG
+	    cerr << "A " << given_nodeages[leaf] << " " << i->second << " " << i->first->branchlength << endl;
+	    #endif //DEBUG
+	}
+        else {
+	    i->first->branchlength = node_depths[i->first->parent] - i->second;
+	    #ifdef DEBUG
+	    cerr << "B " << node_depths[i->first->parent] << " " << i->second << " " << i->first->branchlength << endl;
+	    #endif //DEBUG
+	}
     }
 }
 
@@ -2221,12 +2232,12 @@ tree::int_double2 tree::calculate_node_depth(node* leaf, const double root_age, 
     }
 }
 
-tree::int_double2 tree::test_clock_likness(node* leaf) {
+tree::int_double2 tree::test_clock_likness(node* leaf, const int n_char) {
     int_double2 values_left={0,0.0,0.0};
     if (leaf!=0) {
-	if (leaf->left!=0) values_left=test_clock_likness(leaf->left);
+	if (leaf->left!=0) values_left=test_clock_likness(leaf->left, n_char);
 	int_double2 values_right={0,0.0,0.0};
-	if (leaf->right!=0) values_right=test_clock_likness(leaf->right);
+	if (leaf->right!=0) values_right=test_clock_likness(leaf->right, n_char);
 	if (leaf->left==0 && leaf->right==0) values_left.n=1;	
 	else {
 	    double z = ((values_left.a/values_left.n) - (values_right.a/values_right.n))/sqrt((values_left.c/(values_left.n*values_left.n)) + (values_right.c/(values_right.n*values_right.n)));
@@ -2235,8 +2246,8 @@ tree::int_double2 tree::test_clock_likness(node* leaf) {
 	    leaf->nodelabel = nodelabels.add_string(convert.str());
 	    values_left.n+=values_right.n;
 	}
-	values_left.a += values_right.a+(values_left.n*leaf->branchlength);
-	values_left.c += values_right.c+(values_left.n*values_left.n*leaf->branchlength);
+	values_left.a += values_right.a+(values_left.n*leaf->branchlength*n_char);
+	values_left.c += values_right.c+(values_left.n*values_left.n*leaf->branchlength*n_char);
     }
     return values_left;
 }
@@ -2299,9 +2310,13 @@ void tree::add_value_from_label_to_vector (const string& label, const string& pa
 	    std::size_t end=found;
 	    while (end < label.length() && label[end] != ',' && label[end] != ']') ++end;
 	    if (end == label.length()) end = found;
-	    else --end;
-	    if(end-found>0)
+	    //else --end;
+	    if(end-found>0) {
 		values.push_back(atof(label.substr(found,end-found).c_str()));
+		#ifdef DEBUG
+		cerr << "Lable value: " << label.substr(found,end-found) << " " << atof(label.substr(found,end-found).c_str()) << endl;
+		#endif //DEBUG
+	    }
 	}
     }
 }
