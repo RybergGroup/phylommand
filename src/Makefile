@@ -69,7 +69,7 @@ INDEXEDFST = indexedfasta.cpp
 OTREE = tree.o treebender.o string_tree.o file_parser.o argv_parser.o matrix_parser.o clustertree.o $(SQLITEO)
 OPAIRALIGN = seqpair.o pairalign.o align_group.o seqdatabase.o argv_parser.o indexedfasta.o $(SQLITEO)
 OCONTREE = contree.o tree.o decisiveness.o string_tree.o matrix_parser.o file_parser.o
-OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o matrix_parser.o file_parser.o argv_parser.o $(TREEATORLINKFLAGS)
+OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o matrix_parser.o file_parser.o argv_parser.o 
 ifeq ($(RUDISVG),YES)
 ORUDISVG = rudisvg.o pugixml.o
 endif
@@ -86,7 +86,7 @@ contree: $(OCONTREE)
 	$(PP) -o contree $(OCONTREE)
 
 treeator: $(OTREEATOR)
-	$(PP) -o treeator $(OTREEATOR) 
+	$(PP) -o treeator $(OTREEATOR) $(TREEATORLINKFLAGS)
 
 ifeq ($(RUDISVG),YES)
 rudisvg: $(ORUDISVG)
