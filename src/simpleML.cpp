@@ -199,3 +199,68 @@ void simpleML::draw_normalized_likelihood_on_nodes( node* leaf ) {
 	}
     }
 }
+
+vector<character_vector> simpleML::simulate_chars( const vector<double> & charfreq, const unsigned int n_char) {
+    map<node*,character_vector> output_matrix;
+    for (unsigned int i=0; i<n_char; ++i) { 
+	map<node*,unsigned int> simdata;
+	double rand_no = (double) rand()/(RAND_MAX);
+	int root_trait(0);
+	for (unsigned int j=0; j<charfreq.size(); ++j) {
+	    rand_no-= charfreq[j];
+	    if (rand_no <= 0) { root_trait = j; break; }
+	}
+	#ifdef DEBUG
+	cerr << "Root trait: " << root_trait << endl;
+	Q_matrix.print(cerr);
+	cerr << endl;
+	#endif //DEBUG
+	simulate_chars_subtree(root->left, simdata, root_trait);
+	simulate_chars_subtree(root->right, simdata, root_trait);
+	for (map<node*,unsigned int>::const_iterator k = simdata.begin(); k != simdata.end(); ++k) {
+	    map<node*,character_vector>::iterator taxon = output_matrix.find(k->first);
+	    bitset<SIZE> character;
+	    character.set(k->second);
+	    if (taxon == output_matrix.end()) {
+		output_matrix[k->first] = character_vector();
+		//output_matrix[k->first].set_taxon(*k->first->nodelabel);
+		output_matrix[k->first].add_character(character);
+	    }
+	    else {
+		taxon->second.add_character(character);
+	    }
+	}
+    }
+    vector<character_vector> return_data;
+    for (map<node*,character_vector>::iterator i=output_matrix.begin(); i != output_matrix.end(); ++i) {
+	if (i->first->nodelabel && !i->first->nodelabel->empty()) {
+	    i->second.set_taxon(*i->first->nodelabel);
+	    return_data.push_back(i->second);
+	}
+    }
+    return return_data;
+}
+
+void simpleML::simulate_chars_subtree( node* leaf, map<node*,unsigned int>& simdata, const unsigned int ancestor) {
+    if (leaf != 0) {
+	marth::square_matrix P_matrix;
+	Q_matrix.exponential(&P_matrix, leaf->branchlength, 20);
+	unsigned int trait = ancestor;
+	double rand_no = (double) rand()/(RAND_MAX);
+	for (unsigned int i=0; i < P_matrix.get_dimentions(); ++i) {
+	    #ifdef DEBUG
+	    cerr << "Rand no: " << rand_no << " P for char: " << P_matrix.get_value(ancestor,i) << endl; 
+	    #endif //DEBUG
+	    rand_no -= P_matrix.get_value(ancestor,i);
+	    if (rand_no <= 0) { trait = i; break; }
+	}
+	#ifdef DEBUG
+	P_matrix.print(cerr); cerr << endl;
+	if (leaf->nodelabel && !leaf->nodelabel->empty()) cerr << *leaf->nodelabel << endl;
+	cerr << "Simulating trait along branch. Start: " << ancestor << " end: " << trait << endl;
+	#endif //DEBUG
+	simdata[leaf] = trait;
+	if (leaf->left != 0) simulate_chars_subtree(leaf->left, simdata, trait);
+	if (leaf->right != 0) simulate_chars_subtree(leaf->right, simdata, trait);
+    }
+}

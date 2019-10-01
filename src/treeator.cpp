@@ -66,6 +66,7 @@ int main (int argc, char *argv []) {
     bool quiet(true);
     bool tr(false);
     bool non_as_uncertain(true);
+    unsigned int n_char = 1;
     string tree_file_name;
     ifstream tree_file;
     file_parser tree_input(&cin);
@@ -116,6 +117,11 @@ int main (int argc, char *argv []) {
 	    }
 	    else if (!strcmp(argv[i],"-s") || !strcmp(argv[i],"--step_wise")) {
 		method = 's';
+	    }
+	    else if (!strcmp(argv[i],"--simulate")) {
+		method = 'C';
+		if ( i < argc-1 && argv[i+1][0] != '-' )
+		    n_char = atoi(argv[++i]);
 	    }
     	    else if (!strcmp(argv[i],"-v") || !strcmp(argv[i],"--verbose")) quiet = false;
             else if (!strcmp(argv[i],"-h") || !strcmp(argv[i],"--help")) {
@@ -209,7 +215,7 @@ int main (int argc, char *argv []) {
                     return 1;
                 }
 		tr = true;
-		if (method != 'A' && method != 't') method = 'o';
+		if (method != 'A' && method != 't' && method != 'C') method = 'o';
 	    }
             else if (!strcmp(argv[i],"-N") || !strcmp(argv[i],"--no_optim")) optimize_param = false;
             else if (!strcmp(argv[i],"-l") || !strcmp(argv[i],"--likelihood")) {
@@ -295,7 +301,7 @@ int main (int argc, char *argv []) {
 ////////////////////////
             else if ((i == argc-1 && argv[i][0] != '-') || ((!strcmp(argv[i],"-f") || !strcmp(argv[i],"--file")) && i < argc-1 && argv[i+1][0] != '-' && ++i) ) {
 		tree_same_as_data_when_nexus = true;
-		if (data_file_name.empty()) data_file_name = argv[i];
+		if (data_file_name.empty() && method != 'C') data_file_name = argv[i]; // Read as data file unless datafile already given or data will be simulated
                 else if (tree_file_name.empty()) tree_file_name = argv[i];
 		else {
 		    std::cerr << "Have no use for argument " << argv[i] << ". Already have file names for tree and data." << std::endl;
@@ -313,6 +319,9 @@ int main (int argc, char *argv []) {
        for (int i=0; i<argc; ++i) std::cerr << argv[i] << ' ';
        std::cerr << endl << endl;
     }
+    #ifdef DEBUG
+    cerr << "Running method: " << method << endl;
+    #endif //DEBUG
     /// preparing reading from files
     if (!data_file_name.empty()) {
 	#ifdef DEBUG
@@ -335,10 +344,6 @@ int main (int argc, char *argv []) {
 	    rate_mod.push_back(1.0);
 	}
     }
-    /*#ifdef DEBUG
-    if (*data_input.file_stream == cin) cerr << "Possible data read from standard in." << endl;
-    else cerr << "Possible data read from " << data_file_name << endl;
-    #endif //DEBUG*/
     /// if doing NJ do that now
     if (method == 'n') { // Neigbour Joining
 	njtree tree;
@@ -358,7 +363,7 @@ int main (int argc, char *argv []) {
 	return 0;
     }
     /// For parsimony and ML
-    if (method == 'p' || method == 's' || method == 'r' || method == 'o' || method == 't' || method == 'A') { // ML or parsimony
+    if (method == 'p' || method == 's' || method == 'r' || method == 'o' || method == 't' || method == 'A' || method == 'C') { // ML or parsimony
 	vector<character_vector> characters;
 	map<char, bitset<SIZE> > alphabet;
 	alphabet::set_alphabet_dna(alphabet);
@@ -401,27 +406,29 @@ int main (int argc, char *argv []) {
 	#ifdef DEBUG
 	cerr << "Prepared partitions." << endl;
 	#endif //DEBUG
-    	if (!data_file_format.empty()) {
-    	    data_input.set_file_type(data_file_format.c_str());
-	}
-	else if (!data_input.set_file_type()) {
-	    if (!data_input.set_file_type("fasta")) cerr << "Failed to set default file type." << endl;
-	}
-	if (!quiet) cerr << "Data file format: " << data_input.get_file_type() << endl;
-	if (data_input.test_file_type("nexus")) {
-	    if (!data_input.move_to_next_X_block( nexus_block::DATA )) {
-		cerr << "Could not find DATA block in NEXUS file." << endl;
-		return 1;
+	if (method != 'C') {
+	    if (!data_file_format.empty()) {
+		data_input.set_file_type(data_file_format.c_str());
 	    }
+	    else if (!data_input.set_file_type()) {
+		if (!data_input.set_file_type("fasta")) cerr << "Failed to set default file type." << endl;
+	    }
+	    if (!quiet) cerr << "Data file format: " << data_input.get_file_type() << endl;
+	    if (data_input.test_file_type("nexus")) {
+		if (!data_input.move_to_next_X_block( nexus_block::DATA )) {
+		    cerr << "Could not find DATA block in NEXUS file." << endl;
+		    return 1;
+		}
+	    }
+	    matrix_parser data_parser(*data_input.file_stream, characters, regions, data_input.get_file_type() );
+	    data_parser.pars();
 	}
-	matrix_parser data_parser(*data_input.file_stream, characters, regions, data_input.get_file_type() );
-	data_parser.pars();
-	if (!quiet) {
+	if (!quiet && !characters.empty()) {
 	    cerr << "Number of taxa: " << characters.size() << "." << endl;
 	    cerr << "Number of characters (first taxon): " << characters.begin()->n_char() << endl;
 	}
 	#ifdef DEBUG
-	std::cerr << "Max number of characters: " << characters.begin()->max_n_char() << std::endl;
+	if (!characters.empty()) std::cerr << "Max number of characters: " << characters.begin()->max_n_char() << std::endl;
 	#endif //DEBUG
         if (data_file.is_open()) data_file.close();
 	if (non_as_uncertain) {
@@ -510,15 +517,24 @@ int main (int argc, char *argv []) {
 	    if (print_tree == 'w') tree.print_newick(print_br_length);
 	    else if (print_tree == 'x') tree.print_nexus(print_br_length);
 	}
-	else if (method == 'o' || method == 't' || method == 'A') {
-	    if (characters.begin()->n_char() > 1) cerr << "Warning!!! Will only calculate likelihood of first character in matrix." << endl;
+	else if (method == 'o' || method == 't' || method == 'A' || method == 'C') {
+	    if (!characters.empty() && characters.begin()->n_char() > 1) cerr << "Warning!!! Will only calculate likelihood of first character in matrix." << endl;
 	    unsigned int n_states = 0;
 	    unsigned int n_parameters = 0;
 	    if (!quiet) cerr << "Preparing model." << endl; 
-	    for (vector<character_vector>::iterator i=characters.begin(); i!=characters.end(); ++i)
-		if (i->highest_char_state()+1 > n_states) n_states = i->highest_char_state()+1;
-	    if (!model_specifications.empty()) {
-    		// check model specifications
+	    if (method == 'o' || method == 't' || method == 'A') {
+		for (vector<character_vector>::iterator i=characters.begin(); i!=characters.end(); ++i)
+		    if (i->highest_char_state()+1 > n_states) n_states = i->highest_char_state()+1;
+	    }
+	    else if (method == 'C') {
+		for (map<char,bitset<SIZE> >::iterator i = alphabet.begin(); i != alphabet.end(); ++i) {
+		    for (unsigned int j=n_states; j < SIZE; ++j) {
+			if (i->second.test(j)) n_states = j+1;
+		    }
+		}
+	    }
+    	    if (!model_specifications.empty()) {
+		// check model specifications
 		vector<unsigned int> temp = model_specifications;
 		sort(temp.begin(),temp.end());
 		for (vector<unsigned int>::const_iterator i=temp.begin(); i!=temp.end(); ++i) {
@@ -541,9 +557,9 @@ int main (int argc, char *argv []) {
 		}
 		n_parameters=parameters.size();
 	    }
-	    else { 
+    	    else { 
 		if (tr) {
-			for (unsigned int i=0; i < (((n_states*n_states)-n_states)/2)+n_states-1; ++i) model_specifications.push_back(i);
+		    for (unsigned int i=0; i < (((n_states*n_states)-n_states)/2)+n_states-1; ++i) model_specifications.push_back(i);
 		}
 		else {
 		    for (unsigned int i=0; i < (n_states*n_states)-n_states; ++i) model_specifications.push_back(i);
@@ -616,7 +632,10 @@ int main (int argc, char *argv []) {
 	    }
 	    if (!quiet && !taxa_trans.empty()) cerr << "Read translation for " << taxa_trans.size() << " taxa." << endl;
 	    unsigned int read_trees(0);
-	    if (!quiet) cerr << "Estimating likelihood." << endl;
+	    if (!quiet && method != 'C') cerr << "Estimating likelihood." << endl;
+	    #ifdef DEBUG
+	    cerr << "Starting to read trees." << endl;
+	    #endif //DEBUG
 	    while (1) {
 		stringstream model_out;
 		if (tree_input.test_file_type("nexus")) {
@@ -624,10 +643,14 @@ int main (int argc, char *argv []) {
 		    if (!(nexus_command==nexus_command::TREE && tree_input.move_to_start_of_tree()))
 			break;
 		}
+		#ifdef DEBUG
+		cerr << "Atempt to read tree." << endl;
+		#endif //DEBUG
 		simpleML tree;
 		tree.tree_file_parser( *tree_input.file_stream, taxa_trans, false );
 		if (tree.empty()) break;
 		++read_trees;
+		if (!quiet) cerr << "Read tree " << read_trees << endl;
 		if (!taxon_sets.empty()) tree.add_taxon_sets(taxon_sets);
 		if (tree.shortest_branch() < 0.0) cerr << "Warning!!! Tree " << read_trees << " contains negative branches." << endl;
 		tree.init(n_states); // need to fix this
@@ -635,7 +658,16 @@ int main (int argc, char *argv []) {
 		    tree.set_char(i->get_taxon(),i->get_character(0));
 ////////////////////////////////////////////
 		if (print_tree == 'x') model_out << '[' << endl;
-		if (optimize_param) {
+		if (method == 'C') {
+		    #ifdef DEBUG
+		    cerr << "simulating data" << endl;
+		    for (int i=0; i < char_freqs.size(); ++i) cerr << char_freqs[i] << endl;
+		    #endif //DEBUG
+		    tree.set_Q_matrix(&model_specifications[0],&model_parameters[0]);
+		    characters = tree.simulate_chars(char_freqs, n_char);
+
+		}
+		else if (optimize_param) {
 		    #ifdef NLOPT
 		    nlopt::opt maximize(nlopt::LN_NELDERMEAD, n_parameters);
 		    tree_modelspec_struct data = {&tree, &model_specifications, &model_parameters, &fixed_parameters,tr};
@@ -734,7 +766,16 @@ int main (int argc, char *argv []) {
 		    tree.print_Q_matrix( model_out );
 		    model_out << endl;
 		}
-		if (print_tree == 'w') {
+		if (method == 'C') {
+		    for (vector<character_vector>::iterator i = characters.begin(); i != characters.end(); ++i) {
+			cout << '>' << i->get_taxon() << endl;
+			for (unsigned int j =0; j < i->n_char(); ++j) {
+			    cout << alphabet::translate_bitset(i->get_character(j),alphabet);
+			}
+			cout << endl;
+		    }
+		}
+		else if (print_tree == 'w') {
 		    // cout << "Tree:" << endl;
 		    if (print_state_on_nodelabel) tree.draw_normalized_likelihood_on_nodes();
 		    tree.print_newick();
@@ -841,6 +882,11 @@ void help () {
     /*cout << "--rate_mod / -R [value]        give modifier for rate compared to rate at root" << endl;
     cout << "                                 e.g. -r 0.5. Default: 1.0." << endl;*/
     cout << "--random / -r                    do stepwise addition in random order." << endl;
+    cout << "--simulate                       simulate data on given tree. Number of" << endl;
+    cout << "                                 characters as possible extra argument (default" << endl;
+    cout << "                                 1). Use model given by -m and parameters givens" << endl;
+    cout << "                                 by -P and probability of each character at roots" << endl;
+    cout << "                                 by -F, e.g. --simulate 10." << endl;
     /*cout << "--time / -T [value]            give branch length distance from root where" << endl;
     cout << "                                 change in rate occur, e.g. -T 10. Default: 0." << endl;*/
     cout << "--tree_file / -t [file]          give tree file name." << endl;

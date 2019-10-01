@@ -102,6 +102,7 @@ class simpleML : public tree {
 	    set_Q_matrix(values);
 	    return calculate_likelihood_rate_change_in_time(cut_off, rate);
         }
+	vector<character_vector> simulate_chars( const vector<double> & charfreq, const unsigned int n_char);
 	void print_Q_matrix ( ostream& output_stream ) { Q_matrix.print( output_stream ); };
 	void print_Q_matrix () { Q_matrix.print( std::cout ); };
 	void draw_normalized_likelihood_on_nodes() { draw_normalized_likelihood_on_nodes( root ); };
@@ -114,6 +115,7 @@ class simpleML : public tree {
 	unsigned int n_states;
 	marth::square_matrix Q_matrix;
 	// functions
+	void simulate_chars_subtree( node* leaf, map<node*,unsigned int>& simdata, const unsigned int ancestor);
 	void init_nodes ( node* leaf );
 	void un_init_nodes ( node* leaf );
 	bool check_nodes ( const node* leaf );
