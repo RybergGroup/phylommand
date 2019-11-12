@@ -58,6 +58,18 @@ bool simpleML::check_nodes ( const node* leaf ) {
     else return true;
 }
 
+bool simpleML::check_Q_matrix() {
+    #ifdef DEBUG
+    cerr << "Checking Q matrix" << endl;
+    #endif //DEBUG
+    for (unsigned int i=0; i<n_states; ++i) {
+	for (unsigned int j=0; i<n_states; ++j) {
+	    if (i==j && Q_matrix.get_value(i,j) > 0.0) return false;
+	    else if (i != j && Q_matrix.get_value(i,j) < 0.0) return false;
+	}	
+    }
+    return true;
+}
 void simpleML::set_Q_matrix ( const double* values ) {
     unsigned int parameters[(n_states*n_states)-n_states];
     for (unsigned int i=0; i<(n_states*n_states)-n_states; ++i) parameters[i]=i;
@@ -80,31 +92,78 @@ void simpleML::set_Q_matrix ( const unsigned int* parameters, const double* valu
     }
 }
 
-void simpleML::set_Q_matrix ( const unsigned int* parameters, const double* frequencies, const double* values ) {
-    for (unsigned char i=0; i < n_states; ++i) {
-	for (unsigned char j=0; j < n_states; ++j) {
-	    if (i == j) {
-		double value = 0;
-		for (unsigned int k = 0; k < n_states; ++k) {
-		    if (k > i) value-= values[parameters[par_pos(i)+k-i-1]]*frequencies[k];
-		    else if (k < i) value-= values[parameters[par_pos(k)+i-k-1]]*frequencies[k];
+void simpleML::set_Q_matrix ( const unsigned int* parameters, const double* values, bool tr ) {
+    #ifdef DEBUG
+    cerr << "Seting Q matrix:" << endl;
+    #endif
+    if (tr) {
+	for (unsigned int i=0; i < n_states; ++i) {
+	    for (unsigned int j=0; j < n_states; ++j) {
+		if (i == j) {
+		    double value = 0;
+		    for (unsigned int k = 0; k < n_states; ++k) {
+			if (k != i) { value -= values[parameters[rate_pos_tr(i,k)]]*get_base_freq(k,parameters,values);
+			#ifdef DEBUG
+			cerr << "value to sum for " << i << " and " << k << " rate: " << values[rate_pos_tr(i,k)] << " freq: " << get_base_freq(k,parameters,values) << endl;
+			#endif //DEBUG
+			}
+		    }
+		    Q_matrix.set_value(i,j,value);
 		}
-	    }
-	    else {
-		if (j>i) Q_matrix.set_value(i,j,values[parameters[par_pos(i)+j-i-1]]*frequencies[j]);
-		else Q_matrix.set_value(i,j,values[parameters[par_pos(j)+i-j-1]]*frequencies[j]);
+		else {
+		    Q_matrix.set_value(i,j,values[rate_pos_tr(i,j)]*get_base_freq(j,parameters,values));
+		    #ifdef DEBUG
+	    	    cerr << "value for " << i << " and " << j << " rate: " << values[rate_pos_tr(i,j)] << " freq: " << get_base_freq(j,parameters,values) << endl;
+    		    #endif //DEBUG
+		}
 	    }
 	}
     }
+    else {
+	set_Q_matrix(parameters,values);
+    }
 }
 
-unsigned int simpleML::par_pos (const unsigned int n) {
+unsigned int simpleML::rate_pos_tr (const unsigned int y, const unsigned int x) {
+    if (x==y) return n_rates_tr()+n_states;
+    unsigned int i(0);
+    unsigned int j(0);
+    unsigned int pos(0);
+    if (x>y) { // if in right hand of matrix
+	i=y; // go by row
+	j=x-y; // column minus columns in the left of the matrix
+    }
+    else if (y>x) { // same but by column
+	i=x;
+	j=y-x;
+    }
+    while(i) { pos += n_states-i; --i; }
+    pos += j-1;
+    return pos;
+}
+
+double simpleML::get_base_freq(const unsigned int base, const unsigned int* parameters, const double* values) {
+    unsigned int start = n_rates_tr();
+    if (base >= n_states-1) {
+	double freq(1.0);
+	for (unsigned int i = start; i < start+n_states-1; ++i) {
+	    freq -= values[parameters[i]];
+	    #ifdef DEBUG
+	    cerr << "Freq: " << i << " = " << values[parameters[i]] << endl;
+	    #endif //DEBUG
+	}
+	return freq;
+    }
+    else return values[parameters[start+base]];
+}
+
+/*unsigned int simpleML::par_pos (const unsigned int n) {
     unsigned int pos(0);
     for (unsigned int e = 1; e <= n; ++e) {
 	pos += n_states-e;
     }
     return pos;
-}
+}*/
 
 void simpleML::calculate_likelihood (const node* leaf) {
     if (leaf->left != 0) {

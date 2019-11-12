@@ -205,9 +205,8 @@ int main (int argc, char *argv []) {
 		    ++i;
 		    vector<string> numbers;
 		    argv_parser::pars_sub_args(argv[i], ',', numbers);
-		    while (!numbers.empty()) {
-                        char_freqs.push_back(atof(numbers.back().c_str()));
-			numbers.pop_back();
+		    for (vector<string>::iterator sub = numbers.begin(); sub != numbers.end(); ++sub) {
+                        char_freqs.push_back(atof(sub->c_str()));
 		    }
 		}
                 else {
@@ -340,7 +339,7 @@ int main (int argc, char *argv []) {
 	rate_mod.push_back(1.0);
     }
     else if (method == 'A' && rate_mod.size() < taxon_sets.size()) {
-	for (int i = rate_mod.size(); i < taxon_sets.size(); ++i) {
+	for (unsigned int i = rate_mod.size(); i < taxon_sets.size(); ++i) {
 	    rate_mod.push_back(1.0);
 	}
     }
@@ -559,7 +558,7 @@ int main (int argc, char *argv []) {
 	    }
     	    else { 
 		if (tr) {
-		    for (unsigned int i=0; i < (((n_states*n_states)-n_states)/2)+n_states-1; ++i) model_specifications.push_back(i);
+		    for (unsigned int i=0; i < (((n_states*n_states)-n_states)/2); ++i) model_specifications.push_back(i);
 		}
 		else {
 		    for (unsigned int i=0; i < (n_states*n_states)-n_states; ++i) model_specifications.push_back(i);
@@ -581,11 +580,39 @@ int main (int argc, char *argv []) {
 	    }
 	    else {
 		if (tr) {
-		    for (unsigned int i=0; i < n_states-1; ++i) model_parameters.push_back(1.0/n_states);
+		    for (unsigned int i=0; i < n_parameters; ++i) {
+			model_parameters.push_back(1.0);
+		    }
 		}
 		else {
 		    for (unsigned int i=0; i < n_parameters; ++i) model_parameters.push_back(0.1);
 		}
+	    }
+	    if (tr) {
+		if (char_freqs.empty()) {
+		    for (unsigned int i=0; i < n_states-1; ++i) model_parameters.push_back(1.0/n_states);
+		}
+		else {
+		    double sum_freq(0.0);
+		    unsigned int i(0);
+		    for (; i < char_freqs.size() && i < n_states-1; ++i) {
+			model_parameters.push_back(char_freqs[i]);
+			sum_freq += char_freqs[i];
+		    }
+		    if (sum_freq > 1.0) {
+			cerr << "Frequences sum to more than 1.0" << endl;
+			return 1;
+		    }
+		    for (; i < char_freqs.size(); ++i) {
+			cerr << "Frequency for char " << i << " (" << char_freqs[i] << ") is ignored." << endl;
+			if (i == n_states-1) cerr << "Last char will be 1.0 minus the frequency of previous characters" << endl;
+			else cerr << "No matching character in model. Number of characters= " << n_states << " index start a 0." << endl;
+		    }
+		}
+		if (n_parameters == model_specifications.size()) {
+		    for (unsigned int i=0; i < n_states-1; ++i) model_specifications.push_back(i+n_parameters);
+	       	}
+		n_parameters += n_states-1;
 	    }
 	    // Adjust number of parameters according to rate change model and add extra parameters to vector
 	    #ifdef DEBUG
@@ -598,7 +625,7 @@ int main (int argc, char *argv []) {
 	    }
 	    else if (method == 'A') {
 		n_parameters += taxon_sets.size();
-		for (int i = 0; i < taxon_sets.size(); ++i) {
+		for (unsigned int i = 0; i < taxon_sets.size(); ++i) {
 		    model_parameters.push_back(rate_mod[i]);
 		}
 	    }
@@ -612,8 +639,10 @@ int main (int argc, char *argv []) {
 		    return 1;
 		}
 	    }
-	    if (!quiet) 
+	    if (!quiet) {
+		if (tr) cerr << "Using time reversable model" << endl;
 		cerr << "Model has " << n_parameters << " parameters, of which " << fixed_parameters.size() << " are fixed." << endl;
+	    }
 	    n_parameters-=fixed_parameters.size();
 	    if (n_parameters==0)
 		optimize_param=false;
@@ -663,7 +692,7 @@ int main (int argc, char *argv []) {
 		    cerr << "simulating data" << endl;
 		    for (int i=0; i < char_freqs.size(); ++i) cerr << char_freqs[i] << endl;
 		    #endif //DEBUG
-		    tree.set_Q_matrix(&model_specifications[0],&model_parameters[0]);
+		    tree.set_Q_matrix(&model_specifications[0],&model_parameters[0],tr);
 		    characters = tree.simulate_chars(char_freqs, n_char);
 
 		}
@@ -717,7 +746,7 @@ int main (int argc, char *argv []) {
 			    cerr << "Failure when optimizing!!!" << endl;
 			    return 1;
 			}
-			for (int i=0; i < taxon_sets.size(); ++i) {
+			for (unsigned int i=0; i < taxon_sets.size(); ++i) {
 			    model_out << "Rate mod for \"" << taxon_sets[i] << "\": " << model_parameters[model_parameters.size()-taxon_sets.size()+i] << endl;
 			}
 		    }
@@ -732,6 +761,30 @@ int main (int argc, char *argv []) {
 		    }
 		    model_out << endl;
 		    #endif /*DEBUG*/
+		    if (tr) {
+			model_out << "Rates:" << endl;
+			for (unsigned int i=0; i < n_states; ++i) {
+			    bitset<SIZE> I;
+			    I.set(i);
+			    for (unsigned int j=i+1; j < n_states; ++j) {
+				bitset<SIZE> J;
+				J.set(j);
+				if (i != 0 || j != i+1) model_out << "; ";
+				model_out << alphabet::translate_bitset(I, alphabet) << "<->" << alphabet::translate_bitset(J, alphabet) << ": ";
+				model_out << model_parameters[model_specifications[tree.rate_pos_tr(i,j)]];
+			    }
+			}
+			model_out << endl;
+			model_out << "Frequencies:" << endl;
+			for (unsigned int i=0; i < n_states; ++i) {
+			    if (i != 0) model_out << "; ";
+			    bitset<SIZE> temp;
+			    temp.set(i);
+			    model_out << alphabet::translate_bitset(temp, alphabet) << ": " << tree.get_base_freq(i,&model_specifications[0],&model_parameters[0]);
+
+			}
+			model_out << endl;
+		    }
 		    model_out << "Q matrix:" << endl;
 		    tree.print_Q_matrix( model_out );
 		    model_out << endl;
@@ -744,18 +797,18 @@ int main (int argc, char *argv []) {
 		/////////////////////////////
 		else {
 		    if (method == 'o') {
-			tree.set_Q_matrix(&model_specifications[0],&model_parameters[0]);
+			tree.set_Q_matrix(&model_specifications[0],&model_parameters[0], tr);
 			model_out << "Log likelihood= " << tree.calculate_log_likelihood() << endl;
 		    }
 		    else if (method == 't') {
-			tree.set_Q_matrix(&model_specifications[0],&model_parameters[0]);
+			tree.set_Q_matrix(&model_specifications[0],&model_parameters[0], tr);
 			model_out << "Log likelihood= " << tree.calculate_likelihood_rate_change_in_time(cut_off,rate_mod[0]) << endl;
 			model_out << "Time from root: " << cut_off << " Rate modifier: " << rate_mod[0] << endl;
 		    }
 		    else if (method == 'A') {
-			tree.set_Q_matrix(&model_specifications[0],&model_parameters[0]);
+			tree.set_Q_matrix(&model_specifications[0],&model_parameters[0], tr);
 			model_out << "Log likelihood= " << tree.calculate_likelihood_rate_change_at_nodes ( rate_mod.data() ) << endl;
-			for (int i=0; i < taxon_sets.size(); ++i) {
+			for (unsigned int i=0; i < taxon_sets.size(); ++i) {
 			    model_out << "Rate mod for \"" << taxon_sets[i] << "\": " <<  rate_mod[i] << endl;
 			}
 		    }
@@ -763,7 +816,34 @@ int main (int argc, char *argv []) {
 			cerr << "Unrecognized method. Nothing to do." << endl;
 			return 1;
 		    }
-		    tree.print_Q_matrix( model_out );
+		    if (tr) {
+			model_out << "Rates:" << endl;
+			for (unsigned int i=0; i < n_states; ++i) {
+			    bitset<SIZE> I;
+			    I.set(i);
+			    for (unsigned int j=i+1; j < n_states; ++j) {
+				bitset<SIZE> J;
+				J.set(j);
+				if (i != 0 || j != i+1) model_out << "; ";
+				model_out << alphabet::translate_bitset(I, alphabet) << "<->" << alphabet::translate_bitset(J, alphabet) << ": ";
+				model_out << model_parameters[model_specifications[tree.rate_pos_tr(i,j)]];
+			    }
+			}
+			model_out << endl;
+			model_out << "Frequencies:" << endl;
+			for (unsigned int i=0; i < n_states; ++i) {
+			    if (i != 0) model_out << "; ";
+			    bitset<SIZE> temp;
+			    temp.set(i);
+			    model_out << alphabet::translate_bitset(temp, alphabet) << ": " << tree.get_base_freq(i,&model_specifications[0],&model_parameters[0]);
+
+			}
+			model_out << endl;
+		    }
+		    else {
+			model_out << "Parameters:" << endl;
+			tree.print_Q_matrix( model_out );
+		    }
 		    model_out << endl;
 		}
 		if (method == 'C') {

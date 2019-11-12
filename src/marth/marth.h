@@ -40,7 +40,7 @@ namespace marth {
         };
         bool set_value (const unsigned int x, const unsigned int y, const double value);
         double get_value (const unsigned int x, const unsigned int y);
-	int get_dimentions () { return dimentions; };
+	unsigned int get_dimentions () { return dimentions; };
         bool multiply (const square_matrix* other);
 	void multiply ( const double k );
 	bool add ( const square_matrix* other);

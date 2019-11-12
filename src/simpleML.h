@@ -46,16 +46,25 @@ class simpleML : public tree {
 		    else likelihoods[leaf][i] = 0.0;
 		}
 	};
+	void set_Q_matrix ( const unsigned int* parameters, const double* values );
+	void set_Q_matrix ( const double* values );
+	void set_Q_matrix ( const unsigned int* parameters, const double* values, bool tr );
 	double calculate_log_likelihood() {
+	    #ifdef DEBUG
+    	    cerr << "Calculating likelihood!!!" << endl;
+	    #endif //DEBUG
 	    if (!check_nodes ( root )) return 0.0;
+	    if (!check_Q_matrix()) {
+		#ifdef DEBUG
+		cerr << "Q matrix not OK!!!" << endl;
+		#endif //DEBUG
+		return 0.0;
+	    }
 	    calculate_likelihood( root );
 	    double likelihood=0;
 	    for (unsigned int i=0; i < n_states; ++i) likelihood += likelihoods[root][i];
 	    return log(likelihood);
 	};
-	void set_Q_matrix ( const unsigned int* parameters, const double* values );
-	void set_Q_matrix ( const double* values );
-	void set_Q_matrix ( const unsigned int* parameters, const double* frequencies, const double* values );
 	double calculate_log_likelihood( const unsigned int* parameters, const double* values ) {
 	    set_Q_matrix(parameters,values);
 	    return calculate_log_likelihood();
@@ -65,13 +74,15 @@ class simpleML : public tree {
 	    return calculate_log_likelihood();
 	}
 	void add_taxon_sets(vector<string>& taxon_sets) {
-	    for (int i = 0; i < taxon_sets.size(); ++i) {
+	    for (unsigned int i = 0; i < taxon_sets.size(); ++i) {
 		clades.push_back(most_recent_common_ancestor(taxon_sets[i]));
 	    }
 	}
 	double calculate_likelihood_rate_change_at_nodes ( const double* rates ) {
+	    if (!check_nodes ( root )) return 0.0;
+	    if (!check_Q_matrix()) return 0.0;
 	    map<node*, double> rate_changes;
-	    for (int i = 0; i < clades.size() && i < clades.size(); ++i) {
+	    for (unsigned int i = 0; i < clades.size() && i < clades.size(); ++i) {
 		if (clades[i] != 0) rate_changes[clades[i]] = rates[i];
 	    }
 	    calculate_likelihood_rate_change_at_nodes(root,1.0,rate_changes);
@@ -89,6 +100,7 @@ class simpleML : public tree {
 	}
 	double calculate_likelihood_rate_change_in_time(const double cut_off, const double rate) {
 	    if (!check_nodes ( root )) return 0.0;
+	    if (!check_Q_matrix()) return 0.0;
 	    calculate_likelihood_rate_change_in_time( root, 0.0, cut_off, rate );
 	    double likelihood=0;
             for (unsigned int i=0; i < n_states; ++i) likelihood += likelihoods[root][i];
@@ -108,6 +120,9 @@ class simpleML : public tree {
 	void draw_normalized_likelihood_on_nodes() { draw_normalized_likelihood_on_nodes( root ); };
 	unsigned int n_taxon_sets() { return clades.size(); }
 	unsigned int get_n_states() { return n_states; }
+	unsigned int n_rates_tr () { return (((n_states*n_states)-n_states)/2); }
+	double get_base_freq(const unsigned int base, const unsigned int* parameters, const double* values);
+	unsigned int rate_pos_tr (const unsigned int y, const unsigned int x);
     private:
 	// variables
 	map<node*,vector<double> > likelihoods;
@@ -119,10 +134,11 @@ class simpleML : public tree {
 	void init_nodes ( node* leaf );
 	void un_init_nodes ( node* leaf );
 	bool check_nodes ( const node* leaf );
+	bool check_Q_matrix();
 	void calculate_likelihood ( const node* leaf );
 	void calculate_likelihood_rate_change_in_time(const node* leaf, const double dist_from_root, const double cut_off, const double rate);
 	void calculate_likelihood_rate_change_at_nodes(const node* leaf, double rate, const map<node*, double>& rate_changes);
 	void draw_normalized_likelihood_on_nodes( node* leaf );
 	void branch_likelihood ( map<node*,vector<double> >::iterator LHbins, map<node*,vector<double> >::iterator startLHs, double branch_length, bool multiply);
-	unsigned int par_pos (const unsigned int n);
+	//unsigned int par_pos (const unsigned int n);
 };
