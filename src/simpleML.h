@@ -20,7 +20,7 @@ contact: martin.ryberg@ebc.uu.se
 #include <iostream>
 #include "tree.h"
 #include <cmath>
-#include "marth/marth.h"
+#include "sub_model.h"
 #include <map>
 #include <vector>
 
@@ -34,7 +34,7 @@ class simpleML : public tree {
 	void init(unsigned int states) {
 	    un_init_nodes (root);
 	    n_states = states;
-	    Q_matrix.reset(n_states);
+	    //Q_matrix.reset(n_states);
 	    init_nodes(root);
 	};
 	void reset(const unsigned int states) { init(states); };
@@ -46,99 +46,111 @@ class simpleML : public tree {
 		    else likelihoods[leaf][i] = 0.0;
 		}
 	};
-	void set_Q_matrix ( const unsigned int* parameters, const double* values );
-	void set_Q_matrix ( const double* values );
-	void set_Q_matrix ( const unsigned int* parameters, const double* values, bool tr );
-	double calculate_log_likelihood() {
+	//void set_Q_matrix ( const unsigned int* parameters, const double* values );
+	//void set_Q_matrix ( const double* values );
+	//void set_Q_matrix ( const unsigned int* parameters, const double* values, bool tr );
+	double calculate_log_likelihood( sub_model& model ) {
 	    #ifdef DEBUG
     	    cerr << "Calculating likelihood!!!" << endl;
 	    #endif //DEBUG
 	    if (!check_nodes ( root )) return 0.0;
-	    if (!check_Q_matrix()) {
+	    if (n_states != model.get_n_states()) {
+		cerr << "Number of characters in model (" << model.get_n_states() << ") does not fit number of characters to explain (" << n_states << ")!!!" << endl;
+		return 0.0;
+	    }
+	    /*if (!check_Q_matrix()) {
 		#ifdef DEBUG
 		cerr << "Q matrix not OK!!!" << endl;
 		#endif //DEBUG
 		return 0.0;
-	    }
-	    calculate_likelihood( root );
+	    }*/
+	    calculate_likelihood( root, model );
 	    double likelihood=0;
 	    for (unsigned int i=0; i < n_states; ++i) likelihood += likelihoods[root][i];
 	    return log(likelihood);
 	};
-	double calculate_log_likelihood( const unsigned int* parameters, const double* values ) {
-	    set_Q_matrix(parameters,values);
+	/*double calculate_log_likelihood( const unsigned int* parameters, const double* values ) {
+	    //set_Q_matrix(parameters,values);
 	    return calculate_log_likelihood();
 	};
 	double calculate_log_likelihood( const double* values ) {
 	    set_Q_matrix(values);
 	    return calculate_log_likelihood();
-	}
+	}*/
 	void add_taxon_sets(vector<string>& taxon_sets) {
 	    for (unsigned int i = 0; i < taxon_sets.size(); ++i) {
 		clades.push_back(most_recent_common_ancestor(taxon_sets[i]));
 	    }
 	}
-	double calculate_likelihood_rate_change_at_nodes ( const double* rates ) {
+	double calculate_likelihood_rate_change_at_nodes ( const double* rates, sub_model& model ) {
 	    if (!check_nodes ( root )) return 0.0;
-	    if (!check_Q_matrix()) return 0.0;
+	    //if (!check_Q_matrix()) return 0.0;
+	    if (n_states != model.get_n_states()) {
+                cerr << "Number of characters in model (" << model.get_n_states() << ") does not fit number of characters to explain (" << n_states << ")!!!" << endl;
+                return 0.0;
+            }
 	    map<node*, double> rate_changes;
 	    for (unsigned int i = 0; i < clades.size() && i < clades.size(); ++i) {
 		if (clades[i] != 0) rate_changes[clades[i]] = rates[i];
 	    }
-	    calculate_likelihood_rate_change_at_nodes(root,1.0,rate_changes);
+	    calculate_likelihood_rate_change_at_nodes(root,1.0,rate_changes, model);
 	    double likelihood=0;
 	    for (unsigned int i=0; i < n_states; ++i) likelihood += likelihoods[root][i];
             return log(likelihood);
 	}
-	double calculate_likelihood_rate_change_at_nodes (const double* values, const double* rates) {
+	/*double calculate_likelihood_rate_change_at_nodes (const double* values, const double* rates) {
 	    set_Q_matrix(values);
 	    return calculate_likelihood_rate_change_at_nodes( rates);
 	}
 	double calculate_likelihood_rate_change_at_nodes (const unsigned int* parameters, const double* values, const double* rates) {
 	    set_Q_matrix(parameters,values);
 	    return calculate_likelihood_rate_change_at_nodes( rates);
-	}
-	double calculate_likelihood_rate_change_in_time(const double cut_off, const double rate) {
+	}*/
+	double calculate_likelihood_rate_change_in_time(const double cut_off, const double rate, sub_model& model) {
 	    if (!check_nodes ( root )) return 0.0;
-	    if (!check_Q_matrix()) return 0.0;
-	    calculate_likelihood_rate_change_in_time( root, 0.0, cut_off, rate );
+	    //if (!check_Q_matrix()) return 0.0;
+ 	    if (n_states != model.get_n_states()) {
+                cerr << "Number of characters in model (" << model.get_n_states() << ") does not fit number of characters to explain (" << n_states << ")!!!" << endl;
+                return 0.0;
+            }
+	    calculate_likelihood_rate_change_in_time( root, 0.0, cut_off, rate, model );
 	    double likelihood=0;
             for (unsigned int i=0; i < n_states; ++i) likelihood += likelihoods[root][i];
             return log(likelihood);
 	}
-	double calculate_likelihood_rate_change_in_time(const unsigned int* parameters, const double* values, const double cut_off, const double rate ) {
+/*	double calculate_likelihood_rate_change_in_time(const unsigned int* parameters, const double* values, const double cut_off, const double rate ) {
 	    set_Q_matrix(parameters,values);
 	    return calculate_likelihood_rate_change_in_time(cut_off, rate);
 	}
 	double calculate_likelihood_rate_change_in_time( const double* values, const double cut_off, const double rate ) {
 	    set_Q_matrix(values);
 	    return calculate_likelihood_rate_change_in_time(cut_off, rate);
-        }
-	vector<character_vector> simulate_chars( const vector<double> & charfreq, const unsigned int n_char);
-	void print_Q_matrix ( ostream& output_stream ) { Q_matrix.print( output_stream ); };
-	void print_Q_matrix () { Q_matrix.print( std::cout ); };
+        }*/
+	vector<character_vector> simulate_chars( const vector<double> & charfreq, const unsigned int n_char, sub_model& model);
+	//void print_Q_matrix ( ostream& output_stream ) { Q_matrix.print( output_stream ); };
+	//void print_Q_matrix () { Q_matrix.print( std::cout ); };
 	void draw_normalized_likelihood_on_nodes() { draw_normalized_likelihood_on_nodes( root ); };
 	unsigned int n_taxon_sets() { return clades.size(); }
 	unsigned int get_n_states() { return n_states; }
 	unsigned int n_rates_tr () { return (((n_states*n_states)-n_states)/2); }
-	double get_base_freq(const unsigned int base, const unsigned int* parameters, const double* values);
-	unsigned int rate_pos_tr (const unsigned int y, const unsigned int x);
+	//double get_base_freq(const unsigned int base, const unsigned int* parameters, const double* values);
+	//unsigned int rate_pos_tr (const unsigned int y, const unsigned int x);
     private:
 	// variables
 	map<node*,vector<double> > likelihoods;
 	vector<node*> clades;
 	unsigned int n_states;
-	marth::square_matrix Q_matrix;
+	//marth::square_matrix Q_matrix;
 	// functions
-	void simulate_chars_subtree( node* leaf, map<node*,unsigned int>& simdata, const unsigned int ancestor);
+	void simulate_chars_subtree( node* leaf, map<node*,unsigned int>& simdata, const unsigned int ancestor, sub_model& model);
 	void init_nodes ( node* leaf );
 	void un_init_nodes ( node* leaf );
 	bool check_nodes ( const node* leaf );
-	bool check_Q_matrix();
-	void calculate_likelihood ( const node* leaf );
-	void calculate_likelihood_rate_change_in_time(const node* leaf, const double dist_from_root, const double cut_off, const double rate);
-	void calculate_likelihood_rate_change_at_nodes(const node* leaf, double rate, const map<node*, double>& rate_changes);
+	//bool check_Q_matrix();
+	void calculate_likelihood ( const node* leaf, sub_model& model );
+	void calculate_likelihood_rate_change_in_time(const node* leaf, const double dist_from_root, const double cut_off, const double rate, sub_model& model);
+	void calculate_likelihood_rate_change_at_nodes(const node* leaf, double rate, const map<node*, double>& rate_changes, sub_model& model);
 	void draw_normalized_likelihood_on_nodes( node* leaf );
-	void branch_likelihood ( map<node*,vector<double> >::iterator LHbins, map<node*,vector<double> >::iterator startLHs, double branch_length, bool multiply);
+	void branch_likelihood ( map<node*,vector<double> >::iterator LHbins, map<node*,vector<double> >::iterator startLHs, double branch_length, bool multiply, sub_model& model);
 	//unsigned int par_pos (const unsigned int n);
 };

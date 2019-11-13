@@ -16,6 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 contact: martin.ryberg@ebc.uu.se
 *********************************************************************/
+#ifndef MARTHHEADER
+#define MARTHHEADER
 
 #include <iostream>
 #include <fstream>
@@ -93,3 +95,5 @@ namespace marth {
     double uniformr (); // draw random value between 0 and 1 from a uniform distribution
     double expr ( double mean ); // draw random value from exponential distribution
 };
+
+#endif //MARTHHEDER

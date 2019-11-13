@@ -16,6 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 contact: martin.ryberg@ebc.uu.se
 *********************************************************************/
+#ifndef SUB_MODELHEADER
+#define SUB_MODELHEADER
 
 #include "marth/marth.h"
 #include <vector>
@@ -25,12 +27,12 @@ using namespace std;
 
 class sub_model {
     public:
-    sub_model( unsigned int dim, bool tr, bool eq ) : timerev(tr), equal_freq(eq), n_states(dim), state_freqs(0), n_rates(1) {
+    sub_model( unsigned int dim, bool tr, bool eq ) : timerev(tr), equal_freq(eq), n_states(dim), n_rates(1), state_freqs(0), P_matrix(0) {
 	if (timerev) {
-	    rates_specs = new unsigned int[((n_states*n_states)-n_states)/2];
+	    rate_specs = new unsigned int[((n_states*n_states)-n_states)/2];
 	}
 	else {
-	    rates_specs = new unsigned int[(n_states*n_states)-n_states]
+	    rate_specs = new unsigned int[(n_states*n_states)-n_states];
 	}
 	rates = new double[1];
 	Q_matrix = new marth::square_matrix(n_states);
@@ -38,35 +40,65 @@ class sub_model {
     sub_model( unsigned int dim, bool tr) { sub_model(dim, tr, false); }
     sub_model( unsigned int dim ) { sub_model(dim, false, false); }
     ~sub_model() {
-	if (rates_specs != 0) delete [] rates_specs;
-	if (freq_specs != 0) delete [] freq_specs;
+	if (rate_specs != 0) delete [] rate_specs;
 	if (rates != 0) delete [] rates;
 	if (state_freqs != 0) delete [] state_freqs;
+	if (P_matrix != 0) delete P_matrix;
 	delete Q_matrix;
     }
-    marth::square_matrix get_P_matrix( double branch );
-    void set_rate (const unsigned int n, const double value) { if (n < n_rates) rates[n] = value; }
-    void set_rate (const unsigned int row, const unsigned int col, const double value) {
+    void set_P_matrix( const double branch_length );
+    double get_P_value( const unsigned int row, const unsigned int col) {
+	if (row < n_states && col << n_states) return P_matrix->get_value(row,col);
+	else return 0.0;
+    }
+    bool set_rate (const unsigned int n, const double value) {
+	if (n < n_rates && value >= 0.0) {
+	    rates[n] = value;
+	    calc_Q_matrix();
+	    return true;
+	}
+	else return false;
+    }
+    bool set_rate (const unsigned int row, const unsigned int col, const double value) {
 	unsigned int pos = get_rate_pos( row, col );
 	if (pos < n_posible_rates())
-	    set_rate(rate_spec[pos],value);
+	    return set_rate(rate_specs[pos],value);
+	else return false;
+    }
+    double get_rate(const unsigned int n) {
+	if (n < n_rates) return rates[n];
+	else return 0.0;
+    }
+    double get_rate(const unsigned int row, const unsigned int col) {
+	unsigned int pos = get_rate_pos( row, col );
+	if (pos < n_posible_rates())
+	    return rates[rate_specs[pos]];
+	else return 0.0;
     }
     bool set_rate_spec (const unsigned int n, const unsigned int param);
     bool set_rate_spec (const unsigned int row, const unsigned int col, const unsigned int param) {
 	unsigned int pos = get_rate_pos( row, col );
 	return set_rate_spec ( pos, param );
     }
-    void set_freq (unsigned int n, double value);
-    double get_freq (unsigned int n);
-    void equal_state_freq ( bool eq) { equal_freq=eq; }
+    unsigned int get_n_rates () { return n_rates; }
+    bool set_freq (const unsigned int n, const double value);
+    void set_freq_same () {
+	if (state_freqs != 0)
+	    for (unsigned int i=0; i < n_states-1; ++i) state_freqs[i] = 1.0/n_states;
+    }
+    double get_freq (const unsigned int n);
+    void equal_state_freq ( const bool eq) { equal_freq=eq; }
     bool is_time_reversible() { return timerev; }
+    unsigned int get_n_states () { return n_states; }
     bool is_timerev() { return timerev; }
-    bool is_tr() () { return timerev; }
-    unsigned int n_distinct_freqs ();
+    bool is_tr() { return timerev; }
+    bool are_state_freq_eqal() { return equal_freq; }
     unsigned int n_posible_rates() {
 	if (timerev) return ((n_states*n_states)-n_states)/2;
 	else return (n_states*n_states)-n_states;
     }
+    void print_Q_matrix ( ostream& output_stream ) { Q_matrix->print( output_stream ); }
+    void print_Q_matrix () { Q_matrix->print( std::cout ); }
     private:
     bool timerev;
     bool equal_freq;
@@ -76,6 +108,9 @@ class sub_model {
     double* rates;
     double* state_freqs;
     marth::square_matrix* Q_matrix;
-    get_rate_pos (unsigned int row, unsigned int col);
+    marth::square_matrix* P_matrix;
+    unsigned int get_rate_pos (const unsigned int row, const unsigned int col);
+    void calc_Q_matrix();
+};
 
-}
+#endif //SUB_MODELHEADER

@@ -58,7 +58,7 @@ bool simpleML::check_nodes ( const node* leaf ) {
     else return true;
 }
 
-bool simpleML::check_Q_matrix() {
+/*bool simpleML::check_Q_matrix() {
     #ifdef DEBUG
     cerr << "Checking Q matrix" << endl;
     #endif //DEBUG
@@ -69,8 +69,8 @@ bool simpleML::check_Q_matrix() {
 	}	
     }
     return true;
-}
-void simpleML::set_Q_matrix ( const double* values ) {
+}*/
+/*void simpleML::set_Q_matrix ( const double* values ) {
     unsigned int parameters[(n_states*n_states)-n_states];
     for (unsigned int i=0; i<(n_states*n_states)-n_states; ++i) parameters[i]=i;
     set_Q_matrix (&parameters[0], values);
@@ -123,8 +123,8 @@ void simpleML::set_Q_matrix ( const unsigned int* parameters, const double* valu
 	set_Q_matrix(parameters,values);
     }
 }
-
-unsigned int simpleML::rate_pos_tr (const unsigned int y, const unsigned int x) {
+*/
+/*unsigned int simpleML::rate_pos_tr (const unsigned int y, const unsigned int x) {
     if (x==y) return n_rates_tr()+n_states;
     unsigned int i(0);
     unsigned int j(0);
@@ -140,9 +140,9 @@ unsigned int simpleML::rate_pos_tr (const unsigned int y, const unsigned int x) 
     while(i) { pos += n_states-i; --i; }
     pos += j-1;
     return pos;
-}
+}*/
 
-double simpleML::get_base_freq(const unsigned int base, const unsigned int* parameters, const double* values) {
+/*double simpleML::get_base_freq(const unsigned int base, const unsigned int* parameters, const double* values) {
     unsigned int start = n_rates_tr();
     if (base >= n_states-1) {
 	double freq(1.0);
@@ -155,7 +155,7 @@ double simpleML::get_base_freq(const unsigned int base, const unsigned int* para
 	return freq;
     }
     else return values[parameters[start+base]];
-}
+}*/
 
 /*unsigned int simpleML::par_pos (const unsigned int n) {
     unsigned int pos(0);
@@ -165,35 +165,35 @@ double simpleML::get_base_freq(const unsigned int base, const unsigned int* para
     return pos;
 }*/
 
-void simpleML::calculate_likelihood (const node* leaf) {
+void simpleML::calculate_likelihood (const node* leaf, sub_model& model) {
     if (leaf->left != 0) {
-	calculate_likelihood (leaf->left);
-	branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->left)),leaf->left->branchlength,false);
+	calculate_likelihood (leaf->left, model);
+	branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->left)),leaf->left->branchlength,false, model);
     }
     if (leaf->right != 0) {
-	calculate_likelihood (leaf->right);
-	if (leaf->left != 0) branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),leaf->right->branchlength,true);
-	else branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),leaf->right->branchlength,false);
+	calculate_likelihood (leaf->right, model);
+	if (leaf->left != 0) branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),leaf->right->branchlength,true, model);
+	else branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),leaf->right->branchlength,false,model);
     }
 }
 
-void simpleML::calculate_likelihood_rate_change_at_nodes (const node* leaf, double rate, const map<node*, double>& rate_changes) {
+void simpleML::calculate_likelihood_rate_change_at_nodes (const node* leaf, double rate, const map<node*, double>& rate_changes, sub_model& model) {
     map<node*, double>::const_iterator change = rate_changes.find(const_cast<node*>(leaf));
     if (change != rate_changes.end()) rate = change->second;
     if (leaf->left != 0) {
-	calculate_likelihood_rate_change_at_nodes(leaf->left, rate, rate_changes);
-	branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->left)),leaf->left->branchlength*rate,false);
+	calculate_likelihood_rate_change_at_nodes(leaf->left, rate, rate_changes, model);
+	branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->left)),leaf->left->branchlength*rate,false,model);
     }
     if (leaf->right != 0) {
-	calculate_likelihood_rate_change_at_nodes(leaf->right, rate, rate_changes);
-	if (leaf->left != 0) branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),leaf->right->branchlength*rate,true);
-	else branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),leaf->right->branchlength*rate,false);
+	calculate_likelihood_rate_change_at_nodes(leaf->right, rate, rate_changes, model);
+	if (leaf->left != 0) branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),leaf->right->branchlength*rate,true,model);
+	else branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),leaf->right->branchlength*rate,false,model);
     }
 }
 
-void simpleML::calculate_likelihood_rate_change_in_time(const node* leaf, const double dist_from_root, const double cut_off, double rate) {
+void simpleML::calculate_likelihood_rate_change_in_time(const node* leaf, const double dist_from_root, const double cut_off, double rate, sub_model& model) {
     if (leaf->left != 0) {
-	calculate_likelihood_rate_change_in_time(leaf->left, dist_from_root+leaf->left->branchlength,cut_off,rate);
+	calculate_likelihood_rate_change_in_time(leaf->left, dist_from_root+leaf->left->branchlength,cut_off,rate, model);
 	double length;
 	if (dist_from_root+leaf->left->branchlength > cut_off) {
 	    if (dist_from_root>cut_off)
@@ -203,10 +203,10 @@ void simpleML::calculate_likelihood_rate_change_in_time(const node* leaf, const 
 	}
 	else
 	    length = leaf->left->branchlength;
-	branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->left)),length,false);
+	branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->left)),length,false, model);
     }
     if (leaf->right != 0) {
-	calculate_likelihood_rate_change_in_time(leaf->right, dist_from_root+leaf->right->branchlength,cut_off,rate);
+	calculate_likelihood_rate_change_in_time(leaf->right, dist_from_root+leaf->right->branchlength,cut_off,rate, model);
 	double length;
 	if (dist_from_root+leaf->right->branchlength > cut_off) {
             if (dist_from_root>cut_off)
@@ -216,18 +216,19 @@ void simpleML::calculate_likelihood_rate_change_in_time(const node* leaf, const 
         }
 	else
     	    length = leaf->right->branchlength;
-	if (leaf->left != 0) branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),length,true);
-	else branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),length,false);
+	if (leaf->left != 0) branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),length,true,model);
+	else branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),length,false,model);
     }
 }
 
-void simpleML::branch_likelihood ( map<node*,vector<double> >::iterator LHbins, map<node*,vector<double> >::iterator startLHs, double branch_length, bool multiply) {
-    marth::square_matrix P_matrix;
-    Q_matrix.exponential(&P_matrix, branch_length, 20);
+void simpleML::branch_likelihood ( map<node*,vector<double> >::iterator LHbins, map<node*,vector<double> >::iterator startLHs, double branch_length, bool multiply, sub_model& model) {
+    //marth::square_matrix P_matrix;
+    //Q_matrix.exponential(&P_matrix, branch_length, 20);
+    model.set_P_matrix(branch_length);
     for (unsigned int i = 0; i < n_states; ++i) {
             double pi = 0;
             for (unsigned int j = 0; j < n_states; ++j)
-                pi += startLHs->second[j] * P_matrix.get_value(i,j);
+                pi += startLHs->second[j] * model.get_P_value(i,j);
 	    if (multiply) LHbins->second[i] *=pi;
 	    else LHbins->second[i] = pi;
     }
@@ -259,7 +260,7 @@ void simpleML::draw_normalized_likelihood_on_nodes( node* leaf ) {
     }
 }
 
-vector<character_vector> simpleML::simulate_chars( const vector<double> & charfreq, const unsigned int n_char) {
+vector<character_vector> simpleML::simulate_chars( const vector<double> & charfreq, const unsigned int n_char, sub_model& model) {
     map<node*,character_vector> output_matrix;
     for (unsigned int i=0; i<n_char; ++i) { 
 	map<node*,unsigned int> simdata;
@@ -271,11 +272,11 @@ vector<character_vector> simpleML::simulate_chars( const vector<double> & charfr
 	}
 	#ifdef DEBUG
 	cerr << "Root trait: " << root_trait << endl;
-	Q_matrix.print(cerr);
+	//Q_matrix.print(cerr);
 	cerr << endl;
 	#endif //DEBUG
-	simulate_chars_subtree(root->left, simdata, root_trait);
-	simulate_chars_subtree(root->right, simdata, root_trait);
+	simulate_chars_subtree(root->left, simdata, root_trait, model);
+	simulate_chars_subtree(root->right, simdata, root_trait, model);
 	for (map<node*,unsigned int>::const_iterator k = simdata.begin(); k != simdata.end(); ++k) {
 	    map<node*,character_vector>::iterator taxon = output_matrix.find(k->first);
 	    bitset<SIZE> character;
@@ -300,26 +301,27 @@ vector<character_vector> simpleML::simulate_chars( const vector<double> & charfr
     return return_data;
 }
 
-void simpleML::simulate_chars_subtree( node* leaf, map<node*,unsigned int>& simdata, const unsigned int ancestor) {
+void simpleML::simulate_chars_subtree( node* leaf, map<node*,unsigned int>& simdata, const unsigned int ancestor, sub_model& model) {
     if (leaf != 0) {
-	marth::square_matrix P_matrix;
-	Q_matrix.exponential(&P_matrix, leaf->branchlength, 20);
+	//marth::square_matrix P_matrix;
+	//Q_matrix.exponential(&P_matrix, leaf->branchlength, 20);
+	model.set_P_matrix(leaf->branchlength);
 	unsigned int trait = ancestor;
 	double rand_no = (double) rand()/(RAND_MAX);
-	for (unsigned int i=0; i < P_matrix.get_dimentions(); ++i) {
+	for (unsigned int i=0; i < model.get_n_states(); ++i) {
 	    #ifdef DEBUG
-	    cerr << "Rand no: " << rand_no << " P for char: " << P_matrix.get_value(ancestor,i) << endl; 
+	    cerr << "Rand no: " << rand_no << " P for char: " << model.get_P_value(ancestor,i) << endl; 
 	    #endif //DEBUG
-	    rand_no -= P_matrix.get_value(ancestor,i);
+	    rand_no -= model.get_P_value(ancestor,i);
 	    if (rand_no <= 0) { trait = i; break; }
 	}
 	#ifdef DEBUG
-	P_matrix.print(cerr); cerr << endl;
+	//P_matrix.print(cerr); cerr << endl;
 	if (leaf->nodelabel && !leaf->nodelabel->empty()) cerr << *leaf->nodelabel << endl;
 	cerr << "Simulating trait along branch. Start: " << ancestor << " end: " << trait << endl;
 	#endif //DEBUG
 	simdata[leaf] = trait;
-	if (leaf->left != 0) simulate_chars_subtree(leaf->left, simdata, trait);
-	if (leaf->right != 0) simulate_chars_subtree(leaf->right, simdata, trait);
+	if (leaf->left != 0) simulate_chars_subtree(leaf->left, simdata, trait, model);
+	if (leaf->right != 0) simulate_chars_subtree(leaf->right, simdata, trait, model);
     }
 }
