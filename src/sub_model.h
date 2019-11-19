@@ -27,18 +27,15 @@ using namespace std;
 
 class sub_model {
     public:
-    sub_model( unsigned int dim, bool tr, bool eq ) : timerev(tr), equal_freq(eq), n_states(dim), n_rates(1), state_freqs(0), P_matrix(0) {
-	if (timerev) {
-	    rate_specs = new unsigned int[((n_states*n_states)-n_states)/2];
-	}
-	else {
-	    rate_specs = new unsigned int[(n_states*n_states)-n_states];
-	}
-	rates = new double[1];
-	Q_matrix = new marth::square_matrix(n_states);
+    sub_model ( unsigned int dim, bool tr, bool eq ) : timerev(tr), equal_freq(eq), n_states(dim), n_rates(1), state_freqs(0), P_matrix(0) {
+	set_sub_model(eq);
     }
-    sub_model( unsigned int dim, bool tr) { sub_model(dim, tr, false); }
-    sub_model( unsigned int dim ) { sub_model(dim, false, false); }
+    sub_model ( unsigned int dim, bool tr = false) : timerev(tr), n_states(dim), n_rates(1), state_freqs(0), P_matrix(0) {
+	set_sub_model( false );
+	#ifdef DEBUG
+	cerr << "Number of dimentions: " << dim << " number of states: " << n_states << endl;
+	#endif //DEBUG
+    }
     ~sub_model() {
 	if (rate_specs != 0) delete [] rate_specs;
 	if (rates != 0) delete [] rates;
@@ -48,7 +45,7 @@ class sub_model {
     }
     void set_P_matrix( const double branch_length );
     double get_P_value( const unsigned int row, const unsigned int col) {
-	if (row < n_states && col << n_states) return P_matrix->get_value(row,col);
+	if (row < n_states && col < n_states) return P_matrix->get_value(row,col);
 	else return 0.0;
     }
     bool set_rate (const unsigned int n, const double value) {
@@ -100,9 +97,22 @@ class sub_model {
     void print_Q_matrix ( ostream& output_stream ) { Q_matrix->print( output_stream ); }
     void print_Q_matrix () { Q_matrix->print( std::cout ); }
     private:
-    bool timerev;
+    void set_sub_model( bool eq ) {
+	equal_freq = eq;
+	if (timerev) {
+	    rate_specs = new unsigned int[((n_states*n_states)-n_states)/2];
+	    for (unsigned int i=0; i < ((n_states*n_states)-n_states)/2; ++i) rate_specs[i] = 0;
+	}
+	else {
+	    rate_specs = new unsigned int[(n_states*n_states)-n_states];
+	    for (unsigned int i=0; i < ((n_states*n_states)-n_states); ++i) rate_specs[i] = 0;
+	}
+	rates = new double[1];
+	Q_matrix = new marth::square_matrix(n_states);
+    }
+    const bool timerev;
     bool equal_freq;
-    unsigned int n_states;
+    const unsigned int n_states;
     unsigned int n_rates;
     unsigned int* rate_specs;
     double* rates;

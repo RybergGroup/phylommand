@@ -33,7 +33,6 @@ void simpleML::init_nodes ( node* leaf ) {
 void simpleML::un_init_nodes ( node* leaf ) {
     if (leaf != 0) {
        	likelihoods.erase(leaf);
-	//leaf->other = 0;
         un_init_nodes(leaf->left);
         un_init_nodes(leaf->right);
     }
@@ -58,113 +57,6 @@ bool simpleML::check_nodes ( const node* leaf ) {
     else return true;
 }
 
-/*bool simpleML::check_Q_matrix() {
-    #ifdef DEBUG
-    cerr << "Checking Q matrix" << endl;
-    #endif //DEBUG
-    for (unsigned int i=0; i<n_states; ++i) {
-	for (unsigned int j=0; i<n_states; ++j) {
-	    if (i==j && Q_matrix.get_value(i,j) > 0.0) return false;
-	    else if (i != j && Q_matrix.get_value(i,j) < 0.0) return false;
-	}	
-    }
-    return true;
-}*/
-/*void simpleML::set_Q_matrix ( const double* values ) {
-    unsigned int parameters[(n_states*n_states)-n_states];
-    for (unsigned int i=0; i<(n_states*n_states)-n_states; ++i) parameters[i]=i;
-    set_Q_matrix (&parameters[0], values);
-}
-
-void simpleML::set_Q_matrix ( const unsigned int* parameters, const double* values ) {
-    for (unsigned char i=0; i < n_states; ++i) {
-	for (unsigned char j=0; j < n_states; ++j) { 
-	    if (i == j) {
-		double value = 0;
-		for (unsigned int k = (i*n_states)-i; k < (i+1)*(n_states-1); ++k) value -= values[parameters[k]];
-		Q_matrix.set_value(i,j,value);
-	    }
-	    else {
-		if (j>i) Q_matrix.set_value(i,j,values[parameters[i*n_states+j-i-1]]);
-		else Q_matrix.set_value(i,j,values[parameters[i*n_states+j-i]]);
-	    }
-	}
-    }
-}
-
-void simpleML::set_Q_matrix ( const unsigned int* parameters, const double* values, bool tr ) {
-    #ifdef DEBUG
-    cerr << "Seting Q matrix:" << endl;
-    #endif
-    if (tr) {
-	for (unsigned int i=0; i < n_states; ++i) {
-	    for (unsigned int j=0; j < n_states; ++j) {
-		if (i == j) {
-		    double value = 0;
-		    for (unsigned int k = 0; k < n_states; ++k) {
-			if (k != i) { value -= values[parameters[rate_pos_tr(i,k)]]*get_base_freq(k,parameters,values);
-			#ifdef DEBUG
-			cerr << "value to sum for " << i << " and " << k << " rate: " << values[rate_pos_tr(i,k)] << " freq: " << get_base_freq(k,parameters,values) << endl;
-			#endif //DEBUG
-			}
-		    }
-		    Q_matrix.set_value(i,j,value);
-		}
-		else {
-		    Q_matrix.set_value(i,j,values[rate_pos_tr(i,j)]*get_base_freq(j,parameters,values));
-		    #ifdef DEBUG
-	    	    cerr << "value for " << i << " and " << j << " rate: " << values[rate_pos_tr(i,j)] << " freq: " << get_base_freq(j,parameters,values) << endl;
-    		    #endif //DEBUG
-		}
-	    }
-	}
-    }
-    else {
-	set_Q_matrix(parameters,values);
-    }
-}
-*/
-/*unsigned int simpleML::rate_pos_tr (const unsigned int y, const unsigned int x) {
-    if (x==y) return n_rates_tr()+n_states;
-    unsigned int i(0);
-    unsigned int j(0);
-    unsigned int pos(0);
-    if (x>y) { // if in right hand of matrix
-	i=y; // go by row
-	j=x-y; // column minus columns in the left of the matrix
-    }
-    else if (y>x) { // same but by column
-	i=x;
-	j=y-x;
-    }
-    while(i) { pos += n_states-i; --i; }
-    pos += j-1;
-    return pos;
-}*/
-
-/*double simpleML::get_base_freq(const unsigned int base, const unsigned int* parameters, const double* values) {
-    unsigned int start = n_rates_tr();
-    if (base >= n_states-1) {
-	double freq(1.0);
-	for (unsigned int i = start; i < start+n_states-1; ++i) {
-	    freq -= values[parameters[i]];
-	    #ifdef DEBUG
-	    cerr << "Freq: " << i << " = " << values[parameters[i]] << endl;
-	    #endif //DEBUG
-	}
-	return freq;
-    }
-    else return values[parameters[start+base]];
-}*/
-
-/*unsigned int simpleML::par_pos (const unsigned int n) {
-    unsigned int pos(0);
-    for (unsigned int e = 1; e <= n; ++e) {
-	pos += n_states-e;
-    }
-    return pos;
-}*/
-
 void simpleML::calculate_likelihood (const node* leaf, sub_model& model) {
     if (leaf->left != 0) {
 	calculate_likelihood (leaf->left, model);
@@ -178,6 +70,9 @@ void simpleML::calculate_likelihood (const node* leaf, sub_model& model) {
 }
 
 void simpleML::calculate_likelihood_rate_change_at_nodes (const node* leaf, double rate, const map<node*, double>& rate_changes, sub_model& model) {
+    #ifdef DEBUG
+    cerr << "Rate: " << rate << endl;
+    #endif //DEBUG
     map<node*, double>::const_iterator change = rate_changes.find(const_cast<node*>(leaf));
     if (change != rate_changes.end()) rate = change->second;
     if (leaf->left != 0) {
@@ -192,6 +87,9 @@ void simpleML::calculate_likelihood_rate_change_at_nodes (const node* leaf, doub
 }
 
 void simpleML::calculate_likelihood_rate_change_in_time(const node* leaf, const double dist_from_root, const double cut_off, double rate, sub_model& model) {
+    #ifdef DEBUG
+    cerr << "Rate: " << rate << "; Cut off: " << cut_off << "; Distance from root: " <<  dist_from_root << endl;
+    #endif //DEBUG
     if (leaf->left != 0) {
 	calculate_likelihood_rate_change_in_time(leaf->left, dist_from_root+leaf->left->branchlength,cut_off,rate, model);
 	double length;
@@ -222,13 +120,15 @@ void simpleML::calculate_likelihood_rate_change_in_time(const node* leaf, const 
 }
 
 void simpleML::branch_likelihood ( map<node*,vector<double> >::iterator LHbins, map<node*,vector<double> >::iterator startLHs, double branch_length, bool multiply, sub_model& model) {
-    //marth::square_matrix P_matrix;
-    //Q_matrix.exponential(&P_matrix, branch_length, 20);
     model.set_P_matrix(branch_length);
     for (unsigned int i = 0; i < n_states; ++i) {
             double pi = 0;
-            for (unsigned int j = 0; j < n_states; ++j)
+            for (unsigned int j = 0; j < n_states; ++j) {
                 pi += startLHs->second[j] * model.get_P_value(i,j);
+		#ifdef DEBUG
+		cerr << "P " << j << " in descendant: " << startLHs->second[j] << "; P going to " << i << ": " << model.get_P_value(i,j) << endl;
+		#endif //DEBUG
+	    }
 	    if (multiply) LHbins->second[i] *=pi;
 	    else LHbins->second[i] = pi;
     }

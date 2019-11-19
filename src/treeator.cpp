@@ -250,7 +250,6 @@ int main (int argc, char *argv []) {
 			rate_mod.push_back(atof(t->c_str()));
 		    }
 		}
-                //    rate_mod = atof(argv[++i]);
                 else {
                     std::cerr << "-R/--rate_mod require a number as next argument." << endl;
                     return 1;
@@ -271,6 +270,7 @@ int main (int argc, char *argv []) {
 		    argv_parser::pars_sub_args(argv[++i],';',taxon_sets);
 		else {
 		    cerr << "-A / --taxon_sets require at least one set of taxa given as a comma separated string as next argument." << endl;
+		    return 1;
 		}
 		method = 'A';
 	    }
@@ -376,7 +376,6 @@ int main (int argc, char *argv []) {
 	}
 	if (!quiet) cerr << "Read distances for " << tree.n_nodes_in_array() << " taxa." << endl;
 	if (!quiet) tree.print_node_and_distance_array(cerr);
-	//tree.print_node_and_distance_array();
 	if (!quiet) cerr << "Creating NJ tree." << endl;
 	tree.build_nj_tree(quiet);
 	if (print_tree == 'w') tree.print_newick(print_br_length);
@@ -541,7 +540,6 @@ int main (int argc, char *argv []) {
 	else if (method == 'o' || method == 't' || method == 'A' || method == 'C') {
 	    if (!characters.empty() && characters.begin()->n_char() > 1) cerr << "Warning!!! Will only calculate likelihood of first character in matrix." << endl;
 	    unsigned int n_states = 0;
-	    //unsigned int n_parameters = 0;
 	    vector<double> extra_parameters;
 	    if (!quiet) cerr << "Preparing model." << endl; 
 	    if (method == 'o' || method == 't' || method == 'A') {
@@ -555,7 +553,13 @@ int main (int argc, char *argv []) {
 		    }
 		}
 	    }
+	    #ifdef DEBUG
+	    cerr << "Checked number of states: " << n_states << endl;
+	    #endif //DEBUG
 	    sub_model model(n_states,tr);
+	    #ifdef DEBUG
+            cerr << "N states in model: " << model.get_n_states() << endl;
+	    #endif //DEBUG
     	    if (!model_specifications.empty()) {
 		// check model specifications
 		for (unsigned int i=0; i < model_specifications.size(); ++i) {
@@ -565,38 +569,13 @@ int main (int argc, char *argv []) {
 			return 1;
 		    }
 		}
-		/*vector<unsigned int> temp = model_specifications;
-		sort(temp.begin(),temp.end());
-		for (vector<unsigned int>::const_iterator i=temp.begin(); i!=temp.end(); ++i) {
-		    if (i == temp.begin()) {
-			if (*i != 0) {
-			    cerr << "Lowest parameter index in model (given by -m / --model) should be 0 not " << *i << "." << endl;
-			    return 1;
-			}
-		    }
-		    else {
-			if (*i - *(i-1) > 1) { 
-			    cerr << "The parameter indexes should be a continuous series of integers. Missing index " << *(i-1)+1 << "." << endl;
-			    return 1;
-			}
-		    }
-		}
-		set<unsigned int> parameters;
-		for (vector<unsigned int>::const_iterator i=model_specifications.begin(); i!=model_specifications.end(); ++i) {
-		    parameters.insert(*i);
-		}*/
-		//n_parameters=model.n_rates();
 	    }
     	    else {
 	       	for (unsigned int i=0; model.n_posible_rates(); ++i) model.set_rate_spec(i,i);
-		/*if (tr) {
-		    for (unsigned int i=0; i < (((n_states*n_states)-n_states)/2); ++i) model_specifications.push_back(i);
-		}
-		else {
-		    for (unsigned int i=0; i < (n_states*n_states)-n_states; ++i) model_specifications.push_back(i);
-		}
-		n_parameters=model_specifications.size();*/
 	    }
+	    #ifdef DEBUG
+	    cerr << "Set model specifications." << endl;
+	    #endif //DEBUG
     // Set parameter values
     	    if(!model_parameters.empty()) {
 		if (model_parameters.size() != model.get_n_rates()) {
@@ -615,15 +594,10 @@ int main (int argc, char *argv []) {
 		    if (model.is_tr()) { model.set_rate(i,1.0); }
 		    else model.set_rate(i,0.1);
 		}
-		/*if (tr) {
-		    for (unsigned int i=0; i < n_parameters; ++i) {
-			model_parameters.push_back(1.0);
-		    }
-		}
-		else {
-		    for (unsigned int i=0; i < n_parameters; ++i) model_parameters.push_back(0.1);
-		}*/
 	    }
+	    #ifdef DEBUG
+            cerr << "Set model parameters." << endl;
+            #endif //DEBUG
 	    if (model.is_tr()) {
 		if (char_freqs.empty()) {
 		    model.set_freq_same();
@@ -636,46 +610,32 @@ int main (int argc, char *argv []) {
 			    else if (i == model.get_n_states()-1) cerr << "Last char will be 1.0 minus the frequency of previous characters" << endl;
 			}
 		    }
-		    /*double sum_freq(0.0);
-		    unsigned int i(0);
-		    for (; i < char_freqs.size() && i < n_states-1; ++i) {
-			model_parameters.push_back(char_freqs[i]);
-			sum_freq += char_freqs[i];
-		    }
-		    if (sum_freq > 1.0) {
-			cerr << "Frequences sum to more than 1.0" << endl;
-			return 1;
-		    }
-		    for (; i < char_freqs.size(); ++i) {
-			cerr << "Frequency for char " << i << " (" << char_freqs[i] << ") is ignored." << endl;
-			if (i == n_states-1) cerr << "Last char will be 1.0 minus the frequency of previous characters" << endl;
-			else cerr << "No matching character in model. Number of characters= " << n_states << " index start a 0." << endl;
-		    }*/
 		}
-		/*if (n_parameters == model_specifications.size()) {
-		    for (unsigned int i=0; i < n_states-1; ++i) model_specifications.push_back(i+n_parameters);
-	       	}*/
-		//n_parameters += n_states-1;
+		#ifdef DEBUG
+    		cerr << "Set state frequencies." << endl;
+		#endif //DEBUG
 	    }
 	    // Adjust number of parameters according to rate change model and add extra parameters to vector
-	    #ifdef DEBUG
-	    //cerr << "N parameters: " << n_parameters << ", method=" << method << endl;
-	    #endif //DEBUG
 	    if (method == 't') {
-		//n_parameters+=2;
 		extra_parameters.push_back(cut_off);
+		#ifdef DEBUG
+		cerr << "N extra parameters: " << extra_parameters.size() << endl;
+		#endif //DEBUG
 		extra_parameters.push_back(rate_mod[0]);
+		#ifdef DEBUG
+		cerr << "N extra parameters: " << extra_parameters.size() << endl;
+		#endif //DEBUG
 	    }
 	    else if (method == 'A') {
-		//n_parameters += taxon_sets.size();
 		for (unsigned int i = 0; i < taxon_sets.size(); ++i) {
 		    extra_parameters.push_back(rate_mod[i]);
+		    #ifdef DEBUG
+		    cerr << "N extra parameters: " << extra_parameters.size() << endl;
+		    #endif //DEBUG
 		}
 	    }
+
 	    // check fixed_parameters
-	    #ifdef DEBUG
-	    //cerr << "N parameters: " << n_parameters << ", method=" << method << endl;
-	    #endif //DEBUG
 	    for (set<unsigned int>::iterator i=fixed_parameters.begin(); i != fixed_parameters.end(); ++i) {
 		if (*i > model.get_n_rates()) {
 		    cerr << "Can not fix rate parameter " << *i << ". It is out of bound (n parameters=" << model.get_n_rates() << ")." << endl;
@@ -688,6 +648,9 @@ int main (int argc, char *argv []) {
 		    return 1;
 		}
 	    }
+	    #ifdef DEBUG
+            cerr << "Set fixed parameters." << endl;
+            #endif //DEBUG
 	    if (!quiet) {
 		if (tr) cerr << "Using time reversable model" << endl;
 		cerr << "Model has " << model.get_n_rates() << " rate parameters, of which " << fixed_parameters.size() << " are fixed." << endl;
@@ -695,10 +658,6 @@ int main (int argc, char *argv []) {
 		else if (tr) cerr << "There are " << model.get_n_states()-1 << " free state frequencies." << endl;
 		if (!extra_parameters.empty()) cerr << "There are " << extra_parameters.size() << " parameters to govern rate changes in the tree, of which " << fixed_extra_parameters.size() << " are fixed." << endl;
 	    }
-	    //n_parameters-=fixed_parameters.size();
-	    //if (n_parameters==0)
-		//optimize_param=false;
-
 ///////////////
 	    char nexus_command = nexus_command::NON;
     	    if (tree_input.test_file_type("nexus")) {
@@ -743,13 +702,14 @@ int main (int argc, char *argv []) {
 		    cerr << "simulating data" << endl;
 		    for (int i=0; i < char_freqs.size(); ++i) cerr << char_freqs[i] << endl;
 		    #endif //DEBUG
-		    //tree.set_Q_matrix(&model_specifications[0],&model_parameters[0],tr);
 		    characters = tree.simulate_chars(char_freqs, n_char, model);
 
 		}
 		else if (optimize_param) {
 		    #ifdef NLOPT
-		    /// Calculate number of parameters, set bounds, and get start values fro variable parameters
+		    #ifdef DEBUG
+		    cerr << "Optimizing parameters" << endl;
+		    #endif //DEBUG
 		    vector<double> lower_bounds;
 		    vector<double> upper_bounds;
 		    vector<double> variable_values; // starting values for variables to optimize
@@ -769,6 +729,7 @@ int main (int argc, char *argv []) {
 			for (unsigned int i=0; i < model.get_n_states()-1; ++i) {
     			    lower_bounds.push_back(0.0);
 			    upper_bounds.push_back(1.0);
+			    variable_values.push_back(model.get_freq(i));
 			    ++n_parameters;
 	    		}
 		    }
@@ -779,6 +740,7 @@ int main (int argc, char *argv []) {
 				lower_bounds.push_back(0.0);
 				if (method == 't' && i == 0) upper_bounds.push_back(tree.longest_to_tip());
 				else upper_bounds.push_back(DBL_MAX);
+				variable_values.push_back(extra_parameters[i]);
 				++n_parameters;
 			    }
 	    		}
@@ -789,12 +751,19 @@ int main (int argc, char *argv []) {
 		    }
 		    //// Prep model
 		    nlopt::opt maximize(nlopt::LN_NELDERMEAD, n_parameters);
+		    #ifdef DEBUG
+		    cerr << "N extra parameters: " << extra_parameters.size() << endl;
+		    #endif //DEBUG
 		    tree_modelspec_struct data = {&tree, &model, &fixed_parameters, fixed_freq, start_freq, &extra_parameters, start_extras, &fixed_extra_parameters};
 		    maximize.set_lower_bounds(lower_bounds);
 		    maximize.set_upper_bounds(upper_bounds);
 		    ///////////////////
 		    double LogL;
 		    if (method == 'o') {
+			if (variable_values.size() != maximize.get_dimension()) {
+			    cerr << "Missmatch in number of starting values ("<< variable_values.size() << ") and number of parameters to optimize (" << maximize.get_dimension() << "). Quiting." << endl;
+			    return 1;
+			}
 			maximize.set_max_objective(opt_function,&data);
 			model_out << "Number of parameters to optimize: " << maximize.get_dimension() << endl;
 			nlopt::result result = maximize.optimize(variable_values,LogL);
@@ -804,16 +773,19 @@ int main (int argc, char *argv []) {
 			}
 		    }
 		    else if (method == 't') {
-			/*for (unsigned int i=0; i < n_parameters; ++i) {
-			    if (i == n_parameters-2)
-				upper_bounds.push_back(tree.longest_to_tip());
-			    else
-				upper_bounds.push_back(DBL_MAX);
+			maximize.set_max_objective(opt_rate_in_time,&data);
+			if (variable_values.size() != maximize.get_dimension()) {
+			    cerr << "Missmatch in number of starting values ("<< variable_values.size() << ") and number of parameters to optimize (" << maximize.get_dimension() << "). Quiting." << endl;
+			    return 1;
 			}
-			maximize.set_upper_bounds(upper_bounds);
-			maximize.set_max_objective(opt_rate_in_time,&data);*/
+			#ifdef DEBUG
+			cerr << "Number of parameters to optimize: " << maximize.get_dimension() << endl;
+			#endif //DEBUG
 			model_out << "Number of parameters to optimize: " << maximize.get_dimension() << endl;
 			nlopt::result result = maximize.optimize(variable_values,LogL);
+			#ifdef DEBUG
+			cerr << "Optimized!!!" << endl;
+			#endif //DEBUG
 			if (result < 0) {
 			    cerr << "Failure when optimizing!!!" << endl;
 			    return 1;
@@ -830,6 +802,10 @@ int main (int argc, char *argv []) {
 			    model_out << "Rate multiplier: " << extra_parameters[1] << endl;
 		    }
 		    else if (method == 'A') {
+			if (variable_values.size() != maximize.get_dimension()) {
+			    cerr << "Missmatch in number of starting values ("<< variable_values.size() << ") and number of parameters to optimize (" << maximize.get_dimension() << "). Quiting." << endl;
+			    return 1;
+			}
 			maximize.set_max_objective(opt_rate_for_clades_function,&data);
 			model_out << "Number of parameters to optimize: " << maximize.get_dimension() << endl;
 			nlopt::result result = maximize.optimize(variable_values,LogL);
@@ -889,16 +865,13 @@ int main (int argc, char *argv []) {
 		/////////////////////////////
 		else {
 		    if (method == 'o') {
-			//tree.set_Q_matrix(&model_specifications[0],&model_parameters[0], tr);
 			model_out << "Log likelihood= " << tree.calculate_log_likelihood(model) << endl;
 		    }
 		    else if (method == 't') {
-			//tree.set_Q_matrix(&model_specifications[0],&model_parameters[0], tr);
 			model_out << "Log likelihood= " << tree.calculate_likelihood_rate_change_in_time(cut_off,rate_mod[0],model) << endl;
 			model_out << "Time from root: " << cut_off << " Rate modifier: " << rate_mod[0] << endl;
 		    }
 		    else if (method == 'A') {
-			//tree.set_Q_matrix(&model_specifications[0],&model_parameters[0], tr);
 			model_out << "Log likelihood= " << tree.calculate_likelihood_rate_change_at_nodes ( rate_mod.data(), model ) << endl;
 			for (unsigned int i=0; i < taxon_sets.size(); ++i) {
 			    model_out << "Rate mod for \"" << taxon_sets[i] << "\": " <<  rate_mod[i] << endl;
@@ -1073,20 +1046,26 @@ void help () {
 
 double opt_function(const std::vector<double> &x, std::vector<double> &grad, void* data) {
     if (!change_non_fixed(x,static_cast<tree_modelspec_struct*>(data))) return 0.0;
-//    if (static_cast<tree_modelspec_struct*>(data)->tr) static_cast<tree_modelspec_struct*>(data)->tree->set_Q_matrix(&(static_cast<tree_modelspec_struct*>(data)->specifications->front()),&(static_cast<tree_modelspec_struct*>(data)->values->at(0)),&(static_cast<tree_modelspec_struct*>(data)->values->at(static_cast<tree_modelspec_struct*>(data)->tree->get_n_states()-1))); 
-//    else static_cast<tree_modelspec_struct*>(data)->tree->set_Q_matrix(&(static_cast<tree_modelspec_struct*>(data)->specifications->front()),&(static_cast<tree_modelspec_struct*>(data)->values->at(0)));
     double LogLH = static_cast<tree_modelspec_struct*>(data)->tree->calculate_log_likelihood(*(static_cast<tree_modelspec_struct*>(data)->model));
-    //double LogLH = static_cast<tree_modelspec_struct*>(data)->tree->calculate_log_likelihood(&(static_cast<tree_modelspec_struct*>(data)->specifications->front()),&(static_cast<tree_modelspec_struct*>(data)->values->at(0)));
-    #if DEBUG
+    #ifdef DEBUG
         std::cerr << "Likelihood: " << LogLH << endl;
     #endif //DEBUG
     return LogLH;
 }
 
 double opt_rate_in_time(const std::vector<double> &x, std::vector<double> &grad, void* data) {
+    #ifdef DEBUG
+    std::cerr << "Estimate likelihood" << endl;
+    #endif //DEBUG
     if (!change_non_fixed(x,static_cast<tree_modelspec_struct*>(data))) return 0.0;
+    #ifdef DEBUG
+    cerr << "Rate change params:";
+    for (unsigned int i=0; i < static_cast<tree_modelspec_struct*>(data)->extra->size(); ++i) cerr << " " << static_cast<tree_modelspec_struct*>(data)->extra->at(i);
+    cerr << endl;
+    #endif //DEBUG
+    if (static_cast<tree_modelspec_struct*>(data)->extra->size() < 2) return 0.0;
     double LogLH =  static_cast<tree_modelspec_struct*>(data)->tree->calculate_likelihood_rate_change_in_time(static_cast<tree_modelspec_struct*>(data)->extra->at(0),static_cast<tree_modelspec_struct*>(data)->extra->at(1),*(static_cast<tree_modelspec_struct*>(data)->model));
-    #if DEBUG
+    #ifdef DEBUG
         std::cerr << "Likelihood: " << LogLH << endl;
     #endif //DEBUG
     return LogLH;
@@ -1094,6 +1073,11 @@ double opt_rate_in_time(const std::vector<double> &x, std::vector<double> &grad,
 
 double opt_rate_for_clades_function(const std::vector<double> &x, std::vector<double> &grad, void* data) {
     if (!change_non_fixed(x,static_cast<tree_modelspec_struct*>(data))) return 0.0;
+    #ifdef DEBUG
+    cerr << "Rates:";
+    for (unsigned int i=0; i < static_cast<tree_modelspec_struct*>(data)->extra->size(); ++i) { cerr << " " << static_cast<tree_modelspec_struct*>(data)->extra->at(i); }
+    cerr << endl;
+    #endif //DEBUG
     double LogLH = static_cast<tree_modelspec_struct*>(data)->tree->calculate_likelihood_rate_change_at_nodes(&(static_cast<tree_modelspec_struct*>(data)->extra->front()),*(static_cast<tree_modelspec_struct*>(data)->model));
     return LogLH;
 
@@ -1101,7 +1085,6 @@ double opt_rate_for_clades_function(const std::vector<double> &x, std::vector<do
 
 
 bool change_non_fixed(const std::vector<double> &x, tree_modelspec_struct* data) {
-    //unsigned int z(0);
     unsigned int j(0);
     for (unsigned int i=0; i < data->model->get_n_rates(); ++i) {
 	if (data->fixed->find(i) == data->fixed->end()) {
@@ -1116,6 +1099,9 @@ bool change_non_fixed(const std::vector<double> &x, tree_modelspec_struct* data)
     }
     j = 0;
     for (unsigned int i=0; i < data->extra->size(); ++i) {
+	#ifdef DEBUG
+	cerr << "Change extra param " << i << " of " << data->extra->size() << endl;
+	#endif //DEBUG
 	if (data->fixed_extra->find(i) == data->fixed->end()) {
 	    data->extra->at(i) = x[data->extra_start+j];
 	    ++j;

@@ -55,16 +55,30 @@ bool sub_model::set_rate_spec (const unsigned int n, const unsigned int param) {
     if (n > n_pos_rates) return false; // if higher than number of possible parameters
     // test so all lower parameter values are set
     bitset<400> numbers;
+    #ifdef DEBUG
+    cerr << "Setting rate spec " << n << " to " << param << endl;
+    cerr << "N states = " << n_states << "; N position rates = " << n_pos_rates << endl;
+    #endif
     for (unsigned int i = 0; i < n_pos_rates; ++i) {
 	if (i == n) continue;
 	numbers.set(rate_specs[i]);
     }
+    #ifdef DEBUG
+    cerr << "Checked what params are set" << endl;
+    #endif
     unsigned int max(0);
     for (unsigned int i = 0; i < n_pos_rates; ++i) {
 	if (i < param && !numbers.test(i)) return false;
 	if (numbers.test(i) && i > max) max = i;
     }
+    if (param > max) max = param;
+    #ifdef DEBUG
+    cerr << "Checked that params are in order and number for highest state: " << max << endl;
+    #endif
     rate_specs[n] = param;
+    #ifdef DEBUG
+    cerr << "Set param" << endl;
+    #endif
     // Make room for new parameter if needed
     if (max+1 > n_rates) {
 	double* temp = new double(max+1);
@@ -73,6 +87,9 @@ bool sub_model::set_rate_spec (const unsigned int n, const unsigned int param) {
 	rates = temp;
 	n_rates = max+1;
     }
+    #ifdef DEBUG
+    cerr << "Check if need to increase n rates (n_rates= " << n_rates << ")" << endl;
+    #endif
     return true;
 }
 
@@ -96,4 +113,9 @@ void sub_model::set_P_matrix( const double branch_length ) {
 	P_matrix = new marth::square_matrix(n_states);
     }
     Q_matrix->exponential(P_matrix,branch_length,20);
+    #ifdef DEBUG
+    cerr << "P matrix for branch length: " << branch_length << endl;
+    P_matrix->print(cerr);
+    cerr << endl;
+    #endif //DEBUG
 }
