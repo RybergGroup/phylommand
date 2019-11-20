@@ -145,7 +145,6 @@ void simpleML::draw_normalized_likelihood_on_nodes( node* leaf ) {
 	    prob_label << "[& P={";
 	    for (unsigned int i=0; i < n_states; ++i) {
 		if (i!=0) prob_label << ',';
-		//prob_label << "P_" << i << '=';
 		prob_label << likelihoods[leaf][i]/sum;
 	    }
 	    prob_label << "}]";
@@ -172,7 +171,6 @@ vector<character_vector> simpleML::simulate_chars( const vector<double> & charfr
 	}
 	#ifdef DEBUG
 	cerr << "Root trait: " << root_trait << endl;
-	//Q_matrix.print(cerr);
 	cerr << endl;
 	#endif //DEBUG
 	simulate_chars_subtree(root->left, simdata, root_trait, model);
@@ -183,7 +181,6 @@ vector<character_vector> simpleML::simulate_chars( const vector<double> & charfr
 	    character.set(k->second);
 	    if (taxon == output_matrix.end()) {
 		output_matrix[k->first] = character_vector();
-		//output_matrix[k->first].set_taxon(*k->first->nodelabel);
 		output_matrix[k->first].add_character(character);
 	    }
 	    else {
@@ -203,8 +200,6 @@ vector<character_vector> simpleML::simulate_chars( const vector<double> & charfr
 
 void simpleML::simulate_chars_subtree( node* leaf, map<node*,unsigned int>& simdata, const unsigned int ancestor, sub_model& model) {
     if (leaf != 0) {
-	//marth::square_matrix P_matrix;
-	//Q_matrix.exponential(&P_matrix, leaf->branchlength, 20);
 	model.set_P_matrix(leaf->branchlength);
 	unsigned int trait = ancestor;
 	double rand_no = (double) rand()/(RAND_MAX);
@@ -216,7 +211,6 @@ void simpleML::simulate_chars_subtree( node* leaf, map<node*,unsigned int>& simd
 	    if (rand_no <= 0) { trait = i; break; }
 	}
 	#ifdef DEBUG
-	//P_matrix.print(cerr); cerr << endl;
 	if (leaf->nodelabel && !leaf->nodelabel->empty()) cerr << *leaf->nodelabel << endl;
 	cerr << "Simulating trait along branch. Start: " << ancestor << " end: " << trait << endl;
 	#endif //DEBUG

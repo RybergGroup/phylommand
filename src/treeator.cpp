@@ -50,11 +50,11 @@ struct tree_modelspec_struct {
     simpleML* tree;
     sub_model* model;
     const set<unsigned int>* fixed;
-    bool fixed_freq;
-    unsigned int freq_start;
+    const bool fixed_freq;
+    const unsigned int freq_start;
     //const vector<unsigned int>* specifications; // which parameter represents which rate i.e. 0,0,1,1,2,2 represents same rates going from 0->1 as 0->2, and 1->0 as 1->2, and so on.
     vector<double>* extra;
-    unsigned int extra_start;
+    const unsigned int extra_start;
     const set<unsigned int>* fixed_extra;
     //bool tr;
 };
@@ -717,7 +717,7 @@ int main (int argc, char *argv []) {
 		    unsigned int start_extras(0);
 		    unsigned int n_parameters(0);
 		    for (unsigned int i=0; i < model.get_n_rates(); ++i) {
-			if (fixed_extra_parameters.find(i) == fixed_extra_parameters.end()) {
+			if (fixed_parameters.find(i) == fixed_parameters.end()) {
 			    variable_values.push_back(model.get_rate(i));
 			    lower_bounds.push_back(0.0);
 			    upper_bounds.push_back(DBL_MAX);
@@ -753,6 +753,12 @@ int main (int argc, char *argv []) {
 		    nlopt::opt maximize(nlopt::LN_NELDERMEAD, n_parameters);
 		    #ifdef DEBUG
 		    cerr << "N extra parameters: " << extra_parameters.size() << endl;
+		    cerr << "Fixed parameters: ";
+		    for (set<unsigned int>::iterator i=fixed_parameters.begin(); i != fixed_parameters.end(); ++i) cerr << " " << *i;
+		    cerr << endl;
+		    cerr << "Fixed extra parameters: ";
+		    for (set<unsigned int>::iterator i=fixed_extra_parameters.begin(); i != fixed_extra_parameters.end(); ++i) cerr << " " << *i;
+		    cerr << endl;
 		    #endif //DEBUG
 		    tree_modelspec_struct data = {&tree, &model, &fixed_parameters, fixed_freq, start_freq, &extra_parameters, start_extras, &fixed_extra_parameters};
 		    maximize.set_lower_bounds(lower_bounds);
@@ -791,11 +797,11 @@ int main (int argc, char *argv []) {
 			    return 1;
 			}
 			if (fixed_extra_parameters.find(0) == fixed_extra_parameters.end())
-			    model_out << "Time from root to rate change: " << model_parameters[data.extra_start] << endl;
+			    model_out << "Time from root to rate change: " << data.extra->at(0) << endl;
 			else
 			    model_out << "Time from root to rate change: " << extra_parameters[0] << endl;
 			if (fixed_extra_parameters.find(1) == fixed_extra_parameters.end() && fixed_extra_parameters.find(0) == fixed_extra_parameters.end())
-			    model_out << "Rate multiplier: " << model_parameters[data.extra_start+1] << endl;
+			    model_out << "Rate multiplier: " << data.extra->at(1) << endl;
 			else if (fixed_extra_parameters.find(1) == fixed_extra_parameters.end())
 			    model_out << "Rate multiplier: " << model_parameters[data.extra_start] << endl;
 			else
@@ -1100,12 +1106,18 @@ bool change_non_fixed(const std::vector<double> &x, tree_modelspec_struct* data)
     j = 0;
     for (unsigned int i=0; i < data->extra->size(); ++i) {
 	#ifdef DEBUG
-	cerr << "Change extra param " << i << " of " << data->extra->size() << endl;
+	cerr << "Change extra param " << i << " of " << data->extra->size();
 	#endif //DEBUG
-	if (data->fixed_extra->find(i) == data->fixed->end()) {
+	if (data->fixed_extra->find(i) == data->fixed_extra->end()) {
+	    #ifdef DEBUG
+	    cerr << " from " << data->extra->at(i) << " to " << x[data->extra_start+j];
+	    #endif //DEBUG
 	    data->extra->at(i) = x[data->extra_start+j];
 	    ++j;
 	}
+	#ifdef DEBUG
+	cerr << endl;
+	#endif //DEBUG
     }
     return true;
 }

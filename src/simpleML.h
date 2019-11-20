@@ -34,21 +34,17 @@ class simpleML : public tree {
 	void init(unsigned int states) {
 	    un_init_nodes (root);
 	    n_states = states;
-	    //Q_matrix.reset(n_states);
 	    init_nodes(root);
 	};
 	void reset(const unsigned int states) { init(states); };
-	void set_char( const string taxon, const bitset<SIZE>& state) { //const double* state ) {
+	void set_char( const string taxon, const bitset<SIZE>& state) {
 	    node* leaf = find_taxon_tip(root, nodelabels.find_string(taxon));
 	    if (leaf != 0)
 		for (unsigned int i=0; i < n_states; ++i) {
-		    if (state[i]) likelihoods[leaf][i] = 1.0; //state[i];
+		    if (state[i]) likelihoods[leaf][i] = 1.0; // /state.count();
 		    else likelihoods[leaf][i] = 0.0;
 		}
 	};
-	//void set_Q_matrix ( const unsigned int* parameters, const double* values );
-	//void set_Q_matrix ( const double* values );
-	//void set_Q_matrix ( const unsigned int* parameters, const double* values, bool tr );
 	double calculate_log_likelihood( sub_model& model ) {
 	    #ifdef DEBUG
     	    cerr << "Calculating likelihood!!!" << endl;
