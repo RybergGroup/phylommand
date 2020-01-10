@@ -891,22 +891,29 @@ void tree::multiply_br_length_skyline (node *leaf, const vector<pair<float,float
     double new_br_length(0.0);
     double previous_cut_off(0.0);
     for (pos = cut_offs.begin(); pos != cut_offs.end(); ++pos) {
-	if ( distance_to_root < pos->second && branch_end > previous_cut_off) {
-	    if (distance_to_root > previous_cut_off && branch_end < pos->second)
-		new_br_length += (branch_end-distance_to_root)*pos->first;
-    	    else if (distance_to_root < previous_cut_off && branch_end < pos->second)
-    		new_br_length += (branch_end-previous_cut_off)*pos->first;
-	    else if (distance_to_root > previous_cut_off && branch_end > pos->second)
-		new_br_length += (pos->second-distance_to_root)*pos->first;
-	    else if (distance_to_root < previous_cut_off && branch_end > pos->second)
-		new_br_length += (pos->second-previous_cut_off)*pos->first;
+	#ifdef DEBUG
+	cerr << "Multiplier: " << pos->first << " Cut off: " << pos->second << " New branch length: " << new_br_length << endl;
+	#endif //DEBUG
+	if ( distance_to_root < pos->second && branch_end > previous_cut_off) { //
+	    if (distance_to_root > previous_cut_off && branch_end < pos->second) // if entirely within interval
+		new_br_length += (branch_end-distance_to_root)*pos->first; // multiply entire branch
+    	    else if (distance_to_root < previous_cut_off && branch_end < pos->second) // if also within previous interval
+    		new_br_length += (branch_end-previous_cut_off)*pos->first; // multiply what is left of branch
+	    else if (distance_to_root > previous_cut_off && branch_end > pos->second) // if also in next interval
+		new_br_length += (pos->second-distance_to_root)*pos->first; // multiply from start of branch until end of interval
+	    else if (distance_to_root < previous_cut_off && branch_end > pos->second) // if in also in both previous and next interval
+		new_br_length += (pos->second-previous_cut_off)*pos->first; // multiply the distance between the intervals
 	}
+	#ifdef DEBUG
+	cerr << "New branch length after iteration: " << new_br_length << endl;
+	#endif //DEBUG
 	previous_cut_off = pos->second;
     }
-    if (branch_end > previous_cut_off)
-	new_br_length += branch_end-previous_cut_off;
+    if (distance_to_root < previous_cut_off && branch_end > previous_cut_off) // if sticking out beyond last interval
+	new_br_length += branch_end-previous_cut_off; // add what is left
+    else if (distance_to_root > previous_cut_off) new_br_length = leaf->branchlength;
     #ifdef DEBUG
-    cerr << "Branch start: " << distance_to_root << "; end: " << branch_end << "; old length: " << leaf->branchlength << "; new length: " << new_br_length << endl;
+    cerr << "Branch start: " << distance_to_root << "; end: " << branch_end << "; last cut off: " << previous_cut_off << "; old length: " << leaf->branchlength << "; new length: " << new_br_length << endl;
     #endif //DEBUG
     leaf->branchlength = new_br_length;
     if (leaf->left != 0) multiply_br_length_skyline(leaf->left, cut_offs, branch_end);
