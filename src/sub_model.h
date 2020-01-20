@@ -52,6 +52,9 @@ class sub_model {
 	if (n < n_rates && value >= 0.0) {
 	    rates[n] = value;
 	    calc_Q_matrix();
+	    #ifdef DEBUG
+	    cerr << "Setting rate " << n << " to " << value << endl;
+	    #endif //DEBUG
 	    return true;
 	}
 	else return false;
@@ -102,6 +105,7 @@ class sub_model {
 	if (timerev) {
 	    rate_specs = new unsigned int[((n_states*n_states)-n_states)/2];
 	    for (unsigned int i=0; i < ((n_states*n_states)-n_states)/2; ++i) rate_specs[i] = 0;
+	    if (!eq) state_freqs = new double[n_states];
 	}
 	else {
 	    rate_specs = new unsigned int[(n_states*n_states)-n_states];

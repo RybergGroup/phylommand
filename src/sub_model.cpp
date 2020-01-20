@@ -22,6 +22,9 @@ unsigned int sub_model::get_rate_pos (const unsigned int row, const unsigned int
 	pos += col; // add the number of columns
 	if (col > row) --pos; // but if passing diagonal remove it
     }
+    #ifdef DEBUG
+    cerr << "Row: " << row << " and col: " << col << " corespond to pos: " << pos << endl;
+    #endif //DEBUG
     return pos;
 }
 
@@ -40,7 +43,7 @@ bool sub_model::set_freq (const unsigned int n, const double value) {
 
 double sub_model::get_freq (const unsigned int n) {
     if (n >= n_states) return 0.0;
-    else if (equal_freq) return 1.0/n_states;
+    else if (equal_freq || state_freqs == 0) return 1.0/n_states;
     else if (n == n_states-1) {
 	double freq(1.0);
 	for (unsigned int i=0; i < n_states-1; ++i) freq -= state_freqs[i];
@@ -100,6 +103,9 @@ void sub_model::calc_Q_matrix() {
 	    if (i==j) continue;
 	    double value = get_rate(i,j);
 	    if (timerev) value *= get_freq(j);
+	    #ifdef DEBUG
+	    cerr << "Set " << i << "," << j << " of " << n_states << endl;
+	    #endif //DEBUG
 	    neg_sum -= value;
 	    Q_matrix->set_value(i,j,value);
 	}

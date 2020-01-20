@@ -99,7 +99,7 @@ int main (int argc, char *argv []) {
     set<unsigned int> fixed_extra_parameters;
     bool fixed_freq(false);
     vector<double> model_parameters;
-    vector<double>char_freqs;
+    vector<double> char_freqs;
     ///////////
     bool tree_same_as_data_when_nexus(false);
     /// Reading arguments ///
@@ -235,9 +235,10 @@ int main (int argc, char *argv []) {
                     cerr << "-F/--frequencies require a comma separated real number string as next argument.";
                     return 1;
                 }
-		tr = true;
+		//tr = true;
 		if (method != 'A' && method != 't' && method != 'C') method = 'o';
 	    }
+	    else if (!strcmp(argv[i],"--time_reversible") || !strcmp(argv[i],"--tr")) tr = true; 
             else if (!strcmp(argv[i],"-N") || !strcmp(argv[i],"--no_optim")) optimize_param = false;
             else if (!strcmp(argv[i],"-l") || !strcmp(argv[i],"--likelihood")) {
 		    if (method != 't' && method != 'A') method = 'o';
@@ -537,10 +538,11 @@ int main (int argc, char *argv []) {
 	    if (print_tree == 'w') tree.print_newick(print_br_length);
 	    else if (print_tree == 'x') tree.print_nexus(print_br_length);
 	}
-	else if (method == 'o' || method == 't' || method == 'A' || method == 'C') {
+	else if (method == 'o' || method == 't' || method == 'A' || method == 'C') { // if model based
 	    if (!characters.empty() && characters.begin()->n_char() > 1) cerr << "Warning!!! Will only calculate likelihood of first character in matrix." << endl;
 	    unsigned int n_states = 0;
 	    vector<double> extra_parameters;
+	    if (method != 'C' && !char_freqs.empty()) tr = true;
 	    if (!quiet) cerr << "Preparing model." << endl; 
 	    if (method == 'o' || method == 't' || method == 'A') {
 		for (vector<character_vector>::iterator i=characters.begin(); i!=characters.end(); ++i)
@@ -578,15 +580,24 @@ int main (int argc, char *argv []) {
 	    #endif //DEBUG
     // Set parameter values
     	    if(!model_parameters.empty()) {
+		#ifdef DEBUG
+		cerr << "model parameter size: " << model_parameters.size() << ", model n rates: " << model.get_n_rates() << endl;
+		#endif //DEBUG
 		if (model_parameters.size() != model.get_n_rates()) {
 		    cerr << "The number of parameter values (" << model_parameters.size() << ") must be as many as parameters (" << model.get_n_rates() << ")." << endl;
 		    return 1;
 		}
 		for (unsigned int i=0; i < model_parameters.size(); ++i) {
+		    #ifdef DEBUG
+		    cerr << "Parameter: " << i << ", value: " << model_parameters[i] << " of " << model.get_n_rates() << " rates" << endl;
+		    #endif //DEBUG
 		    if (!model.set_rate(i,model_parameters[i])) {
 			cerr << "All parameter values must be positive." << endl;
 			return 1;
 		    }
+		    #ifdef DEBUG
+		    cerr << "TTT Parameter: " << i << ", value: " << model_parameters[i] << " of " << model.get_n_rates() << " rates" << endl;
+		    #endif //DEBUG
 		}
 	    }
 	    else {
@@ -1040,6 +1051,9 @@ void help () {
     cout << "                                 by -F, e.g. --simulate 10." << endl;
     /*cout << "--time / -T [value]            give branch length distance from root where" << endl;
     cout << "                                 change in rate occur, e.g. -T 10. Default: 0." << endl;*/
+    cout << "--time_reversible / --tr         set the model to be time reversible. If no" << endl; 
+    cout << "                                 frequencies (-F) are given. State frequencies" << endl;
+    cout << "                                 are assumed to be equal" << endl; 
     cout << "--tree_file / -t [file]          give tree file name." << endl;
     /*cout << "--taxon_sets / -A                give sets of taxa. Different sets should be" << endl;
     cout << "                                 separated by semicolon (;), taxa in set should" << endl;
@@ -1095,6 +1109,9 @@ bool change_non_fixed(const std::vector<double> &x, tree_modelspec_struct* data)
     for (unsigned int i=0; i < data->model->get_n_rates(); ++i) {
 	if (data->fixed->find(i) == data->fixed->end()) {
 	    if (!data->model->set_rate(i,x[j])) return false;
+	    #ifdef DEBUG
+	    cerr << "Set rate " << i << " to " << x[j] << endl;
+	    #endif //DEBUG
 	    ++j;
 	}
     }
