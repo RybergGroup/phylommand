@@ -792,7 +792,7 @@ int main (int argc, char *argv []) {
 		    else if (method == 't') {
 			maximize.set_max_objective(opt_rate_in_time,&data);
 			if (variable_values.size() != maximize.get_dimension()) {
-			    cerr << "Missmatch in number of starting values ("<< variable_values.size() << ") and number of parameters to optimize (" << maximize.get_dimension() << "). Quiting." << endl;
+			    cerr << "Mismatch in number of starting values ("<< variable_values.size() << ") and number of parameters to optimize (" << maximize.get_dimension() << "). Quitting." << endl;
 			    return 1;
 			}
 			#ifdef DEBUG
@@ -814,15 +814,20 @@ int main (int argc, char *argv []) {
 			if (fixed_extra_parameters.find(1) == fixed_extra_parameters.end() && fixed_extra_parameters.find(0) == fixed_extra_parameters.end())
 			    model_out << "Rate multiplier: " << data.extra->at(1) << endl;
 			else if (fixed_extra_parameters.find(1) == fixed_extra_parameters.end())
-			    model_out << "Rate multiplier: " << model_parameters[data.extra_start] << endl;
+			    model_out << "Rate multiplier: " << variable_values[data.extra_start] << endl;
 			else
 			    model_out << "Rate multiplier: " << extra_parameters[1] << endl;
 		    }
 		    else if (method == 'A') {
 			if (variable_values.size() != maximize.get_dimension()) {
-			    cerr << "Missmatch in number of starting values ("<< variable_values.size() << ") and number of parameters to optimize (" << maximize.get_dimension() << "). Quiting." << endl;
+			    cerr << "Mismatch in number of starting values ("<< variable_values.size() << ") and number of parameters to optimize (" << maximize.get_dimension() << "). Quitting." << endl;
 			    return 1;
 			}
+			#ifdef DEBUG
+			cerr << "Variable values: ";
+			for (vector<double>::const_iterator i=variable_values.begin(); i != variable_values.end(); ++i) cerr << *i << ' ';
+			cerr << endl;
+			#endif //DEBUG
 			maximize.set_max_objective(opt_rate_for_clades_function,&data);
 			model_out << "Number of parameters to optimize: " << maximize.get_dimension() << endl;
 			nlopt::result result = maximize.optimize(variable_values,LogL);
@@ -830,19 +835,24 @@ int main (int argc, char *argv []) {
 			    cerr << "Failure when optimizing!!!" << endl;
 			    return 1;
 			}
+			#ifdef DEBUG
+			cerr << "Variable values 2: ";
+			for (vector<double>::const_iterator i=variable_values.begin(); i != variable_values.end(); ++i) cerr << *i << ' ';
+			cerr << endl;
+			#endif //DEBUG
 			/// need to fix if any rates are fixed
 			for (unsigned int i=0; i < taxon_sets.size(); ++i) {
-			    model_out << "Rate mod for \"" << taxon_sets[i] << "\": " << model_parameters[model_parameters.size()-taxon_sets.size()+i] << endl;
+			    model_out << "Rate mod for \"" << taxon_sets[i] << "\": " << variable_values[data.extra_start+i] << endl;
 			}
 		    }
 		    else {
 			cerr << "Unrecognized method. Nothing to do." << endl;
 			return 1;
 		    }
-		    model_out << "Parameter values:" << endl;
 		    #if DEBUG
-		    for (unsigned int i= 0; i < model_parameters.size(); ++i) {
-			model_out << i << ": " << model_parameters[i] << ' ';
+		    model_out << "Parameter values:" << endl;
+		    for (unsigned int i= 0; i < variable_values.size(); ++i) {
+			model_out << i << ": " << variable_values[i] << ' ';
 		    }
 		    model_out << endl;
 		    #endif /*DEBUG*/
@@ -1041,24 +1051,24 @@ void help () {
     cout << endl;
     cout << "--parsimony / -p                 calculate parsimony score for given tree and" << endl;
     cout << "                                 data." << endl;
-    /*cout << "--rate_mod / -R [value]        give modifier for rate compared to rate at root" << endl;
-    cout << "                                 e.g. -r 0.5. Default: 1.0." << endl;*/
+    cout << "--rate_mod / -R [value]        give modifier for rate compared to rate at root" << endl;
+    cout << "                                 e.g. -r 0.5. Default: 1.0." << endl;
     cout << "--random / -r                    do stepwise addition in random order." << endl;
     cout << "--simulate                       simulate data on given tree. Number of" << endl;
     cout << "                                 characters as possible extra argument (default" << endl;
     cout << "                                 1). Use model given by -m and parameters givens" << endl;
     cout << "                                 by -P and probability of each character at roots" << endl;
     cout << "                                 by -F, e.g. --simulate 10." << endl;
-    /*cout << "--time / -T [value]            give branch length distance from root where" << endl;
-    cout << "                                 change in rate occur, e.g. -T 10. Default: 0." << endl;*/
+    cout << "--time / -T [value]            give branch length distance from root where" << endl;
+    cout << "                                 change in rate occur, e.g. -T 10. Default: 0." << endl;
     cout << "--time_reversible / --tr         set the model to be time reversible. If no" << endl; 
     cout << "                                 frequencies (-F) are given. State frequencies" << endl;
     cout << "                                 are assumed to be equal" << endl; 
     cout << "--tree_file / -t [file]          give tree file name." << endl;
-    /*cout << "--taxon_sets / -A                give sets of taxa. Different sets should be" << endl;
+    cout << "--taxon_sets / -A                give sets of taxa. Different sets should be" << endl;
     cout << "                                 separated by semicolon (;), taxa in set should" << endl;
     cout << "                                 be separated by comma, e.g. -A \"Taxon1,Taxon2;" << endl;
-    cout << "                                 Taxon3,Taxon4\"." << endl;*/
+    cout << "                                 Taxon3,Taxon4\"." << endl;
     cout << "--step_wise / -s                 do parsimony stepwise addition." << endl;
     cout << "--verbose / -v                   get additional output." << endl;
     cout << endl;
