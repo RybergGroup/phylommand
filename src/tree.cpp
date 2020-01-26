@@ -2950,3 +2950,64 @@ double tree::gamma (node* leaf) {
     #endif //DEBUG
     return value;
 }
+// functions for rate mods
+bool tree::adid_rate_for_time (unsigned int rate_class, float time) {
+    if (rate_class >= rates_in_time.size()) return false;
+    vector<pair<unsigned int,float>>::iterator pos;
+    for (pos = rate_time_cut_offs.begin(); pos != rate_time_cut_offs.end(); ++pos) {
+	if (pos->second > time) break;
+    }
+    rates_in_time.insert(pos,make_pair(rate_class,time));
+    return true;
+    // add rate to rates_in_time vector in order
+}
+void tree::set_time_rate (unsigned int rate_class, float rate) {
+    if (rate_class >= rates_in_time.size())
+	while (rate_class >= rates_in_time.size()) rates.push_back(rate);
+    else rates_in_time[rate_class] = rate;
+}
+bool tree::set_clade_rate ( unsigned int clade, unsigned int rate_class ) {
+    // add checks
+    if (clade >= clades.size()) return false;
+    else if (rate_class >= rates.size()) return false;
+    else if (clade >= clade_rate.size()) {
+	while (clade >= clade_rate.size()) clade_rate.push_back(rate_class);
+    } 
+    else clade_rate[clade] = rate_class;
+    return true;
+}; 
+void tree::set_rate (unsigned int rate_class, float rate) {
+    if (rate_class >= rates.size())
+	while (rate_class >= rates.size()) rates.push_back(rate);
+    else rate[rate_class] = rate;
+}
+double tree::get_time_mod_branch_length (node *leaf, const float distance_to_root) {
+    vector<pair<unsigned int,float>>::const_iterator pos
+    const double branch_end = distance_to_root+leaf->branchlength;
+    double new_br_length(0.0);
+    double previous_cut_off(0.0);
+    for (pos = cut_offs.begin(); pos != cut_offs.end(); ++pos) {
+	#ifdef DEBUG
+	cerr << "Multiplier: " << rates_in_time[pos->first] << " Cut off: " << pos->second << " New branch length: " << new_br_length << endl;
+	#endif //DEBUG
+	if ( distance_to_root < pos->second && branch_end > previous_cut_off) { //
+	    if (distance_to_root > previous_cut_off && branch_end < pos->second) // if entirely within interval
+		new_br_length += (branch_end-distance_to_root)*rates_in_time[pos->first]; // multiply entire branch
+	    else if (distance_to_root < previous_cut_off && branch_end < pos->second) // if also within previous interval
+		new_br_length += (branch_end-previous_cut_off)*rates_in_time[pos->first]; // multiply what is left of branch
+	    else if (distance_to_root > previous_cut_off && branch_end > pos->second) // if also in next interval
+		new_br_length += (pos->second-distance_to_root)*rates_in_time[pos->first]; // multiply from start of branch until end of interval
+	    else if (distance_to_root < previous_cut_off && branch_end > pos->second) // if in also in both previous and next interval
+		new_br_length += (pos->second-previous_cut_off)*rates_in_time[pos->first]; // multiply the distance between the intervals
+	}
+	#ifdef DEBUG
+	cerr << "New branch length after iteration: " << new_br_length << endl;
+	#endif //DEBUG
+	previous_cut_off = pos->second;
+    }
+    if (distance_to_root < previous_cut_off && branch_end > previous_cut_off) // if sticking out beyond last interval
+	new_br_length += branch_end-previous_cut_off; // add what is left
+    else if (distance_to_root > previous_cut_off) new_br_length = leaf->branchlength;
+    return new_br_length;
+}
+
