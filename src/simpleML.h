@@ -59,11 +59,11 @@ class simpleML : public tree {
 	    for (unsigned int i=0; i < n_states; ++i) likelihood += likelihoods[root][i];
 	    return log(likelihood);
 	};
-	void add_taxon_sets(vector<string>& taxon_sets) {
+	/*void add_taxon_sets(vector<string>& taxon_sets) {
 	    for (unsigned int i = 0; i < taxon_sets.size(); ++i) {
 		clades.push_back(most_recent_common_ancestor(taxon_sets[i]));
 	    }
-	}
+	}*/
 	double calculate_likelihood_rate_change_at_nodes ( const double* rates, sub_model& model ) {
 	    if (!check_nodes ( root )) return 0.0;
 	    if (n_states != model.get_n_states()) {
@@ -93,12 +93,10 @@ class simpleML : public tree {
 	vector<character_vector> simulate_chars( const vector<double> & charfreq, const unsigned int n_char, sub_model& model);
 	void draw_normalized_likelihood_on_nodes() { draw_normalized_likelihood_on_nodes( root ); };
 	unsigned int n_taxon_sets() { return clades.size(); }
-	//unsigned int get_n_states() { return n_states; }
-	//unsigned int n_rates_tr () { return (((n_states*n_states)-n_states)/2); }
     private:
 	// variables
 	map<node*,vector<double> > likelihoods;
-	vector<node*> clades;
+	//vector<node*> clades;
 	unsigned int n_states;
 	// functions
 	void simulate_chars_subtree( node* leaf, map<node*,unsigned int>& simdata, const unsigned int ancestor, sub_model& model);

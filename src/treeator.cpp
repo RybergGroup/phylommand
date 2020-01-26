@@ -56,6 +56,7 @@ struct tree_modelspec_struct {
     vector<double>* extra;
     const unsigned int extra_start;
     const set<unsigned int>* fixed_extra;
+    const vector<unsigned int>* extra_specs;
     //bool tr;
 };
 
@@ -93,6 +94,7 @@ int main (int argc, char *argv []) {
     bool optimize_param = false;
     #endif //NLOPT
     vector<unsigned int> model_specifications;
+    vector<unsigned int> rate_mod_specs;
     double cut_off = 0.0;
     vector <double> rate_mod;
     set<unsigned int> fixed_parameters;
@@ -273,6 +275,7 @@ int main (int argc, char *argv []) {
 		    cerr << "-A / --taxon_sets require at least one set of taxa given as a comma separated string as next argument." << endl;
 		    return 1;
 		}
+		for (unsigned int j=0; j<taxon_sets.size();++i) rate_mod_specs.push_back(i);
 		method = 'A';
 	    }
 	    else if (!strcmp(argv[i],"--get_state_at_nodes")) {
@@ -663,7 +666,7 @@ int main (int argc, char *argv []) {
             cerr << "Set fixed parameters." << endl;
             #endif //DEBUG
 	    if (!quiet) {
-		if (tr) cerr << "Using time reversable model" << endl;
+		if (tr) cerr << "Using time reversible model" << endl;
 		cerr << "Model has " << model.get_n_rates() << " rate parameters, of which " << fixed_parameters.size() << " are fixed." << endl;
 		if (tr && fixed_freq) cerr << "The state frequencies are fixed." << endl;
 		else if (tr) cerr << "There are " << model.get_n_states()-1 << " free state frequencies." << endl;
@@ -727,6 +730,7 @@ int main (int argc, char *argv []) {
 		    unsigned int start_freq(0);
 		    unsigned int start_extras(0);
 		    unsigned int n_parameters(0);
+		    // add substitution rates to variables to optimize
 		    for (unsigned int i=0; i < model.get_n_rates(); ++i) {
 			if (fixed_parameters.find(i) == fixed_parameters.end()) {
 			    variable_values.push_back(model.get_rate(i));
@@ -735,6 +739,7 @@ int main (int argc, char *argv []) {
 			    ++n_parameters;
 			}
 		    }
+		    // add frequencies to model parameters to optimize
 		    if (tr && !fixed_freq) {
 			start_freq = n_parameters;
 			for (unsigned int i=0; i < model.get_n_states()-1; ++i) {
@@ -744,6 +749,7 @@ int main (int argc, char *argv []) {
 			    ++n_parameters;
 	    		}
 		    }
+		    // add time and rate modifiers to parameters to optimize
 		    if (!extra_parameters.empty()) {
 			start_extras = n_parameters;
 			for (unsigned int i=0; i < extra_parameters.size(); ++i) {
@@ -771,7 +777,7 @@ int main (int argc, char *argv []) {
 		    for (set<unsigned int>::iterator i=fixed_extra_parameters.begin(); i != fixed_extra_parameters.end(); ++i) cerr << " " << *i;
 		    cerr << endl;
 		    #endif //DEBUG
-		    tree_modelspec_struct data = {&tree, &model, &fixed_parameters, fixed_freq, start_freq, &extra_parameters, start_extras, &fixed_extra_parameters};
+		    tree_modelspec_struct data = {&tree, &model, &fixed_parameters, fixed_freq, start_freq, &extra_parameters, start_extras, &fixed_extra_parameters, &rate_mod_specs};
 		    maximize.set_lower_bounds(lower_bounds);
 		    maximize.set_upper_bounds(upper_bounds);
 		    ///////////////////
@@ -1068,7 +1074,9 @@ void help () {
     cout << "--taxon_sets / -A                give sets of taxa. Different sets should be" << endl;
     cout << "                                 separated by semicolon (;), taxa in set should" << endl;
     cout << "                                 be separated by comma, e.g. -A \"Taxon1,Taxon2;" << endl;
-    cout << "                                 Taxon3,Taxon4\"." << endl;
+    cout << "                                 Taxon3,Taxon4\". Clades delimited by the most" << endl;
+    cout << "                                 recent common ancestor of each set will get a" << endl;
+    cout << "                                 separate rate" << endl;
     cout << "--step_wise / -s                 do parsimony stepwise addition." << endl;
     cout << "--verbose / -v                   get additional output." << endl;
     cout << endl;
@@ -1108,6 +1116,7 @@ double opt_rate_for_clades_function(const std::vector<double> &x, std::vector<do
     for (unsigned int i=0; i < static_cast<tree_modelspec_struct*>(data)->extra->size(); ++i) { cerr << " " << static_cast<tree_modelspec_struct*>(data)->extra->at(i); }
     cerr << endl;
     #endif //DEBUG
+    // create a new rate_mod vector based on specs
     double LogLH = static_cast<tree_modelspec_struct*>(data)->tree->calculate_likelihood_rate_change_at_nodes(&(static_cast<tree_modelspec_struct*>(data)->extra->front()),*(static_cast<tree_modelspec_struct*>(data)->model));
     return LogLH;
 

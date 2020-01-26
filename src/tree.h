@@ -282,6 +282,25 @@ class tree {
 	void add_to_support(tree* B) { add_to_support(B, false); };
 	void add_one_to_each_support(const bool rooted) { add_one_to_each_support(root, rooted); };
 	double gamma() { return gamma(root); }
+	void add_taxon_sets(vector<string>& taxon_sets) { // add taxon sets to clades
+            for (unsigned int i = 0; i < taxon_sets.size(); ++i) {
+                clades.push_back(most_recent_common_ancestor(taxon_sets[i]));
+            }
+        }
+	// functions for rate_mods
+	bool add_rate_for_time (unsigned int rate_class, float time);
+	void set_time_rate (unsigned int rate_class, float rate);
+	bool set_clade_rate ( unsigned int clade, unsigned int rate_class );
+	void set_rate (unsigned int rate_class, float rate);
+	unsigned int get_n_rates () { return rates_in_time.size()+rates.size(); }
+    	unsigned int get_n_clade_rates () { return rates.size(); }
+	unsigned int get_n_time_rates () { return rates_in_time.size(); }
+	float get_rate_clade( unsigned int n ) {
+	    if (n < clade_rate.size()) return rates[clade_rate[n]];
+	    else return 1;
+	}
+	double get_time_mod_branch_length (node *leaf, const float distance_to_root);
+
     protected:
 	class node { //store the information for each node of the tree
 	    public:
@@ -303,13 +322,19 @@ class tree {
 	    node* right;
 	    double right_path;
 	    node* mrca;
-	}; 
+	};
 	//struct node_double_char {node* leaf; double support; char mono; };
 	struct int_double2 { int n; double a; double c; };
 	// Variables
-	static string_tree nodelabels;
-	static bool random_seeded;
+	static string_tree nodelabels; // store the text strings for node labels for all trees
+	static bool random_seeded; // Keep track of if random value has been initiated to not set it separately for every tree
         node *root; //stores the location of the root
+	vector<node*> clades; // store the mrca node of defined taxon sets
+	// variables for rate mod
+	vector<pair<unsigned int,float>> rate_time_cut_offs;
+	vector<float> rates_in_time;
+	vector<float> rates;
+	vector<unsigned int> clade_rate;
 	//string tree_comment;
         //deletes a part of the tree from given node
         void destroy_tree (node *leaf);
