@@ -1,5 +1,5 @@
 /********************************************************************
-Copyright (C) 2016 Martin Ryberg
+Copyright (C) 2020 Martin Ryberg
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -885,9 +885,9 @@ void tree::multiply_br_length_subtree ( node *leaf, const float multiplier ) {
     }
 }
 
-void tree::multiply_br_length_skyline (node *leaf, const vector<pair<float,float> >& cut_offs, const float distance_to_root) {
-    vector<pair<float,float> >::const_iterator pos;
+void tree::multiply_br_length_skyline (node *leaf, rate_model& rate_mod /*const vector<pair<float,float> >& cut_offs*/, const float distance_to_root) {
     const double branch_end = distance_to_root+leaf->branchlength;
+    /*//vector<pair<float,float> >::const_iterator pos;
     double new_br_length(0.0);
     double previous_cut_off(0.0);
     for (pos = cut_offs.begin(); pos != cut_offs.end(); ++pos) {
@@ -914,10 +914,10 @@ void tree::multiply_br_length_skyline (node *leaf, const vector<pair<float,float
     else if (distance_to_root > previous_cut_off) new_br_length = leaf->branchlength;
     #ifdef DEBUG
     cerr << "Branch start: " << distance_to_root << "; end: " << branch_end << "; last cut off: " << previous_cut_off << "; old length: " << leaf->branchlength << "; new length: " << new_br_length << endl;
-    #endif //DEBUG
-    leaf->branchlength = new_br_length;
-    if (leaf->left != 0) multiply_br_length_skyline(leaf->left, cut_offs, branch_end);
-    if (leaf->right != 0) multiply_br_length_skyline(leaf->right, cut_offs, branch_end);
+    #endif //DEBUG*/
+    leaf->branchlength = rate_mod.get_time_mod_branch_length(leaf->branchlength,distance_to_root);
+    if (leaf->left != 0) multiply_br_length_skyline(leaf->left, rate_mod, branch_end);
+    if (leaf->right != 0) multiply_br_length_skyline(leaf->right, rate_mod, branch_end);
 }
 
 void tree::multiply_br_length_cut_off_subtree (node *leaf, const float cut_off, const float multiplier ) {
@@ -932,29 +932,23 @@ void tree::multiply_br_length_cut_off_subtree (node *leaf, const float cut_off, 
 	if (leaf->right != 0) multiply_br_length_cut_off_subtree (leaf->right, next_cut_off, multiplier);
     }
 }
-void tree::multiply_br_length_clades ( const vector<string> &clades, const float multiplier ) {
-    set<node*> nodes;
-    cerr << "Starting" << endl;
-    for (vector<string>::const_iterator i = clades.begin(); i != clades.end(); ++i) {
-	nodes.insert(most_recent_common_ancestor(*i));
-	cerr << *i << endl;
+void tree::multiply_br_length_clades ( const vector<string> &taxon_sets, rate_model& rate_mod) {
+    unsigned int order(0);
+    for (vector<string>::const_iterator i = taxon_sets.begin(); i != taxon_sets.end(); ++i) {
+	clades.insert(pair<node*,unsigned int>(most_recent_common_ancestor(*i),order));
+	++order;
     }
-    set<node*> delete_nodes;
-    for (set<node*>::iterator i = nodes.begin(); i != nodes.end(); ++i) {
-	for (set<node*>::iterator j = i; j != nodes.end(); ++j) {
-	    if (i == j) continue;
-	    if (is_nested_in(*i,*j)) delete_nodes.insert(*j);
-	    else if (is_nested_in(*j,*i)) delete_nodes.insert(*i);
-	}
-    }
-    for (set<node*>::iterator i = delete_nodes.begin(); i != delete_nodes.end(); ++i) {
-	nodes.erase(*i);
-    }
-    delete_nodes.clear();
-    for (set<node*>::iterator i = nodes.begin(); i != nodes.end(); ++i) {
-	multiply_br_length_subtree ( *i,multiplier );
-    }
+    multiply_br_length_clades( root, rate_mod,  rate_mod.get_n_rates());
 };
+
+void tree::multiply_br_length_clades ( node* leaf, rate_model& rate_mod, unsigned int present_clade) {
+    leaf->branchlength = leaf->branchlength*rate_mod.get_rate_clade(present_clade);
+    map<node*,unsigned int>::const_iterator present_node = clades.find(leaf);
+    if (present_node == clades.end()) present_clade = rate_mod.get_n_rates();
+    if (leaf->left != 0) multiply_br_length_clades( leaf->left, rate_mod, present_clade );
+    if (leaf->right != 0) multiply_br_length_clades( leaf->right, rate_mod, present_clade );
+}
+
 void tree::set_br_length_subtree ( node *leaf, const float value ) {
     if (leaf == 0) return;
     else {
@@ -2950,7 +2944,7 @@ double tree::gamma (node* leaf) {
     #endif //DEBUG
     return value;
 }
-// functions for rate mods
+/*/ functions for rate mods
 bool tree::adid_rate_for_time (unsigned int rate_class, float time) {
     if (rate_class >= rates_in_time.size()) return false;
     vector<pair<unsigned int,float>>::iterator pos;
@@ -3010,4 +3004,4 @@ double tree::get_time_mod_branch_length (node *leaf, const float distance_to_roo
     else if (distance_to_root > previous_cut_off) new_br_length = leaf->branchlength;
     return new_br_length;
 }
-
+*/

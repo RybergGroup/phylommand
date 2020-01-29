@@ -66,11 +66,11 @@ MATRIXPARS = matrix_parser.cpp
 SEQDB = seqdatabase.cpp
 INDEXEDFST = indexedfasta.cpp
 SUB_MODEL = sub_model.cpp
-
-OTREE = tree.o treebender.o string_tree.o file_parser.o argv_parser.o matrix_parser.o clustertree.o $(SQLITEO)
+RATE_MODEL = rate_model.cpp
+OTREE = tree.o treebender.o string_tree.o file_parser.o argv_parser.o matrix_parser.o clustertree.o rate_model.o $(SQLITEO)
 OPAIRALIGN = seqpair.o pairalign.o align_group.o seqdatabase.o argv_parser.o indexedfasta.o $(SQLITEO)
-OCONTREE = contree.o tree.o decisiveness.o string_tree.o matrix_parser.o file_parser.o
-OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o matrix_parser.o file_parser.o argv_parser.o sub_model.o
+OCONTREE = contree.o tree.o decisiveness.o string_tree.o matrix_parser.o file_parser.o rate_model.o
+OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o matrix_parser.o file_parser.o argv_parser.o sub_model.o rate_model.o
 ifeq ($(RUDISVG),YES)
 ORUDISVG = rudisvg.o pugixml.o
 endif
@@ -128,6 +128,9 @@ decisiveness.o: $(DECISIVE)
 
 sub_model.o: $(SUB_MODEL)
 	$(PP) -c $(SUB_MODEL) $(EXTRAS)
+
+rate_model.o: $(RATE_MODEL)
+	$(PP) -c $(RATE_MODEL) $(EXTRAS)
 
 ifeq ($(DATABASE),YES)
 sqlite3.o: $(SQLITE)

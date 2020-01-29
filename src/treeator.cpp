@@ -36,6 +36,7 @@ contact: martin.ryberg@ebc.uu.se
 #include "matrix_parser.h"
 #include "simpleML.h"
 #include "sub_model.h"
+#include "rate_model.h"
 
 using namespace std;
 
@@ -53,10 +54,10 @@ struct tree_modelspec_struct {
     const bool fixed_freq;
     const unsigned int freq_start;
     //const vector<unsigned int>* specifications; // which parameter represents which rate i.e. 0,0,1,1,2,2 represents same rates going from 0->1 as 0->2, and 1->0 as 1->2, and so on.
-    vector<double>* extra;
+    rate_model* rate_mod;
     const unsigned int extra_start;
     const set<unsigned int>* fixed_extra;
-    const vector<unsigned int>* extra_specs;
+    //const vector<unsigned int>* extra_specs;
     //bool tr;
 };
 
@@ -94,9 +95,9 @@ int main (int argc, char *argv []) {
     bool optimize_param = false;
     #endif //NLOPT
     vector<unsigned int> model_specifications;
-    vector<unsigned int> rate_mod_specs;
-    double cut_off = 0.0;
-    vector <double> rate_mod;
+    //vector<unsigned int> rate_mod_specs;
+    //double cut_off = 0.0;
+    rate_model rate_mod;
     set<unsigned int> fixed_parameters;
     set<unsigned int> fixed_extra_parameters;
     bool fixed_freq(false);
@@ -245,12 +246,25 @@ int main (int argc, char *argv []) {
             else if (!strcmp(argv[i],"-l") || !strcmp(argv[i],"--likelihood")) {
 		    if (method != 't' && method != 'A') method = 'o';
             }
-            else if (!strcmp(argv[i],"-R") || !strcmp(argv[i],"--rate_mod")) {
+	    else if (!strcmp(argv[i],"-U") || !strcmp(argv[i],"--rate_change_at_time")) {
+                method = '$';
+                if ( i < argc-1 && argv[i+1][0] != '-') {
+                    ++i;
+                    vector<string> arguments;
+                    argv_parser::pars_sub_args(argv[i], ':', arguments );
+                    rate_mod.set_time_rate(0, atof(arguments[0].c_str()));
+                    if (!rate_mod.add_rate_for_time(0,atof(arguments[1].c_str()))) {
+                        cerr << "Could not add rate " << atof(arguments[0].c_str()) << " for cut off " << atof(arguments[1].c_str()) << endl;
+                        return 1;
+                    }
+                }
+            }
+            /*else if (!strcmp(argv[i],"-R") || !strcmp(argv[i],"--rate_mod")) {
                 if ( i < argc-1 && argv[i+1][0] != '-' ) {
 		    vector<string> temp;
 		    argv_parser::pars_sub_args(argv[++i], ';', temp);
 		    for (vector<string>::iterator t=temp.begin(); t != temp.end(); ++t) {
-			rate_mod.push_back(atof(t->c_str()));
+			rate_mod.add_rate_for_time(rate_mod.get_n_time_rates(),atof(t->c_str()));
 		    }
 		}
                 else {
@@ -267,15 +281,21 @@ int main (int argc, char *argv []) {
                     return 1;
                 }
 		method='t';
-            }
-	    else if (!strcmp(argv[i],"-A") || !strcmp(argv[i],"--taxon_sets")) {
-		if ( i < argc-1 && argv[i+1][0] != '-' )
-		    argv_parser::pars_sub_args(argv[++i],';',taxon_sets);
+            }*/
+	    else if (!strcmp(argv[i],"-A") || !strcmp(argv[i],"-V") || !strcmp(argv[i],"--clade_rates")) {
+		if ( i < argc-1 && argv[i+1][0] != '-' ) {
+		    ++i;
+                    if (!rate_mod.pars_clade_rates_arg(argv[i],taxon_sets)) {
+                        cerr << "Unable to pars \"" << argv[i] << "\" for rates" << endl;
+                        return 1;
+                    }
+		    //argv_parser::pars_clade_rates(argv[++i],rate_mod,taxon_sets);
+		}
 		else {
-		    cerr << "-A / --taxon_sets require at least one set of taxa given as a comma separated string as next argument." << endl;
+		    cerr << "-A / --clade_rates require at least one set of taxa given as a comma separated string as next argument." << endl;
 		    return 1;
 		}
-		for (unsigned int j=0; j<taxon_sets.size();++i) rate_mod_specs.push_back(i);
+		//for (unsigned int j=0; j<taxon_sets.size();++i) rate_mod_specs.push_back(i);
 		method = 'A';
 	    }
 	    else if (!strcmp(argv[i],"--get_state_at_nodes")) {
@@ -361,14 +381,14 @@ int main (int argc, char *argv []) {
             return 1;
         }
     }
-    if (method == 't' && rate_mod.empty()) {
+    /*if (method == 't' && rate_mod.empty()) {
 	rate_mod.push_back(1.0);
     }
-    else if (method == 'A' && rate_mod.size() < taxon_sets.size()) {
+    else if (method == 'A' && rate_mod.get_n_clades() < taxon_sets.size()) {
 	for (unsigned int i = rate_mod.size(); i < taxon_sets.size(); ++i) {
 	    rate_mod.push_back(1.0);
 	}
-    }
+    }*/
     /// if doing NJ do that now
     if (method == 'n') { // Neigbour Joining
 	njtree tree;
@@ -544,7 +564,7 @@ int main (int argc, char *argv []) {
 	else if (method == 'o' || method == 't' || method == 'A' || method == 'C') { // if model based
 	    if (!characters.empty() && characters.begin()->n_char() > 1) cerr << "Warning!!! Will only calculate likelihood of first character in matrix." << endl;
 	    unsigned int n_states = 0;
-	    vector<double> extra_parameters;
+	    //vector<double> extra_parameters;
 	    if (method != 'C' && !char_freqs.empty()) tr = true;
 	    if (!quiet) cerr << "Preparing model." << endl; 
 	    if (method == 'o' || method == 't' || method == 'A') {
@@ -630,7 +650,7 @@ int main (int argc, char *argv []) {
 		#endif //DEBUG
 	    }
 	    // Adjust number of parameters according to rate change model and add extra parameters to vector
-	    if (method == 't') {
+	    /*if (method == 't') {
 		extra_parameters.push_back(cut_off);
 		#ifdef DEBUG
 		cerr << "N extra parameters: " << extra_parameters.size() << endl;
@@ -647,7 +667,7 @@ int main (int argc, char *argv []) {
 		    cerr << "N extra parameters: " << extra_parameters.size() << endl;
 		    #endif //DEBUG
 		}
-	    }
+	    }*/
 
 	    // check fixed_parameters
 	    for (set<unsigned int>::iterator i=fixed_parameters.begin(); i != fixed_parameters.end(); ++i) {
@@ -657,8 +677,8 @@ int main (int argc, char *argv []) {
 		}
 	    }
 	    for (set<unsigned int>::iterator i=fixed_extra_parameters.begin(); i != fixed_extra_parameters.end(); ++i) {
-		if (*i > extra_parameters.size()-1) {
-		    cerr << "Can not fix parameter " << *i << ". It is out of bound (n parameters=" << extra_parameters.size() << ")." << endl;
+		if (*i > rate_mod.get_n_rates()-1) {
+		    cerr << "Can not fix parameter " << *i << ". It is out of bound (n parameters=" << rate_mod.get_n_rates() << ")." << endl;
 		    return 1;
 		}
 	    }
@@ -670,7 +690,7 @@ int main (int argc, char *argv []) {
 		cerr << "Model has " << model.get_n_rates() << " rate parameters, of which " << fixed_parameters.size() << " are fixed." << endl;
 		if (tr && fixed_freq) cerr << "The state frequencies are fixed." << endl;
 		else if (tr) cerr << "There are " << model.get_n_states()-1 << " free state frequencies." << endl;
-		if (!extra_parameters.empty()) cerr << "There are " << extra_parameters.size() << " parameters to govern rate changes in the tree, of which " << fixed_extra_parameters.size() << " are fixed." << endl;
+		//if (!extra_parameters.empty()) cerr << "There are " << extra_parameters.size() << " parameters to govern rate changes in the tree, of which " << fixed_extra_parameters.size() << " are fixed." << endl;
 	    }
 ///////////////
 	    char nexus_command = nexus_command::NON;
@@ -750,15 +770,22 @@ int main (int argc, char *argv []) {
 	    		}
 		    }
 		    // add time and rate modifiers to parameters to optimize
-		    if (!extra_parameters.empty()) {
+		    if (rate_mod.get_n_rates()) {
 			start_extras = n_parameters;
-			for (unsigned int i=0; i < extra_parameters.size(); ++i) {
+			for (unsigned int i=0; i < rate_mod.get_n_rates(); ++i) {
 			    if (fixed_extra_parameters.find(i) == fixed_extra_parameters.end()) {
 				lower_bounds.push_back(0.0);
-				if (method == 't' && i == 0) upper_bounds.push_back(tree.longest_to_tip());
-				else upper_bounds.push_back(DBL_MAX);
-				variable_values.push_back(extra_parameters[i]);
-				++n_parameters;
+				if (method == 't' && i == 0) {
+				    upper_bounds.push_back(tree.longest_to_tip());
+				    variable_values.push_back(rate_mod.get_cut_off(0));
+				    ++n_parameters;
+				}
+				else {
+				    upper_bounds.push_back(DBL_MAX);
+				    if (method == 't') variable_values.push_back(rate_mod.get_rate_in_time(i-1));
+				    else if (method = 'A') variable_values.push_back(rate_mod.get_rate_clade(i));
+				    ++n_parameters;
+				}
 			    }
 	    		}
 		    }
@@ -769,7 +796,7 @@ int main (int argc, char *argv []) {
 		    //// Prep model
 		    nlopt::opt maximize(nlopt::LN_NELDERMEAD, n_parameters);
 		    #ifdef DEBUG
-		    cerr << "N extra parameters: " << extra_parameters.size() << endl;
+		    cerr << "N extra parameters: " <<  rate_mod.get_n_rates() + rate_mod.get_n_time_cut_offs() << endl;
 		    cerr << "Fixed parameters: ";
 		    for (set<unsigned int>::iterator i=fixed_parameters.begin(); i != fixed_parameters.end(); ++i) cerr << " " << *i;
 		    cerr << endl;
@@ -777,7 +804,7 @@ int main (int argc, char *argv []) {
 		    for (set<unsigned int>::iterator i=fixed_extra_parameters.begin(); i != fixed_extra_parameters.end(); ++i) cerr << " " << *i;
 		    cerr << endl;
 		    #endif //DEBUG
-		    tree_modelspec_struct data = {&tree, &model, &fixed_parameters, fixed_freq, start_freq, &extra_parameters, start_extras, &fixed_extra_parameters, &rate_mod_specs};
+		    tree_modelspec_struct data = {&tree, &model, &fixed_parameters, fixed_freq, start_freq, &rate_mod, start_extras, &fixed_extra_parameters};
 		    maximize.set_lower_bounds(lower_bounds);
 		    maximize.set_upper_bounds(upper_bounds);
 		    ///////////////////
@@ -790,6 +817,7 @@ int main (int argc, char *argv []) {
 			maximize.set_max_objective(opt_function,&data);
 			model_out << "Number of parameters to optimize: " << maximize.get_dimension() << endl;
 			nlopt::result result = maximize.optimize(variable_values,LogL);
+			change_non_fixed(variable_values,&data);
 			if (result < 0) {
 			    cerr << "Failure when optimizing!!!" << endl;
 			    return 1;
@@ -812,7 +840,7 @@ int main (int argc, char *argv []) {
 			if (result < 0) {
 			    cerr << "Failure when optimizing!!!" << endl;
 			    return 1;
-			}
+			}/*
 			if (fixed_extra_parameters.find(0) == fixed_extra_parameters.end())
 			    model_out << "Time from root to rate change: " << data.extra->at(0) << endl;
 			else
@@ -822,7 +850,10 @@ int main (int argc, char *argv []) {
 			else if (fixed_extra_parameters.find(1) == fixed_extra_parameters.end())
 			    model_out << "Rate multiplier: " << variable_values[data.extra_start] << endl;
 			else
-			    model_out << "Rate multiplier: " << extra_parameters[1] << endl;
+			    model_out << "Rate multiplier: " << extra_parameters[1] << endl;*/
+			change_non_fixed(variable_values,&data);
+			model_out << "Time from root to rate change: " << data.rate_mod->get_cut_off(0) << endl;
+			model_out << "Rate multiplier: " << data.rate_mod->get_rate_in_time(0) << endl;
 		    }
 		    else if (method == 'A') {
 			if (variable_values.size() != maximize.get_dimension()) {
@@ -846,9 +877,11 @@ int main (int argc, char *argv []) {
 			for (vector<double>::const_iterator i=variable_values.begin(); i != variable_values.end(); ++i) cerr << *i << ' ';
 			cerr << endl;
 			#endif //DEBUG
+			change_non_fixed(variable_values,&data);
 			/// need to fix if any rates are fixed
 			for (unsigned int i=0; i < taxon_sets.size(); ++i) {
-			    model_out << "Rate mod for \"" << taxon_sets[i] << "\": " << variable_values[data.extra_start+i] << endl;
+			    //model_out << "Rate mod for \"" << taxon_sets[i] << "\": " << variable_values[data.extra_start+i] << endl;
+			    model_out << "Rate mod for (" << i << ") \"" << taxon_sets[i] << "\": " << rate_mod.get_rate_clade(i) << endl;
 			}
 		    }
 		    else {
@@ -901,13 +934,13 @@ int main (int argc, char *argv []) {
 			model_out << "Log likelihood= " << tree.calculate_log_likelihood(model) << endl;
 		    }
 		    else if (method == 't') {
-			model_out << "Log likelihood= " << tree.calculate_likelihood_rate_change_in_time(cut_off,rate_mod[0],model) << endl;
-			model_out << "Time from root: " << cut_off << " Rate modifier: " << rate_mod[0] << endl;
+			model_out << "Log likelihood= " << tree.calculate_likelihood_rate_change_in_time(rate_mod,model) << endl;
+			model_out << "Time from root: " << rate_mod.get_cut_off(0) << " Rate modifier: " << rate_mod.get_rate_in_time(0) << endl;
 		    }
 		    else if (method == 'A') {
-			model_out << "Log likelihood= " << tree.calculate_likelihood_rate_change_at_nodes ( rate_mod.data(), model ) << endl;
+			model_out << "Log likelihood= " << tree.calculate_likelihood_rate_change_at_nodes ( rate_mod, model ) << endl;
 			for (unsigned int i=0; i < taxon_sets.size(); ++i) {
-			    model_out << "Rate mod for \"" << taxon_sets[i] << "\": " <<  rate_mod[i] << endl;
+			    model_out << "Rate mod for \"" << taxon_sets[i] << "\": " <<  rate_mod.get_rate_clade(i) << endl;
 			}
 		    }
 		    else {
@@ -993,6 +1026,17 @@ void help () {
     cout << "                                 protein, or binary for dna, amino acid," << endl;
     cout << "                                 respectively binary (0 1) alphabets (default:" << endl;
     cout << "                                 dna)." << endl;
+    cout << "--clade_rates / -A                give clades by giving a sets of taxa that have" << endl;
+    cout << "                                 the base of the clade as most recent common" << endl;
+    cout << "                                 ancestor. Different sets should be separated by" << endl;
+    cout << "                                 semicolon (;), taxa in a set should be separated" << endl;
+    cout << "                                 by comma. The rate of the set should be given" << endl;
+    cout << "                                 before the set and separated from it by a colon" << endl;
+    cout << "                                 (:). If a set is not given a rate it will get" << endl;
+    cout << "                                 the same rate as the previous set, and if" << endl;
+    cout << "                                 optimizing the rate parameters they will be" << endl;
+    cout << "                                 optimized as one. E.g. -A \"0.5:Taxon1,Taxon2;" << endl;
+    cout << "                                 Taxon3,Taxon4\"" << endl;
     cout << "--data_file / -d [file]          give the data file."<< endl;
     cout << "--do_not_calc_br_length / -c     do not save branch length when doing parsimony" << endl;
     cout << "                                 reconstruction. This means that the branch" << endl;
@@ -1057,7 +1101,7 @@ void help () {
     cout << endl;
     cout << "--parsimony / -p                 calculate parsimony score for given tree and" << endl;
     cout << "                                 data." << endl;
-    cout << "--rate_mod / -R [value]        give modifier for rate compared to rate at root" << endl;
+    cout << "--rate_mod / -R [value]          give modifier for rate compared to rate at root" << endl;
     cout << "                                 e.g. -r 0.5. Default: 1.0." << endl;
     cout << "--random / -r                    do stepwise addition in random order." << endl;
     cout << "--simulate                       simulate data on given tree. Number of" << endl;
@@ -1065,18 +1109,12 @@ void help () {
     cout << "                                 1). Use model given by -m and parameters givens" << endl;
     cout << "                                 by -P and probability of each character at roots" << endl;
     cout << "                                 by -F, e.g. --simulate 10." << endl;
-    cout << "--time / -T [value]            give branch length distance from root where" << endl;
+    cout << "--time / -T [value]              give branch length distance from root where" << endl;
     cout << "                                 change in rate occur, e.g. -T 10. Default: 0." << endl;
     cout << "--time_reversible / --tr         set the model to be time reversible. If no" << endl; 
     cout << "                                 frequencies (-F) are given. State frequencies" << endl;
     cout << "                                 are assumed to be equal" << endl; 
     cout << "--tree_file / -t [file]          give tree file name." << endl;
-    cout << "--taxon_sets / -A                give sets of taxa. Different sets should be" << endl;
-    cout << "                                 separated by semicolon (;), taxa in set should" << endl;
-    cout << "                                 be separated by comma, e.g. -A \"Taxon1,Taxon2;" << endl;
-    cout << "                                 Taxon3,Taxon4\". Clades delimited by the most" << endl;
-    cout << "                                 recent common ancestor of each set will get a" << endl;
-    cout << "                                 separate rate" << endl;
     cout << "--step_wise / -s                 do parsimony stepwise addition." << endl;
     cout << "--verbose / -v                   get additional output." << endl;
     cout << endl;
@@ -1098,11 +1136,11 @@ double opt_rate_in_time(const std::vector<double> &x, std::vector<double> &grad,
     if (!change_non_fixed(x,static_cast<tree_modelspec_struct*>(data))) return 0.0;
     #ifdef DEBUG
     cerr << "Rate change params:";
-    for (unsigned int i=0; i < static_cast<tree_modelspec_struct*>(data)->extra->size(); ++i) cerr << " " << static_cast<tree_modelspec_struct*>(data)->extra->at(i);
+    //for (unsigned int i=0; i < static_cast<tree_modelspec_struct*>(data)->extra->size(); ++i) cerr << " " << static_cast<tree_modelspec_struct*>(data)->extra->at(i);
     cerr << endl;
     #endif //DEBUG
-    if (static_cast<tree_modelspec_struct*>(data)->extra->size() < 2) return 0.0;
-    double LogLH =  static_cast<tree_modelspec_struct*>(data)->tree->calculate_likelihood_rate_change_in_time(static_cast<tree_modelspec_struct*>(data)->extra->at(0),static_cast<tree_modelspec_struct*>(data)->extra->at(1),*(static_cast<tree_modelspec_struct*>(data)->model));
+    if (static_cast<tree_modelspec_struct*>(data)->rate_mod->get_n_time_rates() < 1) return 0.0;
+    double LogLH =  static_cast<tree_modelspec_struct*>(data)->tree->calculate_likelihood_rate_change_in_time(*(static_cast<tree_modelspec_struct*>(data)->rate_mod),*(static_cast<tree_modelspec_struct*>(data)->model));
     #ifdef DEBUG
         std::cerr << "Likelihood: " << LogLH << endl;
     #endif //DEBUG
@@ -1113,11 +1151,11 @@ double opt_rate_for_clades_function(const std::vector<double> &x, std::vector<do
     if (!change_non_fixed(x,static_cast<tree_modelspec_struct*>(data))) return 0.0;
     #ifdef DEBUG
     cerr << "Rates:";
-    for (unsigned int i=0; i < static_cast<tree_modelspec_struct*>(data)->extra->size(); ++i) { cerr << " " << static_cast<tree_modelspec_struct*>(data)->extra->at(i); }
+    for (unsigned int i=0; i < static_cast<tree_modelspec_struct*>(data)->rate_mod->get_n_clade_rates(); ++i) { cerr << " " << static_cast<tree_modelspec_struct*>(data)->rate_mod->get_rate_clade(i); }
     cerr << endl;
     #endif //DEBUG
     // create a new rate_mod vector based on specs
-    double LogLH = static_cast<tree_modelspec_struct*>(data)->tree->calculate_likelihood_rate_change_at_nodes(&(static_cast<tree_modelspec_struct*>(data)->extra->front()),*(static_cast<tree_modelspec_struct*>(data)->model));
+    double LogLH = static_cast<tree_modelspec_struct*>(data)->tree->calculate_likelihood_rate_change_at_nodes(*(static_cast<tree_modelspec_struct*>(data)->rate_mod),*(static_cast<tree_modelspec_struct*>(data)->model));
     return LogLH;
 
 }
@@ -1139,17 +1177,41 @@ bool change_non_fixed(const std::vector<double> &x, tree_modelspec_struct* data)
 	    if (!data->model->set_freq(i,x[data->freq_start+i])) return false;
 	}
     }
+    unsigned int i(0);
     j = 0;
-    for (unsigned int i=0; i < data->extra->size(); ++i) {
+    if (data->rate_mod->get_n_time_cut_offs()) {
+	++i;
+       	if (data->fixed_extra->find(0) == data->fixed_extra->end()) {
+	    data->rate_mod->set_cut_off(0,x[data->extra_start]); ++j;
+	}
+    }
+    for (; i < data->rate_mod->get_n_rates(); ++i) {
 	#ifdef DEBUG
-	cerr << "Change extra param " << i << " of " << data->extra->size();
+	cerr << "Change extra param " << i << " of " << data->rate_mod->get_n_rates();
 	#endif //DEBUG
 	if (data->fixed_extra->find(i) == data->fixed_extra->end()) {
-	    #ifdef DEBUG
-	    cerr << " from " << data->extra->at(i) << " to " << x[data->extra_start+j];
-	    #endif //DEBUG
-	    data->extra->at(i) = x[data->extra_start+j];
-	    ++j;
+	    if (i < data->rate_mod->get_n_time_rates()) {
+		#ifdef DEBUG
+		cerr << " from " << data->rate_mod->get_rate_in_time(i) << " to " << x[data->extra_start+j];
+		#endif //DEBUG
+		data->rate_mod->set_time_rate(i,x[data->extra_start+j]);
+		++j;
+		#ifdef DEBUG
+		cerr << " (" << data->rate_mod->get_rate_in_time(i) << ")" << endl;
+		#endif //DEBUG
+	    }
+	    else if (i-data->rate_mod->get_n_time_rates() < data->rate_mod->get_n_clade_rates()) {
+		#ifdef DEBUG
+                cerr << " from " << data->rate_mod->get_rate_clade(i-data->rate_mod->get_n_time_rates()) << " to " << x[data->extra_start+j];
+                #endif //DEBUG
+		data->rate_mod->set_rate(i-data->rate_mod->get_n_time_rates(), x[data->extra_start+j]);
+		++j;
+		#ifdef DEBUG
+                cerr << " (" << data->rate_mod->get_rate_clade(i-data->rate_mod->get_n_time_rates()) << ")" << " - " << data->rate_mod->get_n_time_rates() << endl;
+                #endif //DEBUG
+	    }
+	    //data->extra->at(i) = x[data->extra_start+j];
+	    //++j;
 	}
 	#ifdef DEBUG
 	cerr << endl;

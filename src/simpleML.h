@@ -1,5 +1,5 @@
 /********************************************************************
-Copyright (C) 2016 Martin Ryberg
+Copyright (C) 2020 Martin Ryberg
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -8,11 +8,11 @@ the Free Software Foundation, either version 3 of the License, or
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 contact: martin.ryberg@ebc.uu.se
 *********************************************************************/
@@ -59,33 +59,24 @@ class simpleML : public tree {
 	    for (unsigned int i=0; i < n_states; ++i) likelihood += likelihoods[root][i];
 	    return log(likelihood);
 	};
-	/*void add_taxon_sets(vector<string>& taxon_sets) {
-	    for (unsigned int i = 0; i < taxon_sets.size(); ++i) {
-		clades.push_back(most_recent_common_ancestor(taxon_sets[i]));
-	    }
-	}*/
-	double calculate_likelihood_rate_change_at_nodes ( const double* rates, sub_model& model ) {
+	double calculate_likelihood_rate_change_at_nodes ( rate_model& rate_mod, sub_model& model ) {
 	    if (!check_nodes ( root )) return 0.0;
 	    if (n_states != model.get_n_states()) {
                 cerr << "Number of characters in model (" << model.get_n_states() << ") does not fit number of characters to explain (" << n_states << ")!!!" << endl;
                 return 0.0;
             }
-	    map<node*, double> rate_changes;
-	    for (unsigned int i = 0; i < clades.size() && i < clades.size(); ++i) {
-		if (clades[i] != 0) rate_changes[clades[i]] = rates[i];
-	    }
-	    calculate_likelihood_rate_change_at_nodes(root,1.0,rate_changes, model);
+	    calculate_likelihood_rate_change_at_nodes(root,1.0,rate_mod, model);
 	    double likelihood=0;
 	    for (unsigned int i=0; i < n_states; ++i) likelihood += likelihoods[root][i];
             return log(likelihood);
 	}
-	double calculate_likelihood_rate_change_in_time(const double cut_off, const double rate, sub_model& model) {
+	double calculate_likelihood_rate_change_in_time(rate_model& rate_mod, sub_model& model) {
 	    if (!check_nodes ( root )) return 0.0;
  	    if (n_states != model.get_n_states()) {
                 cerr << "Number of characters in model (" << model.get_n_states() << ") does not fit number of characters to explain (" << n_states << ")!!!" << endl;
                 return 0.0;
             }
-	    calculate_likelihood_rate_change_in_time( root, 0.0, cut_off, rate, model );
+	    calculate_likelihood_rate_change_in_time( root, 0.0, rate_mod, model );
 	    double likelihood=0;
             for (unsigned int i=0; i < n_states; ++i) likelihood += likelihoods[root][i];
             return log(likelihood);
@@ -104,8 +95,8 @@ class simpleML : public tree {
 	void un_init_nodes ( node* leaf );
 	bool check_nodes ( const node* leaf );
 	void calculate_likelihood ( const node* leaf, sub_model& model );
-	void calculate_likelihood_rate_change_in_time(const node* leaf, const double dist_from_root, const double cut_off, const double rate, sub_model& model);
-	void calculate_likelihood_rate_change_at_nodes(const node* leaf, double rate, const map<node*, double>& rate_changes, sub_model& model);
+	void calculate_likelihood_rate_change_in_time(const node* leaf, const double dist_from_root, rate_model& rate_mod, sub_model& model);
+	void calculate_likelihood_rate_change_at_nodes(const node* leaf, double rate, rate_model& rate_mod, sub_model& model);
 	void draw_normalized_likelihood_on_nodes( node* leaf );
 	void branch_likelihood ( map<node*,vector<double> >::iterator LHbins, map<node*,vector<double> >::iterator startLHs, double branch_length, bool multiply, sub_model& model);
 };

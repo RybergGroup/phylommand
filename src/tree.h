@@ -1,5 +1,5 @@
 /********************************************************************
-Copyright (C) 2016 Martin Ryberg
+Copyright (C) 2020 Martin Ryberg
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -38,10 +38,7 @@ contact: martin.ryberg@ebc.uu.se
 #include "character_vector.h"
 #include "constants.h"
 #include "matrix_parser.h"
-//#include "supmar/character_vector.h"
-//#include "supmar/constants.h"
-//#include "support_functions.cpp"
-//#include "supmar/support_functions.h"
+#include "rate_model.h"
 
 using namespace std;
 
@@ -206,18 +203,18 @@ class tree {
 	void multiply_br_length_cut_off ( const float cut_off, const float multiplier ) {
 	    multiply_br_length_cut_off_subtree (root, cut_off, multiplier);
 	};
-        void multiply_br_length_skyline (const vector<pair<float,float> >& cut_offs) {
-	    float prev_cut_off(-0.0);
+        void multiply_br_length_skyline (rate_model& rate_mod) {
+	    /*float prev_cut_off(-0.0);
 	    for (vector<pair<float,float> >::const_iterator i=cut_offs.begin(); i != cut_offs.end(); ++i) {
 		if (i->second < prev_cut_off) { cerr << "Cut offs not in order. Interrupt." << endl; return; }
 		prev_cut_off = i->first;
 		#ifdef DEBUG
 		cerr << "Cut off " << i->first << " multiplier " << i->second << endl;
 		#endif //DEBUG
-	    }
-	    multiply_br_length_skyline( root, cut_offs, 0.0 );
+	    }*/
+	    multiply_br_length_skyline( root, rate_mod, 0.0 );
 	};
-	void multiply_br_length_clades ( const vector<string> &clades, const float multiplier );
+	void multiply_br_length_clades ( const vector<string> &clades, rate_model& rate_mod /*const float multiplier*/ );
         void set_br_length (const float value) {
             set_br_length_subtree ( root, value );
         };
@@ -284,10 +281,10 @@ class tree {
 	double gamma() { return gamma(root); }
 	void add_taxon_sets(vector<string>& taxon_sets) { // add taxon sets to clades
             for (unsigned int i = 0; i < taxon_sets.size(); ++i) {
-                clades.push_back(most_recent_common_ancestor(taxon_sets[i]));
+                clades.insert(pair<node*,unsigned int>(most_recent_common_ancestor(taxon_sets[i]),clades.size()));
             }
         }
-	// functions for rate_mods
+	/*/ functions for rate_mods
 	bool add_rate_for_time (unsigned int rate_class, float time);
 	void set_time_rate (unsigned int rate_class, float rate);
 	bool set_clade_rate ( unsigned int clade, unsigned int rate_class );
@@ -300,7 +297,7 @@ class tree {
 	    else return 1;
 	}
 	double get_time_mod_branch_length (node *leaf, const float distance_to_root);
-
+	*/
     protected:
 	class node { //store the information for each node of the tree
 	    public:
@@ -329,12 +326,12 @@ class tree {
 	static string_tree nodelabels; // store the text strings for node labels for all trees
 	static bool random_seeded; // Keep track of if random value has been initiated to not set it separately for every tree
         node *root; //stores the location of the root
-	vector<node*> clades; // store the mrca node of defined taxon sets
-	// variables for rate mod
+	map<node*,unsigned int> clades; // store the mrca node of defined taxon sets
+	/*/ variables for rate mod
 	vector<pair<unsigned int,float>> rate_time_cut_offs;
 	vector<float> rates_in_time;
 	vector<float> rates;
-	vector<unsigned int> clade_rate;
+	vector<unsigned int> clade_rate;*/
 	//string tree_comment;
         //deletes a part of the tree from given node
         void destroy_tree (node *leaf);
@@ -487,8 +484,9 @@ class tree {
         bool taxon_present( node *leaf, const string taxon );
         void change_tip_name( node *leaf, const string tip_name, const string new_tip_name);
         void multiply_br_length_subtree ( node *leaf, const float multiplier );
+	void multiply_br_length_clades ( node* leaf, rate_model& rate_mod, unsigned int present_clade);
 	void multiply_br_length_cut_off_subtree (node *leaf, const float cut_off, const float multiplier );
-        void multiply_br_length_skyline (node *leaf, const vector<pair<float,float> >& cut_offs, const float distance_to_root);
+        void multiply_br_length_skyline (node *leaf, rate_model& rate_mod /*const vector<pair<float,float> >& cut_offs*/, const float distance_to_root);
         void set_br_length_subtree ( node *leaf, const float value );
         double sum_br_length( node *leaf );
         double two_taxa_distance ( const string* taxon1, const string* taxon2 );

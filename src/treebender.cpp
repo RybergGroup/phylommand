@@ -28,6 +28,7 @@ contact: martin.ryberg@ebc.uu.se
 #include "file_parser.h"
 #include "clustertree.h"
 #include "argv_parser.h"
+#include "rate_model.h"
 
 using namespace std;
 
@@ -53,6 +54,7 @@ int main (int argc, char *argv []) {
     unsigned int tree_interval_end(UINT_MAX);
     string taxastring;
     vector<string> taxon_vector;
+    rate_model rate_mod;
     vector< pair<float,float> > skyline_cut_offs;
     string separator(",");
     string separator2(" ");
@@ -311,56 +313,89 @@ int main (int argc, char *argv []) {
                 if ( i < argc-1 && argv[i+1][0] != '-') value = atof(argv[++i]);
             }
 	    else if (!strcmp(argv[i],"-U") || !strcmp(argv[i],"--multiply_branch_lengths_until")) {
-		method = 'U';
+		method = '$';
                 if ( i < argc-1 && argv[i+1][0] != '-') {
 		    ++i;
 		    vector<string> arguments;
 		    argv_parser::pars_sub_args(argv[i], ':', arguments );
-		    value = atof(arguments[0].c_str());
+		    rate_mod.set_time_rate(0, atof(arguments[0].c_str()));
+		    //value = atof(arguments[0].c_str());
+		    if (!rate_mod.add_rate_for_time(0,atof(arguments[1].c_str()))) {
+	    		cerr << "Could not add rate " << atof(arguments[0].c_str()) << " for cut off " << atof(arguments[1].c_str()) << endl;
+			return 1;
+		    }
+		    /*
 		    if (arguments.size() > 1 && !arguments[1].empty()) {
 	    		cut_off = atof(arguments[1].c_str());
-		    }
+		    }*/
 		}
 	    }
 	    else if (!strcmp(argv[i],"-S") || !strcmp(argv[i],"--multiply_branch_lengths_skyline")) {
 		method='$';
                 if ( i < argc-1 && argv[i+1][0] != '-') {
 		    ++i;
-		    vector<string> arguments;
+		    if (!rate_mod.pars_rates_and_times_arg(argv[i])) {
+			cerr << "Unable to pars \"" << argv[i] << "\" for rates" << endl;
+			return 1;
+		    }
+		    /*vector<string> arguments;
+		    #ifdef DEBUG
+		    cerr << "'" << argv[i] << "'" << endl;
+		    #endif //DEBUG
 		    argv_parser::pars_sub_args(argv[i], ',', arguments );
-		    for (vector<string>::iterator i=arguments.begin(); i != arguments.end(); ++i) {
+		    unsigned int rate_class(0);
+		    for (vector<string>::iterator j=arguments.begin(); j != arguments.end(); ++j) {
 			vector<string> second_level;
-			argv_parser::pars_sub_args(i->c_str(), ':', second_level);
-			skyline_cut_offs.push_back(make_pair(atof(second_level[0].c_str()),atof(second_level[1].c_str())));
+			argv_parser::pars_sub_args(j->c_str(), ':', second_level);
+			float cut_off(0.0);
+			if (second_level.size() > 1) { // if two values the first is a rate
+			    rate_class = rate_mod.get_n_time_rates(); // add new rate class
+			    rate_mod.set_time_rate(rate_class, atof(second_level[0].c_str())); // add rate for class
+			    cut_off = atof(second_level[1].c_str()); // second value is cut off
+			}
+			else cut_off = atof(second_level[0].c_str()); // if only one value it is cut off
+			#ifdef DEBUG
+			cerr << "Rate class: " << rate_class << " cut off: " << cut_off << endl;
+			#endif //DEBUG
+			if (!rate_mod.add_rate_for_time(rate_class,cut_off)) { // add cut off and rate class
+			    cerr << "Could not add rate " << atof(second_level[0].c_str()) << " for cut off " << atof(second_level[1].c_str()) << endl;
+			    return 1;
+			}
 		    }
 		    #ifdef DEBUG
-	    	    cerr << "Number of cut offs " << skyline_cut_offs.size() << endl;
+	    	    cerr << "Number of cut offs " << rate_mod.get_n_time_rates() << endl;
+		    for (unsigned int j=0; j < rate_mod.get_n_time_cut_offs(); ++j) cerr << "Cut off " << j << ": " << rate_mod.get_cut_off(j) << " rate " << rate_mod.get_rate_in_time(j) << endl;
     		    #endif //DEBUG
-		}
+	*/	}
 		else { cerr << "-S/--multiply_branch_lengths_skyline require a list of time cut offs and rate multipliers as second argument." << endl; return 1; }
 	    }
 	    else if (!strcmp(argv[i],"-V") || !strcmp(argv[i],"--multiply_branch_lengths_clade")) {
                 method = 'V';
                 if ( i < argc-1 && argv[i+1][0] != '-') {
 		    ++i;
+		    if (!rate_mod.pars_clade_rates_arg(argv[i],taxon_vector)) {
+                        cerr << "Unable to pars \"" << argv[i] << "\" for rates" << endl;
+                        return 1;
+                    }
+		    /*unsigned int rate_class(0);
 		    string temp;
 		    char mode='s';
 		    for (unsigned int j=0; argv[i][j] != '\0'; ++j) {
-			if (mode == 's' && (argv[i][j] == ':' || argv[i][j] == ';')) { 
-			    value = atof(temp.c_str());
+			if (mode == 's' && (argv[i][j] == ':' || argv[i][j] == ';')) {
+			    rate_class = rate_mod.get_n_rates();
+			    rate_mod.set_rate(rate_class,atof(temp.c_str()));
 			    mode = 't';
 			    temp.clear();
 			}
-			else if (mode == 't' && (argv[i][j] == ':' || argv[i][j] == ';')) {
+			else if (argv[i][j] == ';' || argv[i][j+1] == '\0') {
 			    taxon_vector.push_back(temp);
+			    rate_mod.set_clade_rate(taxon_vector.size()-1,rate_class);
 			    temp.clear();
 			}
 			else temp += argv[i][j];
-		    }
-		    if (mode == 't' && !temp.empty()) taxon_vector.push_back(temp);
-		    else if (mode == 's' && !temp.empty()) value = atof(temp.c_str());
-		    else {
-			cerr << "Parsing error reading argument to --multiply_branch_lengths_clade / -V." << endl;
+		    }*/
+		    if (taxon_vector.empty() || rate_mod.get_n_rates() == 0) {
+			cerr << "Parsing error reading argument to --multiply_branch_lengths_clade / -V. Need at least one clade and rate." << endl;
 			return 1;
 		    }
 		}
@@ -816,9 +851,9 @@ int main (int argc, char *argv []) {
 	    print_tree = false;
 	}
 	else if (method == 'u') in_tree.back().multiply_br_length( value );
-	else if (method == 'U') in_tree.back().multiply_br_length_cut_off( cut_off, value );
-	else if (method == '$') in_tree.back().multiply_br_length_skyline(skyline_cut_offs);
-	else if (method == 'V') in_tree.back().multiply_br_length_clades( taxon_vector, value );
+	//else if (method == 'U') in_tree.back().multiply_br_length_skyline(rate_mod); //multiply_br_length_cut_off( cut_off, value );
+	else if (method == '$') in_tree.back().multiply_br_length_skyline(rate_mod);
+	else if (method == 'V') in_tree.back().multiply_br_length_clades( taxon_vector, rate_mod );
 	else if (method == '<') in_tree.back().null_short_branches(value);
 	else if (method == 'b') in_tree.back().set_br_length( value );
 	else if (method == 'a') {

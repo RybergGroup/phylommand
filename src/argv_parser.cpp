@@ -69,6 +69,31 @@ void argv_parser::pars_sub_args (const char* argument, const char separator, vec
     }
 }
 
+/*void argv_parser::pars_clade_rates (const char* argument, rate_model& rate_mod, vector<string>& taxon_vector) {
+    unsigned int rate_class(0);
+    string temp;
+    for (unsigned int j=0; argument[j] != '\0'; ++j) {
+	if (argument[j] == ':') {
+	    rate_class = rate_mod.get_n_clade_rates();
+	    rate_mod.set_rate(rate_class,atof(temp.c_str()));
+	    temp.clear();
+    	}
+	else if (argument[j] == ';' || argument[j+1] == '\0') {
+	    taxon_vector.push_back(temp);
+	    if (!rate_mod.set_clade_rate(taxon_vector.size()-1,rate_class)) {
+		rate_mod.set_rate(rate_class,1.0);
+		rate_mod.set_clade_rate(taxon_vector.size()-1,rate_class);
+	    }
+	    temp.clear();
+	}
+	else temp += argument[j];
+    }
+}
+
+void argv_parser::pars_rates_and_times(const char* argument, rate_model& rate_mod) {
+    
+}*/
+
 #endif //ARGV_PARSER
 #define ARGV_PARSER
 

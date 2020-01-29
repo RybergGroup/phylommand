@@ -69,30 +69,27 @@ void simpleML::calculate_likelihood (const node* leaf, sub_model& model) {
     }
 }
 
-void simpleML::calculate_likelihood_rate_change_at_nodes (const node* leaf, double rate, const map<node*, double>& rate_changes, sub_model& model) {
+void simpleML::calculate_likelihood_rate_change_at_nodes (const node* leaf, double rate, rate_model& rate_mod, sub_model& model) {
     #ifdef DEBUG
     cerr << "Rate: " << rate << endl;
     #endif //DEBUG
-    map<node*, double>::const_iterator change = rate_changes.find(const_cast<node*>(leaf));
-    if (change != rate_changes.end()) rate = change->second;
+    map<node*, unsigned int>::const_iterator change = clades.find(const_cast<node*>(leaf));
+    if (change != clades.end()) rate = rate_mod.get_rate_clade(change->second);
     if (leaf->left != 0) {
-	calculate_likelihood_rate_change_at_nodes(leaf->left, rate, rate_changes, model);
+	calculate_likelihood_rate_change_at_nodes(leaf->left, rate, rate_mod, model);
 	branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->left)),leaf->left->branchlength*rate,false,model);
     }
     if (leaf->right != 0) {
-	calculate_likelihood_rate_change_at_nodes(leaf->right, rate, rate_changes, model);
+	calculate_likelihood_rate_change_at_nodes(leaf->right, rate, rate_mod, model);
 	if (leaf->left != 0) branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),leaf->right->branchlength*rate,true,model);
 	else branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),leaf->right->branchlength*rate,false,model);
     }
 }
 
-void simpleML::calculate_likelihood_rate_change_in_time(const node* leaf, const double dist_from_root, const double cut_off, double rate, sub_model& model) {
-    #ifdef DEBUG
-    cerr << "Rate: " << rate << "; Cut off: " << cut_off << "; Distance from root: " <<  dist_from_root << endl;
-    #endif //DEBUG
+void simpleML::calculate_likelihood_rate_change_in_time(const node* leaf, const double dist_from_root, rate_model& rate_mod, sub_model& model) {
     if (leaf->left != 0) {
-	calculate_likelihood_rate_change_in_time(leaf->left, dist_from_root+leaf->left->branchlength,cut_off,rate, model);
-	double length;
+	calculate_likelihood_rate_change_in_time(leaf->left, dist_from_root+leaf->left->branchlength, rate_mod, model);
+	/*double length;
 	if (dist_from_root+leaf->left->branchlength > cut_off) {
 	    if (dist_from_root>cut_off)
 		length = leaf->left->branchlength * rate;
@@ -100,12 +97,12 @@ void simpleML::calculate_likelihood_rate_change_in_time(const node* leaf, const 
 		length = (leaf->left->branchlength - (cut_off-dist_from_root))*rate + cut_off-dist_from_root;
 	}
 	else
-	    length = leaf->left->branchlength;
-	branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->left)),length,false, model);
+	    length = leaf->left->branchlength;*/
+	branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->left)),rate_mod.get_time_mod_branch_length(leaf->left->branchlength,dist_from_root),false, model);
     }
     if (leaf->right != 0) {
-	calculate_likelihood_rate_change_in_time(leaf->right, dist_from_root+leaf->right->branchlength,cut_off,rate, model);
-	double length;
+	calculate_likelihood_rate_change_in_time(leaf->right, dist_from_root+leaf->right->branchlength,rate_mod, model);
+	/*double length;
 	if (dist_from_root+leaf->right->branchlength > cut_off) {
             if (dist_from_root>cut_off)
                 length = leaf->right->branchlength * rate;
@@ -113,9 +110,9 @@ void simpleML::calculate_likelihood_rate_change_in_time(const node* leaf, const 
                 length = (leaf->right->branchlength - (cut_off-dist_from_root))*rate + cut_off-dist_from_root;
         }
 	else
-    	    length = leaf->right->branchlength;
-	if (leaf->left != 0) branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),length,true,model);
-	else branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),length,false,model);
+    	    length = leaf->right->branchlength;*/
+	if (leaf->left != 0) branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),rate_mod.get_time_mod_branch_length(leaf->right->branchlength,dist_from_root),true,model);
+	else branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),rate_mod.get_time_mod_branch_length(leaf->right->branchlength,dist_from_root),false,model);
     }
 }
 
