@@ -90,11 +90,12 @@ There are three major additional options for phylommand.
 
 PTHREADS=YES enables the use of multi-threading when working with pairwise alignments (not compatible with WIN=YES).
 
-NLOPT=YES require that the library [NLopt](http://ab-initio.mit.edu/wiki/index.php/NLopt) is installed. On Ubuntu 16.04 this is available as a package an can be installed from on the command line by:
+The library [NLopt](http://ab-initio.mit.edu/wiki/index.php/NLopt) is used to optimize model parameters using Maximum Likelihood. If you do not have nlopt installed and do not care about optimizing parameters in treeator you can give NLOPT=NO to compile anyway.
+
+On Ubuntu 16.04 NLopt is available as a package an can be installed from on the command line by:
 
      sudo apt-get install libnlopt-dev
 
-This option is needed to optimize model parameters using Maximum Likelihood, if you do not want to do that using phylommand you do not need this option.
 
 RUDISVG=YES will compile a rudimentary SVG viewer (rudisvg) as well. This option require the x11 developmental libraries. If rudisvg is installed on bash on Ubuntu on Windows you will need a X server as well, for example [Xming](https://sourceforge.net/projects/xming/), and set the DISPLAY variable:
 

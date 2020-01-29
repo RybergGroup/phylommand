@@ -8,20 +8,19 @@ code (src) is and execute
 on the command line. To compile with the option to use multi threading in
 pairalign give PTHREADS=YES as extra argument (use the -T switch to pairalign to
 give the number of threads). To implement optimization of likelihood score NLOPT
-needs to be installed (http://ab-initio.mit.edu/wiki/index.php/NLopt) and
-NLOPT=YES given as an extra argument to make. E.g.:
+needs to be installed (http://ab-initio.mit.edu/wiki/index.php/NLopt), to compile
+without nlopt NLOPT=NO given as an extra argument to make. E.g.:
 
-    make PTHREADS=YES NLOPT=YES
+    make PTHREADS=YES NLOPT=NO
 
 If you are compiling on windows using MinGW give WIN=YES as extra argument. On
 OS X you may have to make sure that the nlopt library is installed in a folder
 that the linker can find, which is not always the case (this also go for x11
 below). If you want to recompile phylommand, first remove all object files,
 
-
 rm *.o
 
-or for Windows
+or do make clean, for Windows
 
 DEL *.o
 

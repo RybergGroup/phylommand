@@ -1,4 +1,7 @@
 Maximum likelihood estimates of more than one character
     put models into partitions
+Simulate character under rate change model
+Optimize rates under skyline model
+Optimize both skyline and clade rates, and one shift and clade rates
 Customization of of cost matrix for pairwise alignment
 Alignment for any alphabet

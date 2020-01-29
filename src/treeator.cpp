@@ -292,7 +292,7 @@ int main (int argc, char *argv []) {
 		    //argv_parser::pars_clade_rates(argv[++i],rate_mod,taxon_sets);
 		}
 		else {
-		    cerr << "-A / --clade_rates require at least one set of taxa given as a comma separated string as next argument." << endl;
+		    cerr << "-V / --clade_rates require at least one set of taxa given as a comma separated string as next argument." << endl;
 		    return 1;
 		}
 		//for (unsigned int j=0; j<taxon_sets.size();++i) rate_mod_specs.push_back(i);
@@ -1026,7 +1026,7 @@ void help () {
     cout << "                                 protein, or binary for dna, amino acid," << endl;
     cout << "                                 respectively binary (0 1) alphabets (default:" << endl;
     cout << "                                 dna)." << endl;
-    cout << "--clade_rates / -A                give clades by giving a sets of taxa that have" << endl;
+    cout << "--clade_rates / -V                give clades by giving a sets of taxa that have" << endl;
     cout << "                                 the base of the clade as most recent common" << endl;
     cout << "                                 ancestor. Different sets should be separated by" << endl;
     cout << "                                 semicolon (;), taxa in a set should be separated" << endl;
@@ -1046,6 +1046,12 @@ void help () {
     cout << "--fixed / -e [number/s]          give parameter to fix. First parameter is" << endl;
     cout << "                                 indexed 0. Several parameters can be given in a" << endl;
     cout << "                                 comma separated string, e.g. -e 0,2,3." << endl;
+    cout << "--fix_freq                       set state frequences to be equal" << endl;
+    cout << "--fixed_extras                   give if rate change parameters should be fixed" << endl;
+    cout << "                                 (under -V and -U). Under -U the cut off in time" << endl;
+    cout << "                                 for rate change will be parameter 0 and the" << endl;
+    cout << "                                 rate multiplier parameter 1. e.g. --fixed_extras" << endl;
+    cout << "                                 0" << endl;
     cout << "--file / -f [file]               give data file name, or if data file name" << endl;
     cout << "                                 already given, then tree file name. If nexus" << endl;
     cout << "                                 format and no tree file name is given, tree is" << endl;
@@ -1061,6 +1067,8 @@ void help () {
     cout << "                                 character file is set to nexus, then nexus is" << endl;
     cout << "                                 also default for tree file, e.g. --format" << endl;
     cout << "                                 nexus)." << endl;
+    cout << "--frequencies / -F               give state frequencies as comma separated" << endl;
+    cout << "                                 string, e.g. -F 0.25,0.25,0.25,0.25" << endl;
     cout << "--get_state_at_nodes             will give the states at internal nodes as" << endl;
     cout << "                                 comments (readable in FigTree)." << endl;
     cout << "--help / -h                      print this help." << endl;
@@ -1101,16 +1109,21 @@ void help () {
     cout << endl;
     cout << "--parsimony / -p                 calculate parsimony score for given tree and" << endl;
     cout << "                                 data." << endl;
-    cout << "--rate_mod / -R [value]          give modifier for rate compared to rate at root" << endl;
-    cout << "                                 e.g. -r 0.5. Default: 1.0." << endl;
     cout << "--random / -r                    do stepwise addition in random order." << endl;
+    /*cout << "--rate_mod / -R [value]          give modifier for rate compared to rate at root" << endl;
+    cout << "                                 e.g. -r 0.5. Default: 1.0." << endl;*/
+    cout << "--rate_change_at_time / -U       set a point in time, from the root, during" << endl;
+    cout << "                                 which the rate will be multiplied by a number." << endl;
+    cout << "                                 The rate multiplier should be given first" << endl;
+    cout << "                                 folowed by a colon (:) and then the time, e.g." << endl;
+    cout << "                                 -U 0.5:50" << endl;
     cout << "--simulate                       simulate data on given tree. Number of" << endl;
     cout << "                                 characters as possible extra argument (default" << endl;
     cout << "                                 1). Use model given by -m and parameters givens" << endl;
     cout << "                                 by -P and probability of each character at roots" << endl;
     cout << "                                 by -F, e.g. --simulate 10." << endl;
-    cout << "--time / -T [value]              give branch length distance from root where" << endl;
-    cout << "                                 change in rate occur, e.g. -T 10. Default: 0." << endl;
+    /*cout << "--time / -T [value]              give branch length distance from root where" << endl;
+    cout << "                                 change in rate occur, e.g. -T 10. Default: 0." << endl;*/
     cout << "--time_reversible / --tr         set the model to be time reversible. If no" << endl; 
     cout << "                                 frequencies (-F) are given. State frequencies" << endl;
     cout << "                                 are assumed to be equal" << endl; 

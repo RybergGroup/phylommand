@@ -6,7 +6,7 @@ PP=g++ -std=c++11
 CC=gcc
 
 # Options
-NLOPT= NO # if NLOPT set to NO set TREEATORFLAGS = -DNOLNLOPT
+NLOPT= YES # if NLOPT set to NO set TREEATORFLAGS = -DNOLNLOPT
 WIN = NO # add WIN=YES if compiling on windows using MinGW
 PTHREADS = NO # set to YES to compile using pthreads, PTHREADS=-DPTREADS
 DATABASE = NO # set to YES compile with database
