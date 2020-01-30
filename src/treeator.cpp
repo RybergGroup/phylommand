@@ -238,16 +238,15 @@ int main (int argc, char *argv []) {
                     cerr << "-F/--frequencies require a comma separated real number string as next argument.";
                     return 1;
                 }
-		//tr = true;
-		if (method != 'A' && method != 't' && method != 'C') method = 'o';
+		if (method != 'A' && method != 't' && method !='S' && method != 'C') method = 'o';
 	    }
 	    else if (!strcmp(argv[i],"--time_reversible") || !strcmp(argv[i],"--tr")) tr = true; 
             else if (!strcmp(argv[i],"-N") || !strcmp(argv[i],"--no_optim")) optimize_param = false;
             else if (!strcmp(argv[i],"-l") || !strcmp(argv[i],"--likelihood")) {
-		    if (method != 't' && method != 'A') method = 'o';
+		    if (method != 't' && method != 'A' && method !='S') method = 'o';
             }
 	    else if (!strcmp(argv[i],"-U") || !strcmp(argv[i],"--rate_change_at_time")) {
-                method = '$';
+                method = 't';
                 if ( i < argc-1 && argv[i+1][0] != '-') {
                     ++i;
                     vector<string> arguments;
@@ -259,43 +258,29 @@ int main (int argc, char *argv []) {
                     }
                 }
             }
-            /*else if (!strcmp(argv[i],"-R") || !strcmp(argv[i],"--rate_mod")) {
-                if ( i < argc-1 && argv[i+1][0] != '-' ) {
-		    vector<string> temp;
-		    argv_parser::pars_sub_args(argv[++i], ';', temp);
-		    for (vector<string>::iterator t=temp.begin(); t != temp.end(); ++t) {
-			rate_mod.add_rate_for_time(rate_mod.get_n_time_rates(),atof(t->c_str()));
-		    }
+	    else if (!strcmp(argv[i],"-S") || !strcmp(argv[i],"--skyline_rates")) {
+		method = 'S';
+		if ( i < argc-1 && argv[i+1][0] != '-') {
+                    ++i;
+                    if (!rate_mod.pars_rates_and_times_arg(argv[i])) {
+                        cerr << "Unable to pars \"" << argv[i] << "\" for rates" << endl;
+                        return 1;
+                    }
 		}
-                else {
-                    std::cerr << "-R/--rate_mod require a number as next argument." << endl;
-                    return 1;
-                }
-		if (method != 'A') method='t';
-            }
-            else if (!strcmp(argv[i],"-T") || !strcmp(argv[i],"--time")) {
-                if ( i < argc-1 && argv[i+1][0] != '-' )
-                    cut_off = atof(argv[++i]);
-                else {
-                    std::cerr << "-T/--time require a number as next argument." << endl;
-                    return 1;
-                }
-		method='t';
-            }*/
-	    else if (!strcmp(argv[i],"-A") || !strcmp(argv[i],"-V") || !strcmp(argv[i],"--clade_rates")) {
+		else { cerr << "-S/--skyline_rates require a list of time cut offs and rate multipliers as second argument." << endl; return 1; }	
+	    }
+	    else if (!strcmp(argv[i],"-V") || !strcmp(argv[i],"-A") || !strcmp(argv[i],"--clade_rates")) {
 		if ( i < argc-1 && argv[i+1][0] != '-' ) {
 		    ++i;
                     if (!rate_mod.pars_clade_rates_arg(argv[i],taxon_sets)) {
                         cerr << "Unable to pars \"" << argv[i] << "\" for rates" << endl;
                         return 1;
                     }
-		    //argv_parser::pars_clade_rates(argv[++i],rate_mod,taxon_sets);
 		}
 		else {
 		    cerr << "-V / --clade_rates require at least one set of taxa given as a comma separated string as next argument." << endl;
 		    return 1;
 		}
-		//for (unsigned int j=0; j<taxon_sets.size();++i) rate_mod_specs.push_back(i);
 		method = 'A';
 	    }
 	    else if (!strcmp(argv[i],"--get_state_at_nodes")) {
@@ -407,7 +392,7 @@ int main (int argc, char *argv []) {
 	return 0;
     }
     /// For parsimony and ML
-    if (method == 'p' || method == 's' || method == 'r' || method == 'o' || method == 't' || method == 'A' || method == 'C') { // ML or parsimony
+    if (method == 'p' || method == 's' || method == 'r' || method == 'o' || method == 't' || method == 'A' || method == 'S' || method == 'C') { // ML or parsimony
 	vector<character_vector> characters;
 	map<char, bitset<SIZE> > alphabet;
 	alphabet::set_alphabet_dna(alphabet);
@@ -561,13 +546,13 @@ int main (int argc, char *argv []) {
 	    if (print_tree == 'w') tree.print_newick(print_br_length);
 	    else if (print_tree == 'x') tree.print_nexus(print_br_length);
 	}
-	else if (method == 'o' || method == 't' || method == 'A' || method == 'C') { // if model based
+	else if (method == 'o' || method == 't' || method == 'A' || method == 'S' || method == 'C') { // if model based
 	    if (!characters.empty() && characters.begin()->n_char() > 1) cerr << "Warning!!! Will only calculate likelihood of first character in matrix." << endl;
 	    unsigned int n_states = 0;
 	    //vector<double> extra_parameters;
 	    if (method != 'C' && !char_freqs.empty()) tr = true;
 	    if (!quiet) cerr << "Preparing model." << endl; 
-	    if (method == 'o' || method == 't' || method == 'A') {
+	    if (method == 'o' || method == 't' || method == 'A' || method == 'S') {
 		for (vector<character_vector>::iterator i=characters.begin(); i!=characters.end(); ++i)
 		    if (i->highest_char_state()+1 > n_states) n_states = i->highest_char_state()+1;
 	    }
@@ -676,8 +661,17 @@ int main (int argc, char *argv []) {
 		    return 1;
 		}
 	    }
+	    if (method == 'S') { // if skyline fix all the cut offs
+		unsigned int n = rate_mod.get_n_cut_offs ();
+		set<unsigned int> temp;
+		for (set<unsigned int>::iterator i=fixed_extra_parameters.begin(); i != fixed_extra_parameters.end(); ++i)  temp.insert(*i + n);
+		fixed_extra_parameters = temp;
+		for (; n > 0; --n) {
+		    fixed_extra_parameters.insert(n-1);
+		}
+	    }
 	    for (set<unsigned int>::iterator i=fixed_extra_parameters.begin(); i != fixed_extra_parameters.end(); ++i) {
-		if (*i > rate_mod.get_n_rates()-1) {
+		if (*i > rate_mod.get_n_parameters()-1) {
 		    cerr << "Can not fix parameter " << *i << ". It is out of bound (n parameters=" << rate_mod.get_n_rates() << ")." << endl;
 		    return 1;
 		}
@@ -690,7 +684,6 @@ int main (int argc, char *argv []) {
 		cerr << "Model has " << model.get_n_rates() << " rate parameters, of which " << fixed_parameters.size() << " are fixed." << endl;
 		if (tr && fixed_freq) cerr << "The state frequencies are fixed." << endl;
 		else if (tr) cerr << "There are " << model.get_n_states()-1 << " free state frequencies." << endl;
-		//if (!extra_parameters.empty()) cerr << "There are " << extra_parameters.size() << " parameters to govern rate changes in the tree, of which " << fixed_extra_parameters.size() << " are fixed." << endl;
 	    }
 ///////////////
 	    char nexus_command = nexus_command::NON;
@@ -741,9 +734,7 @@ int main (int argc, char *argv []) {
 		}
 		else if (optimize_param) {
 		    #ifdef NLOPT
-		    #ifdef DEBUG
-		    cerr << "Optimizing parameters" << endl;
-		    #endif //DEBUG
+		    if (!quiet) cerr << "Optimizing parameters" << endl;
 		    vector<double> lower_bounds;
 		    vector<double> upper_bounds;
 		    vector<double> variable_values; // starting values for variables to optimize
@@ -772,18 +763,18 @@ int main (int argc, char *argv []) {
 		    // add time and rate modifiers to parameters to optimize
 		    if (rate_mod.get_n_rates()) {
 			start_extras = n_parameters;
-			for (unsigned int i=0; i < rate_mod.get_n_rates(); ++i) {
+			for (unsigned int i=0; i < rate_mod.get_n_parameters(); ++i) {
 			    if (fixed_extra_parameters.find(i) == fixed_extra_parameters.end()) {
 				lower_bounds.push_back(0.0);
-				if (method == 't' && i == 0) {
+				if ((method == 't' || method == 'S') && i < rate_mod.get_n_cut_offs()) {
 				    upper_bounds.push_back(tree.longest_to_tip());
 				    variable_values.push_back(rate_mod.get_cut_off(0));
 				    ++n_parameters;
 				}
 				else {
 				    upper_bounds.push_back(DBL_MAX);
-				    if (method == 't') variable_values.push_back(rate_mod.get_rate_in_time(i-1));
-				    else if (method = 'A') variable_values.push_back(rate_mod.get_rate_clade(i));
+				    if (method == 't' || method == 'S') variable_values.push_back(rate_mod.get_rate_in_time(i-rate_mod.get_n_cut_offs()));
+				    else if (method == 'A') variable_values.push_back(rate_mod.get_rate_clade(i));
 				    ++n_parameters;
 				}
 			    }
@@ -795,23 +786,15 @@ int main (int argc, char *argv []) {
 		    }
 		    //// Prep model
 		    nlopt::opt maximize(nlopt::LN_NELDERMEAD, n_parameters);
-		    #ifdef DEBUG
-		    cerr << "N extra parameters: " <<  rate_mod.get_n_rates() + rate_mod.get_n_time_cut_offs() << endl;
-		    cerr << "Fixed parameters: ";
-		    for (set<unsigned int>::iterator i=fixed_parameters.begin(); i != fixed_parameters.end(); ++i) cerr << " " << *i;
-		    cerr << endl;
-		    cerr << "Fixed extra parameters: ";
-		    for (set<unsigned int>::iterator i=fixed_extra_parameters.begin(); i != fixed_extra_parameters.end(); ++i) cerr << " " << *i;
-		    cerr << endl;
-		    #endif //DEBUG
 		    tree_modelspec_struct data = {&tree, &model, &fixed_parameters, fixed_freq, start_freq, &rate_mod, start_extras, &fixed_extra_parameters};
 		    maximize.set_lower_bounds(lower_bounds);
 		    maximize.set_upper_bounds(upper_bounds);
 		    ///////////////////
 		    double LogL;
+		    cerr << method << endl;
 		    if (method == 'o') {
 			if (variable_values.size() != maximize.get_dimension()) {
-			    cerr << "Missmatch in number of starting values ("<< variable_values.size() << ") and number of parameters to optimize (" << maximize.get_dimension() << "). Quiting." << endl;
+			    cerr << "Mismatch in number of starting values ("<< variable_values.size() << ") and number of parameters to optimize (" << maximize.get_dimension() << "). Quiting." << endl;
 			    return 1;
 			}
 			maximize.set_max_objective(opt_function,&data);
@@ -823,14 +806,17 @@ int main (int argc, char *argv []) {
 			    return 1;
 			}
 		    }
-		    else if (method == 't') {
+		    else if (method == 't' || method == 'S') {
+			if (!quiet) cerr << "Estimating rates through time" << endl;
 			maximize.set_max_objective(opt_rate_in_time,&data);
 			if (variable_values.size() != maximize.get_dimension()) {
 			    cerr << "Mismatch in number of starting values ("<< variable_values.size() << ") and number of parameters to optimize (" << maximize.get_dimension() << "). Quitting." << endl;
 			    return 1;
 			}
 			#ifdef DEBUG
-			cerr << "Number of parameters to optimize: " << maximize.get_dimension() << endl;
+			cerr << "Fixed extra parameters" << endl;
+			for (set<unsigned int>::const_iterator i = fixed_extra_parameters.begin(); i != fixed_extra_parameters.end(); ++i) cerr << *i << ' ';
+			cerr << endl << "Number of parameters to optimize: " << maximize.get_dimension() << endl;
 			#endif //DEBUG
 			model_out << "Number of parameters to optimize: " << maximize.get_dimension() << endl;
 			nlopt::result result = maximize.optimize(variable_values,LogL);
@@ -840,20 +826,13 @@ int main (int argc, char *argv []) {
 			if (result < 0) {
 			    cerr << "Failure when optimizing!!!" << endl;
 			    return 1;
-			}/*
-			if (fixed_extra_parameters.find(0) == fixed_extra_parameters.end())
-			    model_out << "Time from root to rate change: " << data.extra->at(0) << endl;
-			else
-			    model_out << "Time from root to rate change: " << extra_parameters[0] << endl;
-			if (fixed_extra_parameters.find(1) == fixed_extra_parameters.end() && fixed_extra_parameters.find(0) == fixed_extra_parameters.end())
-			    model_out << "Rate multiplier: " << data.extra->at(1) << endl;
-			else if (fixed_extra_parameters.find(1) == fixed_extra_parameters.end())
-			    model_out << "Rate multiplier: " << variable_values[data.extra_start] << endl;
-			else
-			    model_out << "Rate multiplier: " << extra_parameters[1] << endl;*/
+			}
 			change_non_fixed(variable_values,&data);
-			model_out << "Time from root to rate change: " << data.rate_mod->get_cut_off(0) << endl;
-			model_out << "Rate multiplier: " << data.rate_mod->get_rate_in_time(0) << endl;
+			for (unsigned int i=0; i < rate_mod.get_n_cut_offs(); ++i) {
+			    model_out << "Branch length multiplied by: " << rate_mod.get_rate_in_time(i) << " until " <<  data.rate_mod->get_cut_off(i) << endl;
+			}
+			/*model_out << "Time from root to rate change: " << data.rate_mod->get_cut_off(0) << endl;
+			model_out << "Rate multiplier: " << data.rate_mod->get_rate_in_time(0) << endl;*/
 		    }
 		    else if (method == 'A') {
 			if (variable_values.size() != maximize.get_dimension()) {
@@ -1048,8 +1027,8 @@ void help () {
     cout << "                                 comma separated string, e.g. -e 0,2,3." << endl;
     cout << "--fix_freq                       set state frequences to be equal" << endl;
     cout << "--fixed_extras                   give if rate change parameters should be fixed" << endl;
-    cout << "                                 (under -V and -U). Under -U the cut off in time" << endl;
-    cout << "                                 for rate change will be parameter 0 and the" << endl;
+    cout << "                                 (under -V, -S, and -U). Under -U the cut off in" << endl;
+    cout << "                                 time for rate change will be parameter 0 and the" << endl;
     cout << "                                 rate multiplier parameter 1. e.g. --fixed_extras" << endl;
     cout << "                                 0" << endl;
     cout << "--file / -f [file]               give data file name, or if data file name" << endl;
@@ -1073,10 +1052,6 @@ void help () {
     cout << "                                 comments (readable in FigTree)." << endl;
     cout << "--help / -h                      print this help." << endl;
     cout << "--likelihood / -l                calculate likelihood for data given tree." << endl;
-    /*cout << "--likelihood / -l [const/time]   calculate likelihood for data given tree." << endl;
-    cout << "                                 Either with constant rate through time (const)" << endl;
-    cout << "                                 or with rate changing (multiplied by a" << endl;
-    cout << "                                 variable) at a certain time point (time)." << endl;*/
     cout << "--model / -m [number/s]          give the model by numbering the rate parameters" << endl;
     cout << "                                 for different transition, e.g. -m 0,1,0,2,1,2." << endl;
     cout << "                                 The order is by row, i.e. from parameter 0 to" << endl;
@@ -1143,20 +1118,9 @@ double opt_function(const std::vector<double> &x, std::vector<double> &grad, voi
 }
 
 double opt_rate_in_time(const std::vector<double> &x, std::vector<double> &grad, void* data) {
-    #ifdef DEBUG
-    std::cerr << "Estimate likelihood" << endl;
-    #endif //DEBUG
     if (!change_non_fixed(x,static_cast<tree_modelspec_struct*>(data))) return 0.0;
-    #ifdef DEBUG
-    cerr << "Rate change params:";
-    //for (unsigned int i=0; i < static_cast<tree_modelspec_struct*>(data)->extra->size(); ++i) cerr << " " << static_cast<tree_modelspec_struct*>(data)->extra->at(i);
-    cerr << endl;
-    #endif //DEBUG
     if (static_cast<tree_modelspec_struct*>(data)->rate_mod->get_n_time_rates() < 1) return 0.0;
     double LogLH =  static_cast<tree_modelspec_struct*>(data)->tree->calculate_likelihood_rate_change_in_time(*(static_cast<tree_modelspec_struct*>(data)->rate_mod),*(static_cast<tree_modelspec_struct*>(data)->model));
-    #ifdef DEBUG
-        std::cerr << "Likelihood: " << LogLH << endl;
-    #endif //DEBUG
     return LogLH;
 }
 
@@ -1176,6 +1140,7 @@ double opt_rate_for_clades_function(const std::vector<double> &x, std::vector<do
 
 bool change_non_fixed(const std::vector<double> &x, tree_modelspec_struct* data) {
     unsigned int j(0);
+    // Set substitution model parameters
     for (unsigned int i=0; i < data->model->get_n_rates(); ++i) {
 	if (data->fixed->find(i) == data->fixed->end()) {
 	    if (!data->model->set_rate(i,x[j])) return false;
@@ -1185,50 +1150,22 @@ bool change_non_fixed(const std::vector<double> &x, tree_modelspec_struct* data)
 	    ++j;
 	}
     }
+    // if time reversable model, and state frequences not fixed set state frequencies
     if (data->model->is_tr() && !data->fixed_freq) {
 	for (unsigned int i=0; i < data->model->get_n_states()-1; ++i) {
 	    if (!data->model->set_freq(i,x[data->freq_start+i])) return false;
 	}
     }
-    unsigned int i(0);
+    // set rate model parameters
     j = 0;
-    if (data->rate_mod->get_n_time_cut_offs()) {
-	++i;
-       	if (data->fixed_extra->find(0) == data->fixed_extra->end()) {
-	    data->rate_mod->set_cut_off(0,x[data->extra_start]); ++j;
-	}
-    }
-    for (; i < data->rate_mod->get_n_rates(); ++i) {
-	#ifdef DEBUG
-	cerr << "Change extra param " << i << " of " << data->rate_mod->get_n_rates();
-	#endif //DEBUG
+    for (unsigned int i = 0; i < data->rate_mod->get_n_parameters(); ++i) {
 	if (data->fixed_extra->find(i) == data->fixed_extra->end()) {
-	    if (i < data->rate_mod->get_n_time_rates()) {
-		#ifdef DEBUG
-		cerr << " from " << data->rate_mod->get_rate_in_time(i) << " to " << x[data->extra_start+j];
-		#endif //DEBUG
-		data->rate_mod->set_time_rate(i,x[data->extra_start+j]);
-		++j;
-		#ifdef DEBUG
-		cerr << " (" << data->rate_mod->get_rate_in_time(i) << ")" << endl;
-		#endif //DEBUG
-	    }
-	    else if (i-data->rate_mod->get_n_time_rates() < data->rate_mod->get_n_clade_rates()) {
-		#ifdef DEBUG
-                cerr << " from " << data->rate_mod->get_rate_clade(i-data->rate_mod->get_n_time_rates()) << " to " << x[data->extra_start+j];
-                #endif //DEBUG
-		data->rate_mod->set_rate(i-data->rate_mod->get_n_time_rates(), x[data->extra_start+j]);
-		++j;
-		#ifdef DEBUG
-                cerr << " (" << data->rate_mod->get_rate_clade(i-data->rate_mod->get_n_time_rates()) << ")" << " - " << data->rate_mod->get_n_time_rates() << endl;
-                #endif //DEBUG
-	    }
-	    //data->extra->at(i) = x[data->extra_start+j];
-	    //++j;
+	    #ifdef DEBUG
+	    cerr << "Set rate model parameter " << i << " to " << x[data->extra_start+j] << endl;
+	    #endif //DEBUG
+	    data->rate_mod->set_parameter(i,x[data->extra_start+j]);
+	    ++j;
 	}
-	#ifdef DEBUG
-	cerr << endl;
-	#endif //DEBUG
     }
     return true;
 }

@@ -89,28 +89,10 @@ void simpleML::calculate_likelihood_rate_change_at_nodes (const node* leaf, doub
 void simpleML::calculate_likelihood_rate_change_in_time(const node* leaf, const double dist_from_root, rate_model& rate_mod, sub_model& model) {
     if (leaf->left != 0) {
 	calculate_likelihood_rate_change_in_time(leaf->left, dist_from_root+leaf->left->branchlength, rate_mod, model);
-	/*double length;
-	if (dist_from_root+leaf->left->branchlength > cut_off) {
-	    if (dist_from_root>cut_off)
-		length = leaf->left->branchlength * rate;
-	    else 
-		length = (leaf->left->branchlength - (cut_off-dist_from_root))*rate + cut_off-dist_from_root;
-	}
-	else
-	    length = leaf->left->branchlength;*/
 	branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->left)),rate_mod.get_time_mod_branch_length(leaf->left->branchlength,dist_from_root),false, model);
     }
     if (leaf->right != 0) {
 	calculate_likelihood_rate_change_in_time(leaf->right, dist_from_root+leaf->right->branchlength,rate_mod, model);
-	/*double length;
-	if (dist_from_root+leaf->right->branchlength > cut_off) {
-            if (dist_from_root>cut_off)
-                length = leaf->right->branchlength * rate;
-            else 
-                length = (leaf->right->branchlength - (cut_off-dist_from_root))*rate + cut_off-dist_from_root;
-        }
-	else
-    	    length = leaf->right->branchlength;*/
 	if (leaf->left != 0) branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),rate_mod.get_time_mod_branch_length(leaf->right->branchlength,dist_from_root),true,model);
 	else branch_likelihood(likelihoods.find(const_cast<node*>(leaf)),likelihoods.find(const_cast<node*>(leaf->right)),rate_mod.get_time_mod_branch_length(leaf->right->branchlength,dist_from_root),false,model);
     }
@@ -122,9 +104,6 @@ void simpleML::branch_likelihood ( map<node*,vector<double> >::iterator LHbins, 
             double pi = 0;
             for (unsigned int j = 0; j < n_states; ++j) {
                 pi += startLHs->second[j] * model.get_P_value(i,j);
-		#ifdef DEBUG
-		cerr << "P " << j << " in descendant: " << startLHs->second[j] << "; P going to " << i << ": " << model.get_P_value(i,j) << endl;
-		#endif //DEBUG
 	    }
 	    if (multiply) LHbins->second[i] *=pi;
 	    else LHbins->second[i] = pi;
