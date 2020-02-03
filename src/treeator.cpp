@@ -1103,6 +1103,14 @@ void help () {
     cout << "                                 frequencies (-F) are given. State frequencies" << endl;
     cout << "                                 are assumed to be equal" << endl; 
     cout << "--tree_file / -t [file]          give tree file name." << endl;
+    cout << "--skyline_rates / -S             add rate multipliers up until time points. Give" << endl;
+    cout << "                                 a vector of rates/rate staring values separateds" << endl;
+    cout << "                                 from the time breaking points by a colon (:)." << endl;
+    cout << "                                 each rate that should be estimated separatly" << endl;
+    cout << "                                 should be given separatly. Time points are" << endl;
+    cout << "                                 fixed. E.g. 0.5:50,110,2.0:75. Each rate will" << endl;
+    cout << "                                 be from previus time point up until the next," << endl;
+    cout << "                                 times are given from the root." << endl;
     cout << "--step_wise / -s                 do parsimony stepwise addition." << endl;
     cout << "--verbose / -v                   get additional output." << endl;
     cout << endl;
