@@ -247,12 +247,6 @@ int main (int argc, char *argv []) {
 		    if (arguments.size()>2) {
 			tree_separator = arguments[2];
 		    }
-/*
-                    separator = argv[++i];
-                    if (i < argc-1 && argv[i+1][0] != '-') {
-                        if (argv[i+1][0] == 'r' && strlen(argv[i+1])==1) { flag=true; ++i; }
-                        else if (argv[i+1][0] == 'n' && strlen(argv[i+1])==1) { flag=false; ++i; }
-                    }*/
                 }
             }
 	    else if (!strcmp(argv[i],"--clade_credibility"))  method = '*';
@@ -338,35 +332,7 @@ int main (int argc, char *argv []) {
 			cerr << "Unable to pars \"" << argv[i] << "\" for rates" << endl;
 			return 1;
 		    }
-		    /*vector<string> arguments;
-		    #ifdef DEBUG
-		    cerr << "'" << argv[i] << "'" << endl;
-		    #endif //DEBUG
-		    argv_parser::pars_sub_args(argv[i], ',', arguments );
-		    unsigned int rate_class(0);
-		    for (vector<string>::iterator j=arguments.begin(); j != arguments.end(); ++j) {
-			vector<string> second_level;
-			argv_parser::pars_sub_args(j->c_str(), ':', second_level);
-			float cut_off(0.0);
-			if (second_level.size() > 1) { // if two values the first is a rate
-			    rate_class = rate_mod.get_n_time_rates(); // add new rate class
-			    rate_mod.set_time_rate(rate_class, atof(second_level[0].c_str())); // add rate for class
-			    cut_off = atof(second_level[1].c_str()); // second value is cut off
-			}
-			else cut_off = atof(second_level[0].c_str()); // if only one value it is cut off
-			#ifdef DEBUG
-			cerr << "Rate class: " << rate_class << " cut off: " << cut_off << endl;
-			#endif //DEBUG
-			if (!rate_mod.add_rate_for_time(rate_class,cut_off)) { // add cut off and rate class
-			    cerr << "Could not add rate " << atof(second_level[0].c_str()) << " for cut off " << atof(second_level[1].c_str()) << endl;
-			    return 1;
-			}
-		    }
-		    #ifdef DEBUG
-	    	    cerr << "Number of cut offs " << rate_mod.get_n_time_rates() << endl;
-		    for (unsigned int j=0; j < rate_mod.get_n_time_cut_offs(); ++j) cerr << "Cut off " << j << ": " << rate_mod.get_cut_off(j) << " rate " << rate_mod.get_rate_in_time(j) << endl;
-    		    #endif //DEBUG
-	*/	}
+		}
 		else { cerr << "-S/--multiply_branch_lengths_skyline require a list of time cut offs and rate multipliers as second argument." << endl; return 1; }
 	    }
 	    else if (!strcmp(argv[i],"-V") || !strcmp(argv[i],"--multiply_branch_lengths_clade")) {
@@ -377,23 +343,6 @@ int main (int argc, char *argv []) {
                         cerr << "Unable to pars \"" << argv[i] << "\" for rates" << endl;
                         return 1;
                     }
-		    /*unsigned int rate_class(0);
-		    string temp;
-		    char mode='s';
-		    for (unsigned int j=0; argv[i][j] != '\0'; ++j) {
-			if (mode == 's' && (argv[i][j] == ':' || argv[i][j] == ';')) {
-			    rate_class = rate_mod.get_n_rates();
-			    rate_mod.set_rate(rate_class,atof(temp.c_str()));
-			    mode = 't';
-			    temp.clear();
-			}
-			else if (argv[i][j] == ';' || argv[i][j+1] == '\0') {
-			    taxon_vector.push_back(temp);
-			    rate_mod.set_clade_rate(taxon_vector.size()-1,rate_class);
-			    temp.clear();
-			}
-			else temp += argv[i][j];
-		    }*/
 		    if (taxon_vector.empty() || rate_mod.get_n_rates() == 0) {
 			cerr << "Parsing error reading argument to --multiply_branch_lengths_clade / -V. Need at least one clade and rate." << endl;
 			return 1;
@@ -413,6 +362,22 @@ int main (int argc, char *argv []) {
 		}
                 //if ( i < argc-1 && argv[i+1][0] != '-') separator = argv[++i];
             }
+	    else if (!strcmp(argv[i],"--get_clade_members") || !strcmp(argv[i],"--get_clade_members_node_based")) {
+		method = '[';
+		if ( i < argc-1 && argv[i+1][0] != '-') taxastring = argv_parser::pars_string( argv[++i]);
+		else {
+		    cerr << "--get_clade_members require a comma separated string with tip names that have the same most recent common ancestor as for the entire clade." << endl;	    
+		    return 1;
+		}
+	    }
+	    else if (!strcmp(argv[i],"--get_clade_members_stem_based")) {
+		method = ']';
+		if ( i < argc-1 && argv[i+1][0] != '-') taxastring = argv_parser::pars_string( argv[++i]);
+                else {
+                    cerr << "--get_clade_members_stem_based require a comma separated string with tip names that are in a clade and after a colon (:) a comma separated list of tip names that are not included in the clade." << endl;
+                    return 1;
+                }
+	    }
             else if (!strcmp(argv[i],"-c") || !strcmp(argv[i],"--change_names")) {
                 method = 'c';
                 if ( i < argc-1 && argv[i+1][0] != '-') taxastring = argv_parser::pars_string( argv[++i]);
@@ -601,7 +566,7 @@ int main (int argc, char *argv []) {
        std::cerr << endl << endl;
     }
     /// Input error check
-    if ( (method == 'c' || method == 'd' || method == 'M') && taxastring.empty() ) {
+    if ( (method == 'c' || method == 'd' || method == 'M' || method == '[' || method == ']') && taxastring.empty() ) {
         std::cerr << "Selected method reqire a taxon string. Use -h to print help." << endl;
         return 1;
     }
@@ -808,6 +773,16 @@ int main (int argc, char *argv []) {
 	    cout << tree_separator;
 	    if (!quiet) cerr << "Tip names:" << endl;
 	    cout << in_tree.back().tip_names( separator ) << endl;
+	    print_tree = false;
+	}
+	else if (method == '[') {
+	    cout << tree_separator;
+	    cout << in_tree.back().tips_in_clade( taxastring, separator ) << endl;
+	    print_tree = false;
+	}
+	else if (method == '[') {
+	    cout << tree_separator;
+	    cout << in_tree.back().tips_in_clade_stem_based( taxastring, separator ) << endl;
 	    print_tree = false;
 	}
 	else if (method == '-') in_tree.back().clear_internal_node_labels();
@@ -1106,6 +1081,16 @@ void help () {
     cout << "                                  are dropped before tips to the right." << endl;
     cout << "--gamma                           get the gamma value (Pybus & Harvey 2000," << endl;
     cout << "                                  Proc. R. Soc. Lond. B 267, 2267-2272)"<< endl;
+    cout << "--get_clade_members               get the members of the least inclusive clade" << endl;
+    cout << "                                  including the tips given in a comma separated" << endl;
+    cout << "                                  list, e.g. taxon1,taxon2,taxon3" << endl;
+    cout << "--get_clade_members_stem_based    get the members of a clade given by the most" << endl;
+    cout << "                                  inclusive clade including a set of members but" << endl;
+    cout << "                                  not another set of members. The sets should be" << endl;
+    cout << "                                  given as comma separated lists. The set of" << endl;
+    cout << "                                  included tips should be given first and" << endl;
+    cout << "                                  separated from the excluded tips by a colon" << endl;
+    cout << "                                  (:). E.g. taxon1,taxon2:taxon3,taxon4" << endl;
     cout << "--get_tip_names / -t [sep.]       get the names of the tips in the tree, a" << endl;
     cout << "                                  separator can be specified, e.g. -t \\\\n (each" << endl;
     cout << "                                  name on separate rows; ',' is the default" << endl;

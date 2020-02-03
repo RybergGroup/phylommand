@@ -159,6 +159,10 @@ class tree {
         string tip_names( string separator ) {
             return tip_names( root, separator );
         };
+	string tips_in_clade( const string& taxa, const string& separator ) {
+	    return tip_names( most_recent_common_ancestor( taxa ), separator );
+	}
+	string tips_in_clade_stem_based( const string& taxa, const string& separator);
 	void clear_internal_node_labels ( ) {
 	    clear_internal_node_labels(root);
 	};
@@ -204,17 +208,9 @@ class tree {
 	    multiply_br_length_cut_off_subtree (root, cut_off, multiplier);
 	};
         void multiply_br_length_skyline (rate_model& rate_mod) {
-	    /*float prev_cut_off(-0.0);
-	    for (vector<pair<float,float> >::const_iterator i=cut_offs.begin(); i != cut_offs.end(); ++i) {
-		if (i->second < prev_cut_off) { cerr << "Cut offs not in order. Interrupt." << endl; return; }
-		prev_cut_off = i->first;
-		#ifdef DEBUG
-		cerr << "Cut off " << i->first << " multiplier " << i->second << endl;
-		#endif //DEBUG
-	    }*/
 	    multiply_br_length_skyline( root, rate_mod, 0.0 );
 	};
-	void multiply_br_length_clades ( const vector<string> &clades, rate_model& rate_mod /*const float multiplier*/ );
+	void multiply_br_length_clades ( const vector<string> &clades, rate_model& rate_mod );
         void set_br_length (const float value) {
             set_br_length_subtree ( root, value );
         };
@@ -284,20 +280,6 @@ class tree {
                 clades.insert(pair<node*,unsigned int>(most_recent_common_ancestor(taxon_sets[i]),clades.size()));
             }
         }
-	/*/ functions for rate_mods
-	bool add_rate_for_time (unsigned int rate_class, float time);
-	void set_time_rate (unsigned int rate_class, float rate);
-	bool set_clade_rate ( unsigned int clade, unsigned int rate_class );
-	void set_rate (unsigned int rate_class, float rate);
-	unsigned int get_n_rates () { return rates_in_time.size()+rates.size(); }
-    	unsigned int get_n_clade_rates () { return rates.size(); }
-	unsigned int get_n_time_rates () { return rates_in_time.size(); }
-	float get_rate_clade( unsigned int n ) {
-	    if (n < clade_rate.size()) return rates[clade_rate[n]];
-	    else return 1;
-	}
-	double get_time_mod_branch_length (node *leaf, const float distance_to_root);
-	*/
     protected:
 	class node { //store the information for each node of the tree
 	    public:
@@ -312,27 +294,18 @@ class tree {
 	class midpoint_data { // to store data to return in recursive function to find mid point root
             public:
             midpoint_data ():left(0), left_path(0.0), right(0), right_path(0.0), mrca(0) {};
-	    //midpoint_data (node* init_node, double distance):leaf(init_node), longest_path(0.0), dist_to_tip(distance) {};
-	    //midpoint_data (node* init_node, double path_length, double distance):leaf(init_node), longest_path(path_length), dist_to_tip(distance) {};
 	    node* left;
 	    double left_path;
 	    node* right;
 	    double right_path;
 	    node* mrca;
 	};
-	//struct node_double_char {node* leaf; double support; char mono; };
 	struct int_double2 { int n; double a; double c; };
 	// Variables
 	static string_tree nodelabels; // store the text strings for node labels for all trees
 	static bool random_seeded; // Keep track of if random value has been initiated to not set it separately for every tree
         node *root; //stores the location of the root
 	map<node*,unsigned int> clades; // store the mrca node of defined taxon sets
-	/*/ variables for rate mod
-	vector<pair<unsigned int,float>> rate_time_cut_offs;
-	vector<float> rates_in_time;
-	vector<float> rates;
-	vector<unsigned int> clade_rate;*/
-	//string tree_comment;
         //deletes a part of the tree from given node
         void destroy_tree (node *leaf);
 	void copy (node* B, const node* A, node* parent) ;
@@ -414,7 +387,7 @@ class tree {
         string tip_names ( node *leaf ) {
             return tip_names ( leaf, ", " );
         };
-        string tip_names ( node *leaf, string separator );
+        string tip_names ( node *leaf, const string& separator );
 	void tip_names ( node *leaf, set<string*>& tips );
 	void tip_names ( node *leaf, vector<string*>& tips );
         void print_tips ( node *leaf ) {
@@ -520,12 +493,13 @@ class tree {
 	unsigned int assign_branch_number_to_internal_nodes (node* leaf, unsigned int number);
 	bool add_tip_to_branch_parsimony(node* new_taxon, map<node*, parsimony_character_vector>& node_states, const unsigned int start_char, const unsigned int end_char);
 	unsigned int parsimony_score_if_tip_added_to_branch (const unsigned int branch_no, map<node*, parsimony_character_vector>& node_states, parsimony_character_vector taxa_state, const unsigned int start_char, const unsigned int end_char);
-	//void recalc_fitch_parsimony_given_added_tip ( node* leaf, map<node*, parsimony_character_vector>& node_states, unsigned int start_char, unsigned int end_char );
 	void clear_node_states_from_tip ( node* leaf, map<node*, parsimony_character_vector>& node_states );
 	void add_to_support(node* leaf, tree* B, set<string*>& split, const bool rooted);
 	void add_one_to_each_support(node* leaf, const bool rooted);
 	void add_characters_as_node_comments(node* leaf, parsimony_character_vector& characters, const unsigned int start_char, const unsigned int end_char, map<char, bitset<SIZE> >& alphabet);
 	double gamma(node* leaf);
 	double get_node_heights (node* leaf, const double parent_height, vector<double>& heights);
+	bool add_clades_not_in_set (node* leaf, set<node*>& nodes, set<node*>& clades);
+	node* clade_stem_based ( vector<node*>& ingroup, set<node*>& outgroup );
 };
 #endif //TREEHEADER

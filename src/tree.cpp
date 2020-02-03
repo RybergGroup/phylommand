@@ -465,7 +465,7 @@ double tree::shortest_to_tip (node *leaf) {
 }
 
 
-string tree::tip_names ( node *leaf, string separator ) {
+string tree::tip_names ( node *leaf, const string& separator ) {
     if ( leaf->left == 0 && leaf->right == 0 ) {
         return *leaf->nodelabel;
     }
@@ -885,36 +885,8 @@ void tree::multiply_br_length_subtree ( node *leaf, const float multiplier ) {
     }
 }
 
-void tree::multiply_br_length_skyline (node *leaf, rate_model& rate_mod /*const vector<pair<float,float> >& cut_offs*/, const float distance_to_root) {
+void tree::multiply_br_length_skyline (node *leaf, rate_model& rate_mod , const float distance_to_root) {
     const double branch_end = distance_to_root+leaf->branchlength;
-    /*//vector<pair<float,float> >::const_iterator pos;
-    double new_br_length(0.0);
-    double previous_cut_off(0.0);
-    for (pos = cut_offs.begin(); pos != cut_offs.end(); ++pos) {
-	#ifdef DEBUG
-	cerr << "Multiplier: " << pos->first << " Cut off: " << pos->second << " New branch length: " << new_br_length << endl;
-	#endif //DEBUG
-	if ( distance_to_root < pos->second && branch_end > previous_cut_off) { //
-	    if (distance_to_root > previous_cut_off && branch_end < pos->second) // if entirely within interval
-		new_br_length += (branch_end-distance_to_root)*pos->first; // multiply entire branch
-    	    else if (distance_to_root < previous_cut_off && branch_end < pos->second) // if also within previous interval
-    		new_br_length += (branch_end-previous_cut_off)*pos->first; // multiply what is left of branch
-	    else if (distance_to_root > previous_cut_off && branch_end > pos->second) // if also in next interval
-		new_br_length += (pos->second-distance_to_root)*pos->first; // multiply from start of branch until end of interval
-	    else if (distance_to_root < previous_cut_off && branch_end > pos->second) // if in also in both previous and next interval
-		new_br_length += (pos->second-previous_cut_off)*pos->first; // multiply the distance between the intervals
-	}
-	#ifdef DEBUG
-	cerr << "New branch length after iteration: " << new_br_length << endl;
-	#endif //DEBUG
-	previous_cut_off = pos->second;
-    }
-    if (distance_to_root < previous_cut_off && branch_end > previous_cut_off) // if sticking out beyond last interval
-	new_br_length += branch_end-previous_cut_off; // add what is left
-    else if (distance_to_root > previous_cut_off) new_br_length = leaf->branchlength;
-    #ifdef DEBUG
-    cerr << "Branch start: " << distance_to_root << "; end: " << branch_end << "; last cut off: " << previous_cut_off << "; old length: " << leaf->branchlength << "; new length: " << new_br_length << endl;
-    #endif //DEBUG*/
     leaf->branchlength = rate_mod.get_time_mod_branch_length(leaf->branchlength,distance_to_root);
     if (leaf->left != 0) multiply_br_length_skyline(leaf->left, rate_mod, branch_end);
     if (leaf->right != 0) multiply_br_length_skyline(leaf->right, rate_mod, branch_end);
@@ -923,11 +895,9 @@ void tree::multiply_br_length_skyline (node *leaf, rate_model& rate_mod /*const 
 void tree::multiply_br_length_cut_off_subtree (node *leaf, const float cut_off, const float multiplier ) {
     if (leaf == 0) return;
     else {
-	//cerr << cut_off << ' ' << leaf->branchlength << ' ';
 	float next_cut_off = cut_off - leaf->branchlength;
 	if (leaf->branchlength < cut_off) leaf->branchlength *= multiplier;
 	else if ( cut_off > 0.0 ) leaf->branchlength = cut_off * multiplier + leaf->branchlength - cut_off;
-	//cerr << leaf->branchlength << endl;
 	if (leaf->left != 0) multiply_br_length_cut_off_subtree (leaf->left, next_cut_off, multiplier);
 	if (leaf->right != 0) multiply_br_length_cut_off_subtree (leaf->right, next_cut_off, multiplier);
     }
@@ -944,7 +914,8 @@ void tree::multiply_br_length_clades ( const vector<string> &taxon_sets, rate_mo
 void tree::multiply_br_length_clades ( node* leaf, rate_model& rate_mod, unsigned int present_clade) {
     leaf->branchlength = leaf->branchlength*rate_mod.get_rate_clade(present_clade);
     map<node*,unsigned int>::const_iterator present_node = clades.find(leaf);
-    if (present_node == clades.end()) present_clade = rate_mod.get_n_rates();
+    if (present_node != clades.end()) 
+	present_clade = present_node->second;
     if (leaf->left != 0) multiply_br_length_clades( leaf->left, rate_mod, present_clade );
     if (leaf->right != 0) multiply_br_length_clades( leaf->right, rate_mod, present_clade );
 }
@@ -1056,12 +1027,12 @@ tree::node * tree::most_recent_common_ancestor ( vector<node*>& nodes ) {
     node* mrca = nodes[0];
     node* tip1;
     node* tip2;
-    for (vector<node*>::const_iterator i=nodes.begin()+1; i!=nodes.end(); ++i) {
-	tip1=mrca;
-	if (*i != 0) tip2=*i;
+    for (vector<node*>::const_iterator i=nodes.begin()+1; i!=nodes.end(); ++i) { // go through nodes
+	tip1=mrca; // tip1 one is the deepest node found so far
+	if (*i != 0) tip2=*i; // tip2 is the node in order
 	else continue;
-        do {
-            do {
+        do { // for each step back in the ancestral lineage of one, check if that ancestor is in lineage of tip 2
+            do { 
                 if (tip1 != tip2 && tip2 != root && tip2 != 0) tip2 = tip2->parent;
                 if (tip1 == tip2) { mrca=tip1; break; }
             } while (tip2 != root && tip2 != 0);
@@ -1073,8 +1044,61 @@ tree::node * tree::most_recent_common_ancestor ( vector<node*>& nodes ) {
         } while (tip1 != tip2 && tip1 != 0);
     }
     return mrca;
+}
+
+bool tree::add_clades_not_in_set (node* leaf, set<node*>& nodes, set<node*>& clades) {
+/* add the deepest node that is not an ancestor to any node in nodes, to clades. If leaf is deepest node it is not added, so if no nodes are added to clades either non of the nodes in nodes were present (return true) or all descendants of leaf were part of nodes*/
+    if (leaf == 0) return true;
+    bool left(true);
+    bool right(true);
+    if (leaf->left != 0) left = add_clades_not_in_set (leaf->left, nodes, clades);
+    if (leaf->right != 0) right = add_clades_not_in_set (leaf->right, nodes, clades);
+    if (left && !right) { clades.insert(leaf->left); }
+    else if (right && !left) { clades.insert(leaf->right); }
+    else {
+	if (nodes.find(leaf) != nodes.end()) { return false; }
+    }
+    return left && right;
+}
+
+tree::node * tree::clade_stem_based ( vector<node*>& ingroup, set<node*>& outgroup ) {
+/* Returns the end node of the branch that exclude all in outgroup but include all in ingroup, returns 0 if incompatable */
+    if (ingroup.empty() || outgroup.empty())  return 0;
+    set<node*> nested;
+    if (add_clades_not_in_set(root,outgroup,nested)) {
+	if (nested.empty()) return root;
+    }
+    node* mrca = 0;
+    for (vector<node*>::const_iterator i=ingroup.begin(); i!=ingroup.end(); ++i) {
+	node* tip = *i;
+	while (tip != root && tip != 0) {
+	    if (nested.find(tip) != nested.end()) {
+		if (mrca != 0 && tip != mrca) return 0;
+	    }
+	    mrca = tip;
+	}
+    }
+    return mrca;
 } 
 
+string tree::tips_in_clade_stem_based( const string& taxa, const string& separator) {
+    vector<node*> ingroup;
+    set<node*> outgroup;
+    char mode = 's';
+    int str_length=taxa.length();
+    vector<node*> nodes;
+    string taxon;
+    for (int i=0; i<=str_length; ++i) {
+        if (i == str_length || taxa[i]==',' || taxa[i]==':') {
+            if (mode = 's') ingroup.push_back(find_taxon_tip (root, taxon));
+	    else if (mode = 'o') outgroup.insert(find_taxon_tip (root, taxon));
+            taxon.clear();
+	    if (taxa[i]==':') mode = 'o';
+        }
+        else taxon += taxa[i];
+    }
+    return tip_names(clade_stem_based(ingroup, outgroup),separator);
+}
 
 tree::node * tree::find_taxon_tip ( node *leaf, string taxon ) {
     if (leaf == 0) return 0;
