@@ -1138,8 +1138,11 @@ void help () {
     cout << "   -u [value]                     given value, e.g. 3.5 (default 1.0)." << endl;
     cout << "--multiply_branch_lengths_clade / multiply branches in clades defined by the" << endl;
     cout << "   -V [value:taxon_string]        most recent common ancestor of comma separated" << endl;
-    cout << "                                  taxa. Separate clade with colon E.g. -V 3:" << endl;
-    cout << "                                  Taxon_1,Taxon_2:Taxon_3,Taxon_4." << endl;
+    cout << "                                  taxon set. Separate rate from set with colon" << endl;
+    cout << "                                  (:) and clades with semicolon (;) if a set is" << endl;
+    cout << "                                  not given a rate, it will get the same rate as" << endl;
+    cout << "                                  previous set E.g. -V \"3.0:Taxon_1,Taxon_2;0.5:" << endl;
+    cout << "                                  Taxon_3,Taxon_4;Taxon_6,Taxon_7\"" << endl;
     cout << "--multiply_branch_lengths_until / multiply branches in tree up until given" << endl;
     cout << "   -U [value:cut off]             distance (cut off) from root with the given" << endl;
     cout << "                                  value (separated by colon), e.g. 2:40 (default" << endl;
