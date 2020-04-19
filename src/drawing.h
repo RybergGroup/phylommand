@@ -33,6 +33,7 @@ class drawing {
         struct line {
             coordinat start;
             coordinat end;
+	    unsigned long x11col;
         };
         struct ellipse {
             coordinat upper_left;
@@ -40,17 +41,20 @@ class drawing {
             unsigned int height;
             int start_angle;
             int end_angle;
+	    unsigned long x11col;
         };
         struct rectangle {
             coordinat upper_left;
             unsigned int width;
             unsigned int height;
+	    unsigned long x11col;
         };
 	struct texttest {
             coordinat start;
 	    string characters;
 	    unsigned int font_size;
 	    string font;
+	    unsigned long x11col;
 	};
         void init() {
 	    line_it = lines.begin();
@@ -116,13 +120,14 @@ class drawing {
 	    add.end_angle = end_angle;
 	    ellipses.push_back(add);
 	};
-	void add_text(const int x, const int y, const string& characters, const string& font, const unsigned int font_size) {
+	void add_text(const int x, const int y, const string& characters, const string& font, const unsigned int font_size, unsigned long col) {
 	    texttest add;
 	    add.start.x = x;
 	    add.start.y = y;
 	    add.font = font;
 	    add.font_size = font_size;
             add.characters = characters;
+	    add.x11col=col;
             texts.push_back(add);
 	};
     private:
