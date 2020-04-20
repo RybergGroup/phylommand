@@ -2,13 +2,14 @@
 Phylommand (**Phylo**genetics on the c**ommand** line) is a software package for **creating**, **manipulating**, and/or **getting statistics** from **trees** or working with **pairwise alignments**.
 Phylommand is a commandline toolkit designed to be easily integrated in workflow pipelines.
 
+***[Rudisvg](https://github.com/RybergGroup/rudisvg) has been moved from phylommand to its own project.***
+
 ## Table of Contents
 - [The programs](#treebender)
   - [Treebender](#treebender)
   - [Treeator](#treeator)
   - [Contree](#contree)
   - [Pairalign](#pairalign)
-  - [Rudisvg](#rudisvg)
 - [Download](#download)
 - [Compile/Build](#compilebuild)
 - [Examples](#examples)
@@ -44,11 +45,6 @@ Contree mainly compares trees, but it can also estimate decisiveness ([Sanderson
 Pairalign calculates statistics, and performs pairwise alignments from DNA sequences. It can calculate the proportion different sites (or similarity) and Jukes-Cantor distance, and the difference between the two. And it can output these sequential or as a matrix. It can calculate approximate MAD scores ([Smith et al. 2009](http://bmcevolbiol.biomedcentral.com/articles/10.1186/1471-2148-9-37)) to determine at which taxonomic level multiple sequences can be "easily" aligned, and perform clustering based on sequence distance.
 
 [Complete command line reference for Pairalign in Wiki](https://github.com/mr-y/phylommand/wiki/pairalign)
-
-## Rudisvg
-Rudisvg is a rudimentary svg viewer that can be used to view trees output as svg by treebender (except for colors and different fonts). It is not meant to be a complete svg viewer but only a way to get a quick look at a tree.You should be able to move the tree around using the arrow keys, and zoom in and out with + and -.
-
-<img src="https://github.com/mr-y/phylommand/wiki/rudisvg_tree.png" width="300" alt="Tree displayed by rudisvg">
 
 # Download
 There are pre-compiled binaries for the following OS:
@@ -92,16 +88,9 @@ PTHREADS=YES enables the use of multi-threading when working with pairwise align
 
 The library [NLopt](http://ab-initio.mit.edu/wiki/index.php/NLopt) is used to optimize model parameters using Maximum Likelihood. If you do not have nlopt installed and do not care about optimizing parameters in treeator you can give NLOPT=NO to compile anyway.
 
-On Ubuntu 16.04 NLopt is available as a package an can be installed from on the command line by:
+On Ubuntu 16.04 (and later) NLopt is available as a package an can be installed from on the command line by:
 
      sudo apt-get install libnlopt-dev
-
-
-RUDISVG=YES will compile a rudimentary SVG viewer (rudisvg) as well. This option require the x11 developmental libraries. If rudisvg is installed on bash on Ubuntu on Windows you will need a X server as well, for example [Xming](https://sourceforge.net/projects/xming/), and set the DISPLAY variable:
-
-    export DISPLAY=localhost:0.0
-
-There is no need to do this on OS X or ordinary linux distributions (like Ubuntu).
 
 
 # Examples

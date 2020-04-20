@@ -10,18 +10,12 @@ NLOPT= YES# if NLOPT set to NO set TREEATORFLAGS = -DNOLNLOPT
 WIN = NO# add WIN=YES if compiling on windows using MinGW
 PTHREADS = NO# set to YES to compile using pthreads, PTHREADS=-DPTREADS
 DATABASE = NO# set to YES compile with database
-RUDISVG = NO# set to  YES to compile rudisvg
 
-ifeq ($(RUDISVG),YES)
-PHYLOMMAND = treebender pairalign contree treeator rudisvg
-else
 PHYLOMMAND = treebender pairalign contree treeator
-endif
 #CFLAGS
 EXTRAS= # add EXTRAS=-DDEBUG for debug mode
 TREEATORFLAGS=
 TREEATORLINKFLAGS=
-RUDISVGLINKFLAGS = -I/usr/X11R6/include -I/usr/X11R6/include/X11 -L/usr/X11R6/lib -L/usr/X11R6/lib/X11 -lX11 #-lX11
 ifeq ($(NLOPT),YES)
     TREEATORFLAGS = -DNLOPT
     TREEATORLINKFLAGS = -lnlopt -lm
@@ -54,8 +48,6 @@ endif
 PAIRALIGN = pairalign.cpp
 CONTREE = contree.cpp
 TREEATOR = treeator.cpp
-RUDISVGCPP = rudisvg.cpp
-PUGIXML = pugixml/pugixml.cpp
 STRINGTREE = string_tree.cpp
 NJTREE = nj_tree.cpp
 SIMPLEML = simpleML.cpp
@@ -71,9 +63,6 @@ OTREE = tree.o treebender.o string_tree.o file_parser.o argv_parser.o matrix_par
 OPAIRALIGN = seqpair.o pairalign.o align_group.o seqdatabase.o argv_parser.o indexedfasta.o $(SQLITEO)
 OCONTREE = contree.o tree.o decisiveness.o string_tree.o matrix_parser.o file_parser.o rate_model.o
 OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o matrix_parser.o file_parser.o argv_parser.o sub_model.o rate_model.o
-ifeq ($(RUDISVG),YES)
-ORUDISVG = rudisvg.o pugixml.o
-endif
 
 all: $(PHYLOMMAND)
 
@@ -89,11 +78,6 @@ contree: $(OCONTREE)
 treeator: $(OTREEATOR)
 	$(PP) -o treeator $(OTREEATOR) $(TREEATORLINKFLAGS)
 
-ifeq ($(RUDISVG),YES)
-rudisvg: $(ORUDISVG)
-	$(PP) -o rudisvg $(ORUDISVG) $(RUDISVGLINKFLAGS)
-endif
-
 treebender.o: $(TREEB)
 	$(PP) $(DATABASEFLAG) -c $(TREEB) $(EXTRAS)
 
@@ -105,11 +89,6 @@ contree.o: $(CONTREE)
 
 treeator.o: $(TREEATOR)
 	$(PP) -c $(TREEATOR) $(TREEATORFLAGS) $(EXTRAS)
-
-ifeq ($(RUDISVG),YES)
-rudisvg.o: $(RUDISVGCPP)
-	$(PP) -c $(RUDISVGCPP) $(EXTRAS)
-endif
 
 tree.o: $(TREE)
 	$(PP) -c $(TREE) $(EXTRAS)
@@ -163,11 +142,6 @@ seqdatabase.o: $(SEQDB)
 
 indexedfasta.o: $(INDEXEDFST)
 	$(PP) -c $(INDEXEDFST) $(EXTRAS)
-
-ifeq ($(RUDISVG),YES)
-pugixml.o: $(PUGIXML)
-	$(PP) -c $(PUGIXML) $(EXTRAS)
-endif
 
 clean:
 	$(RM) $(PHYLOMMAND) *.o
