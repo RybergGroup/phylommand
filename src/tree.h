@@ -280,6 +280,7 @@ class tree {
                 clades.insert(pair<node*,unsigned int>(most_recent_common_ancestor(taxon_sets[i]),clades.size()));
             }
         }
+	unsigned int n_taxon_sets() { return clades.size(); }
     protected:
 	class node { //store the information for each node of the tree
 	    public:

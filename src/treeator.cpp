@@ -719,10 +719,13 @@ int main (int argc, char *argv []) {
 		if (!quiet) cerr << "Read tree " << read_trees << endl;
 		if (!taxon_sets.empty()) tree.add_taxon_sets(taxon_sets);
 		if (tree.shortest_branch() < 0.0) cerr << "Warning!!! Tree " << read_trees << " contains negative branches." << endl;
-		tree.init(n_states); // need to fix this
+		tree.init(); // need to fix this
 		for (vector<character_vector>::iterator i=characters.begin(); i!=characters.end(); ++i)
-		    tree.set_char(i->get_taxon(),i->get_character(0));
+		    tree.set_char( 0, i->get_taxon(), i->get_character(0), model );
 ////////////////////////////////////////////
+		#ifdef DEBUG
+		cerr << "Added chars to tips." << endl;
+		#endif //DEBUG
 		if (print_tree == 'x') model_out << '[' << endl;
 		if (method == 'C') {
 		    #ifdef DEBUG
