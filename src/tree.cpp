@@ -1090,8 +1090,8 @@ string tree::tips_in_clade_stem_based( const string& taxa, const string& separat
     string taxon;
     for (int i=0; i<=str_length; ++i) {
         if (i == str_length || taxa[i]==',' || taxa[i]==':') {
-            if (mode = 's') ingroup.push_back(find_taxon_tip (root, taxon));
-	    else if (mode = 'o') outgroup.insert(find_taxon_tip (root, taxon));
+            if (mode == 's') ingroup.push_back(find_taxon_tip (root, taxon));
+	    else if (mode == 'o') outgroup.insert(find_taxon_tip (root, taxon));
             taxon.clear();
 	    if (taxa[i]==':') mode = 'o';
         }
@@ -1593,29 +1593,66 @@ void tree::set_tip_branch_lengths (node* leaf, const double tip_branch) {
     if (leaf->right != 0) set_tip_branch_lengths (leaf->right,tip_branch-leaf->branchlength);
 }
 
-/*
-unsigned int tree::add_node_depth ( node* leaf, const double node_depth, double dist_from_root, unsigned int no_lineages ) {
-    if (leaf == 0) return no_lineages;
-    if (leaf->left == 0 && leaf->right == 0) return no_lineages;
-    if (no_lineages == 0) return 0;
-    #ifdef DEBUG
-    cerr << "Node_depth: " << node_depth << " Dist. from root: " << dist_from_root << " lineage: " << no_lineages << " present branch length: " << leaf->branchlength << endl;
-    #endif //DEBUG
-    if (leaf != root && dist_from_root <= node_depth) {
-	#ifdef DEBUG
-	cerr << "Pertinent node." << endl;
-	#endif //DEBUG
-	--no_lineages;
-	if (no_lineages == 0)
-	    leaf->branchlength = node_depth-dist_from_root;
-	return no_lineages;
+tree::node* tree::sim_tree_bd ( const double b, const double d, const double max, node* parent ) {
+    if (b <= 0.0 || max <= 0.0) return 0;
+    node* new_node = new node;
+    new_node->parent = parent;
+    double t_speciation(marth::expr(b));
+    double t_extinction;
+    if (d > 0.0) t_extinction = marth::expr(d);
+    else t_extinction = t_speciation;
+    if (t_extinction < t_speciation) {
+	if (t_extinction > max) new_node->branchlength = max;
+	else new_node->branchlength = t_extinction;
     }
     else {
-	if (leaf->left != 0) add_node_depth (leaf->left, node_depth, dist_from_root+leaf->branchlength, no_lineages);
-	if (leaf->right != 0) add_node_depth (leaf->right, node_depth, dist_from_root+leaf->branchlength, no_lineages);
+	if (t_speciation > max) new_node->branchlength = max;
+	else {
+	    new_node->branchlength = t_speciation;
+	    new_node->left = sim_tree_bd(b,d,max-t_speciation, new_node);
+	    new_node->right = sim_tree_bd(b,d,max-t_speciation, new_node);
+	}
+    }
+    #ifdef DEBUG
+    cerr << new_node->branchlength << " - " << max << endl;
+    #endif //DEBUG
+    return new_node;
+}
+
+unsigned int tree::set_tip_lables( node* leaf, unsigned int n ) {
+    if (leaf == 0) return n;
+    if (leaf->left != 0 || leaf->right != 0) {
+	if (leaf->left != 0) n = set_tip_lables(leaf->left, n);
+	if (leaf->right != 0) n = set_tip_lables(leaf->right, n);
+    }
+    else if (leaf->nodelabel==0) {
+	leaf->nodelabel = nodelabels.add_string("Tip" + to_string(n));
+	++n;
+    }
+    return n;
+}
+
+void tree::add_branches_to_tree( node* leaf, const double b, const double d ) {
+    if (leaf != 0) {
+	double t_speciation(marth::expr(b));
+	if (t_speciation < leaf->branchlength) {
+	    node* new_node = new node;
+	    new_node->branchlength = t_speciation;
+	    new_node->parent = leaf->parent;
+	    if (new_node->parent->left == leaf) new_node->parent->left = new_node;
+	    else if (new_node->parent->right == leaf) new_node->parent->right = new_node;
+	    leaf->branchlength = leaf->branchlength-t_speciation;
+	    leaf->parent = new_node;
+	    new_node->left = leaf;
+	    new_node->right = sim_tree_bd(b,d, longest_to_tip(leaf)+leaf->branchlength, new_node);
+	    if (leaf == root) root = new_node;
+	}
+	if (leaf->left != 0) add_branches_to_tree( leaf->left, b, d );
+	if (leaf->right != 0) add_branches_to_tree( leaf->right, b, d );
     }
 }
-*/
+
+
 /*** Sub to count the number of nodes with support value above or equal to given value ***/
 int tree::n_supported (node* leaf, float cutoff) {
     if (leaf->left != 0 && leaf->right != 0) {

@@ -43,8 +43,9 @@ class simpleML : public tree {
 	    cerr << "Set char " << char_no << " to "<< state << " for taxon " << taxon << " (n states= " << model.get_n_states() << ")" << endl;
 	    #endif //DEBUG
 	    node* leaf = find_taxon_tip(root, nodelabels.find_string(taxon));
-	    if (leaf != 0)
-		if (char_no >= likelihoods[leaf].size()) likelihoods[leaf].resize(char_no+1);
+	    if (leaf != 0) {
+		if (char_no >= likelihoods[leaf].size())
+		    likelihoods[leaf].resize(char_no+1);
 		likelihoods[leaf][char_no].resize(model.get_n_states(),0.0);
 		for (unsigned int i=0; i < model.get_n_states(); ++i) {
 		    if (state[i]) likelihoods[leaf][char_no][i] = 1.0; // /state.count();
@@ -52,6 +53,7 @@ class simpleML : public tree {
 		    cerr << "Set state " << i << " to " << likelihoods[leaf][char_no][i] << endl;
 		    #endif //DEBUG
 		}
+	    }
 	}
 	double calculate_log_likelihood( sub_model& model ) {
 	    #ifdef DEBUG

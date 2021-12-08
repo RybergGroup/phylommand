@@ -201,7 +201,7 @@ double inline marth::uniformr(double a=0.0, double b=1.0) {
 }
 
 double inline marth::uniformr () { return uniformr( 0.0, 1.0 ); }; // draw random value between 0 and 1 from a uniform distribution
-double inline marth::expr ( double mean ) { // draw random value from exponential distribution
+double marth::expr ( double mean ) { // draw random value from exponential distribution
     if ( mean < 0.0 )  return 0.0;
     return -log(rand()/double(RAND_MAX))/mean;
 };

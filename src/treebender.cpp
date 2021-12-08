@@ -82,6 +82,9 @@ int main (int argc, char *argv []) {
     unsigned int n_char(0);
     unsigned int n_rand_trees(1);
     unsigned int branch_no(0);
+    double birth_rate(0.0);
+    double death_rate(0.0);
+    double max_age(0.0);
     map<string, vector<char> > matrix;
     string file_name;
     string file_format;
@@ -414,6 +417,54 @@ int main (int argc, char *argv []) {
 		    if (argv[i][0] == 'Y' || argv[i][0] == 'y')	randBr='y';
 		    else if (argv[i][0] == 'C' || argv[i][0] == 'c') randBr='c';
 		}
+	    }
+	    else if (!strcmp(argv[i],"--bd_tree")) {
+		tree_source = 'n';
+		if (i < argc-1 && argv[i+1][0] != '-' ) {
+		    ++i;
+		    vector<string> arguments;
+		    argv_parser::pars_sub_args( argv[i], ',', arguments );
+		    if (arguments.size() >= 3) {
+			birth_rate = atof(arguments[0].c_str());
+			death_rate = atof(arguments[1].c_str());
+			max_age = atof(arguments[2].c_str());
+			if (arguments.size() > 3) {
+			    n_rand_trees = atoi(arguments[3].c_str());
+			}
+		    }
+		    else {
+			cerr << "--bd_tree require three values: speciation (birth) rate, extinction (death) rate, and age of root (max distance from root to tip)." << endl;
+			return 1;
+		    }
+		}
+		else {
+	    	    cerr << "--bd_tree require three values: speciation (birth) rate, extinction (death) rate, and age of root (max distance from root to tip)." << endl;
+    		    return 1;
+		}
+	    }
+	    else if (!strcmp(argv[i],"--add_branches_to_tree")) {
+		method = 'E';
+     		if (i < argc-1 && argv[i+1][0] != '-' ) {
+                    ++i;
+                    vector<string> arguments;
+                    argv_parser::pars_sub_args( argv[i], ',', arguments );
+                    if (arguments.size() >= 2) {
+                        birth_rate = atof(arguments[0].c_str());
+                        death_rate = atof(arguments[1].c_str());
+                        if (arguments.size() > 2) {
+                            n_rand_trees = atoi(arguments[2].c_str());
+                        }
+                    }
+                    else {
+                        cerr << "--add_branches_to_tree require two values: speciation (birth) rate, and extinction (death) rate." << endl;
+                        return 1;
+                    }
+                }
+                else {
+                    cerr << "--add_branches_to_tree require two values: speciation (birth) rate, and extinction (death) rate." << endl;
+                    return 1;
+                }
+
 	    }
 	    else if (!strcmp(argv[i],"--gamma")) method = '!';
             else if (!strcmp(argv[i],"--interval")) {
@@ -755,6 +806,12 @@ int main (int argc, char *argv []) {
 	    --n_rand_trees;
 	    ++read_trees;
 	}
+	else if (tree_source == 'n') {
+	    if (n_rand_trees<1) break;
+	    in_tree.back().bd_sim(birth_rate,death_rate,max_age);
+	    --n_rand_trees;
+            ++read_trees;
+	}
 	if (in_tree.back().empty()) break;
 	if (read_trees < tree_interval_start) continue;
 	if (read_trees > tree_interval_end) break;
@@ -948,6 +1005,9 @@ int main (int argc, char *argv []) {
 	    if (randBr == 'c') in_tree.back().add_Coal_node_depths();
 	    else in_tree.back().add_Yule_node_depths();
 	}
+	else if (method == 'E') {
+	    in_tree.back().add_branches_to_tree(birth_rate, death_rate);
+	}
 	// Print tree
 	if (print_tree) {
 	    //if (read_trees >= tree_interval_start && read_trees <= tree_interval_end) {
@@ -1003,6 +1063,12 @@ void help () {
     cout << "ignored. The file name should be given behind the word file and colon, e.g." << endl;
     cout << "-d file:file_name.txt." <<endl << endl;
     cout << "Arguments:" << endl;
+    cout << "--add_branches_to_tree            add additional lineages to a tree based on the" << endl;
+    cout << "                                  birthby the birth-death process. Extinct" << endl;
+    cout << "                                  lineages are kept. Require a comma separated" << endl;
+    cout << "                                  string with speciation (birth) rate," << endl;
+    cout << "                                  extinction (death) rate, e.g." << endl;
+    cout << "                                  --bd_tree 0.1,0.01,50." << endl;
     /*cout << "--aMPL [string]                   time calibrate tree with the adjusted Mean" << endl;
     cout << "                                  Path Length method (Svennblad 2008, Syst. Bio." << endl;
     cout << "                                  57:947-954). Give  calibration points with a" << endl;
@@ -1012,6 +1078,13 @@ void help () {
     cout << "                                  separated by semicolon. The root node can be" << endl;
     cout << "                                  given as root. eg. --aMPL \"taxon1,taxon2:50;" << endl;
     cout << "                                  root:100;taxon4,taxon5:20\" (default root:1)." << endl; */
+    cout << "--bd_tree                         generate a random tree by the birth-death" << endl;
+    cout << "                                  process. Does not guarantee that any lineages" << endl;
+    cout << "                                  survive to the present, and extinct lineages" << endl;
+    cout << "                                  are kept. Require a comma separated string" << endl;
+    cout << "                                  with speciation (birth) rate, extinction" << endl;
+    cout << "                                  (death) rate, and age of root from the" << endl;
+    cout << "                                  present, e.g. --bd_tree 0.1,0.01,50." << endl;
     cout << "--branch_lengths / -a [r/n]       print branch lengths, the separator can be" << endl;
     cout << "                                  given as first argument after the switch, e.g." <<endl;
     cout << "                                   -a '\\n' (default is ','). If the switch r is" << endl;

@@ -41,6 +41,7 @@ class  partition_models {
 	for (unsigned int i=first; i <= last; ++i) {
 	    assign_pos_to_partition(i, part);
 	}
+	return part;
     }
     unsigned int add_model_to_partition ( unsigned int partition, sub_model* model ) {
 	return partitions.add_model_to_partition( partition, model);
@@ -55,7 +56,7 @@ class  partition_models {
 	else return chars_to_part[pos]->sub_models[0];
     }
     sub_model* get_sub_model ( unsigned int pos ) {
-	get_sub_model(pos,0);
+	return get_sub_model(pos,0);
     }
     void assign_pos_to_partition ( unsigned int pos, unsigned int partition) {
 	if (pos < chars_to_part.size()) {

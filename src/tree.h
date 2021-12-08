@@ -39,6 +39,7 @@ contact: martin.ryberg@ebc.uu.se
 #include "constants.h"
 #include "matrix_parser.h"
 #include "rate_model.h"
+#include "marth/marth.h"
 
 using namespace std;
 
@@ -90,6 +91,15 @@ class tree {
 	    else return false;
 	};
         void rand_topology ( const int n  );
+	void bd_sim( const double b, const double d, const double age ) {
+	    root->left = sim_tree_bd( b, d, age, 0 );
+	    root->right = sim_tree_bd( b, d, age, 0 );
+	    set_tip_lables(root,1);
+	}
+	void add_branches_to_tree ( const double b, const double d ) {
+	    add_branches_to_tree ( root, b, d );
+	    set_tip_lables(root,1);
+	}
 	void add_Yule_node_depths () {
 	    add_rand_node_depths(root, 'y');
 	}
@@ -443,8 +453,10 @@ class tree {
         }
 	// functions for adjusted MPL //
 	void adjustedMPL(map<node*,double>& given_nodeages, unsigned int n_char);
-	//void add_Yule_node_depths (node* leaf);
 	void add_rand_node_depths (node* leaf, char model); // set branch length acording to y(uel) or c(oalescens) model
+	node* sim_tree_bd ( const double b, const double d, const double max, node* parent );
+	void add_branches_to_tree( node* leaf, const double b, const double d );
+	unsigned int set_tip_lables( node* leaf, unsigned int n );
 	void set_tip_branch_lengths (node* leaf, const double tip_branch); // set branch lengths of the tips so that the tree is ultrametric, based on tip distance from node
 	//unsigned int add_node_depth ( node* leaf, const double node_depth, double dist_from_root, unsigned int no_lineages );
 	int_double2 calculate_mean_path_root( node* leaf, map<node*,double>& given_nodeages);

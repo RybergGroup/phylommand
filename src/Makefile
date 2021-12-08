@@ -59,9 +59,9 @@ SEQDB = seqdatabase.cpp
 INDEXEDFST = indexedfasta.cpp
 SUB_MODEL = sub_model.cpp
 RATE_MODEL = rate_model.cpp
-OTREE = tree.o treebender.o string_tree.o file_parser.o argv_parser.o matrix_parser.o clustertree.o rate_model.o $(SQLITEO)
+OTREE = tree.o treebender.o string_tree.o file_parser.o argv_parser.o matrix_parser.o clustertree.o rate_model.o marth.o $(SQLITEO)
 OPAIRALIGN = seqpair.o pairalign.o align_group.o seqdatabase.o argv_parser.o indexedfasta.o $(SQLITEO)
-OCONTREE = contree.o tree.o decisiveness.o string_tree.o matrix_parser.o file_parser.o rate_model.o
+OCONTREE = contree.o tree.o decisiveness.o string_tree.o matrix_parser.o file_parser.o rate_model.o marth.o
 OTREEATOR = treeator.o tree.o string_tree.o nj_tree.o simpleML.o marth.o matrix_parser.o file_parser.o argv_parser.o sub_model.o rate_model.o
 
 all: $(PHYLOMMAND)
