@@ -216,7 +216,7 @@ or as an symmetric model:
 Notice that these are not time reversible models. You may change the alphabet
 given to -a if you are working with other type of characters.
 
-#Miscellaneous
+# Miscellaneous
 Phylommand work on fully resolved (bifurcating) trees and will arbitrarily
 resolve any polytomies. This needs to be especially considered when defining
 or queering monophyletic groups.
