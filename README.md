@@ -14,6 +14,7 @@ Phylommand is a commandline toolkit designed to be easily integrated in workflow
 - [Compile/Build](#compilebuild)
 - [Examples](#examples)
 - [Miscellaneous](#miscellaneous)
+- [Cite](#cite)
 
 
 # The programs
@@ -274,5 +275,6 @@ branches will be printed with the length 0. To change this you can use the
 --set_branch_lengths option in treebender, for example setting all branch lengths
 to 1.
 
-
+# Cite
+Ryberg M. Phylommand - a command line software package for phylogenetics [version 1; peer review: 2 approved with reservations]. F1000Research 2016, 5:2903 (https://doi.org/10.12688/f1000research.10446.1) 
 
