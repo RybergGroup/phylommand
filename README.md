@@ -93,6 +93,10 @@ On Ubuntu 16.04 (and later) NLopt is available as a package an can be installed 
 
      sudo apt-get install libnlopt-dev
 
+    and/or
+
+     sudo apt install libnlopt-cxx-dev
+
 
 # Examples
 These examples are based on the [example_files/](example_files/) distributed with phylommand. The examples assumes a

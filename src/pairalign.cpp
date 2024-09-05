@@ -407,89 +407,88 @@ void cluster_each_table ( const string& file, const char* databasetype, const st
     seqdatabase database(file,databasetype);
     if (!quiet) cerr << "Opened " << databasetype << " database." << endl;
     if (!taxonomy_file.empty()) {
-	if (!quiet) cerr << "Parsing taxonomy from " << taxonomy_file << "." << endl;
-	ifstream file(taxonomy_file.c_str());
-	if (file.good()) {
-	    map<string,string> taxonomy_map;
-	    string taxa;
-	    string accno;
-	    bool taxonomy(true);
-	    while(file) {
-		char input_char = file.get();
-		if (input_char == '|' && taxonomy) taxonomy = false;
-		else if (!taxonomy && (input_char == ' ' || input_char == ',' || input_char == '\n' || input_char == '\r') && !accno.empty() && !taxa.empty()) {
-		    taxonomy_map[accno] = taxa;
-		    #ifdef DEBUG
-		    cerr << "Added " << taxa << " for " << accno << "." << endl;
-		    #endif //DEBUG
-		    accno.clear();
-		    if (input_char == '\r' || input_char == '\n') { taxonomy = true; taxa.clear(); }
+		if (!quiet) cerr << "Parsing taxonomy from " << taxonomy_file << "." << endl;
+		ifstream file(taxonomy_file.c_str());
+		if (file.good()) {
+	    	map<string,string> taxonomy_map;
+	    	string taxa;
+	    	string accno;
+	    	bool taxonomy(true);
+	    	while(file) {
+				char input_char = file.get();
+				if (input_char == '|' && taxonomy) taxonomy = false;
+				else if (!taxonomy && (input_char == ' ' || input_char == ',' || input_char == '\n' || input_char == '\r') && !accno.empty() && !taxa.empty()) {
+		    		taxonomy_map[accno] = taxa;
+		    		#ifdef DEBUG
+		    		cerr << "Added " << taxa << " for " << accno << "." << endl;
+		    		#endif //DEBUG
+		    		accno.clear();
+		    		if (input_char == '\r' || input_char == '\n') { taxonomy = true; taxa.clear(); }
+				}
+				else if (input_char == '\r' || input_char == '\n') { taxonomy = true; taxa.clear(); }
+				else if (taxonomy) taxa += input_char;
+	       		else if (!taxonomy) accno += input_char;
+	    	}
+	    	if (!taxonomy_map.empty()) {
+				database.add_taxonomy(taxonomy_map);
+				if (!quiet) cerr << "Added taxonomy." << endl;
+	    	}
+	    	else cerr << "Was not able to pars taxonomy from " << taxonomy_file << "." << endl;
 		}
-		else if (input_char == '\r' || input_char == '\n') { taxonomy = true; taxa.clear(); }
-		else if (taxonomy) taxa += input_char;
-	       	else if (!taxonomy) accno += input_char;
-		
-	    }
-	    if (!taxonomy_map.empty()) {
-		database.add_taxonomy(taxonomy_map);
-		if (!quiet) cerr << "Added taxonomy." << endl;
-	    }
-	    else cerr << "Was not able to pars taxonomy from " << taxonomy_file << "." << endl;
-	}
-	else cerr << "Was not able to open " << taxonomy_file << ". No taxonomy read." << endl;
+		else cerr << "Was not able to open " << taxonomy_file << ". No taxonomy read." << endl;
     }
     else if (!strcmp(databasetype,"pairfa")) {
-	map<string,string> taxonomy_map;
-	taxonomy_map["default"] = "all";
-	database.add_taxonomy(taxonomy_map);
-	if (!quiet && (output == 'A' || output == 'B')) cerr << "All sequences will be treated as from same taxon." << endl;
+		map<string,string> taxonomy_map;
+		taxonomy_map["default"] = "all";
+		database.add_taxonomy(taxonomy_map);
+		if (!quiet && (output == 'A' || output == 'B')) cerr << "All sequences will be treated as from same taxon." << endl;
     }
     if ((output == 'A' || output == 'B') && !database.alignment_groups_present()) {
-	if (!quiet) cerr << "No alignment_groups file/table present. Trying to create it." << endl;
-	if (!database.create_alignment_groups()) {
-	    cerr << "Failed to create alignment_groups." << endl;
-	    return;
-	}
+		if (!quiet) cerr << "No alignment_groups file/table present. Trying to create it." << endl;
+		if (!database.create_alignment_groups()) {
+	    	cerr << "Failed to create alignment_groups." << endl;
+	    	return;
+		}
     }
     vector<string> tables = database.tables_in_database();
     for (vector<string>::const_iterator table = tables.begin(); table != tables.end(); ++table) {
-	if (!table->compare("gb_data") || !table->compare("alignments") || !table->compare("alignment_groups")) continue;
-	float present_cut_off=0.0;
-	if (output == 'B' || output == 'C') { 
-	    int length = cut_off.length();
-	    string gene;
-	    int i(0);
-	    for (; i < length; ++i) {
-		if (cut_off[i]==',') {
-		    if(!gene.compare(*table) || !gene.compare("all")) {
-			string number;
-			++i;
-			while (i<length && cut_off[i]!=',') {
-			    number += cut_off[i];
-			    ++i;
-			}
-			present_cut_off = atof(number.c_str());
-			gene.clear();
-			break;
-		    }
+		if (!table->compare("gb_data") || !table->compare("alignments") || !table->compare("alignment_groups")) continue;
+		float present_cut_off=0.0;
+		if (output == 'B' || output == 'C') { 
+	    	int length = cut_off.length();
+	    	string gene;
+	    	int i(0);
+	    	for (; i < length; ++i) {
+				if (cut_off[i]==',') {
+		    		if(!gene.compare(*table) || !gene.compare("all")) {
+						string number;
+						++i;
+						while (i<length && cut_off[i]!=',') {
+			    			number += cut_off[i];
+			    			++i;
+						}
+						present_cut_off = atof(number.c_str());
+						gene.clear();
+						break;
+		    		}
+				}
+				else gene+=cut_off[i];
+	    	}
+	    	if (i > 0 && i >= length && !gene.empty() && (gene[0] == '0' || gene[0] == '1' || gene[0] == '2' || gene[0] == '3' ||
+		    	gene[0] == '4' || gene[0] == '5' || gene[0] == '6' || gene[0] == '7' || gene[0] == '8' || gene[0] == '9' ||
+		    	gene[0] == '.') ) present_cut_off = atof(gene.c_str());
+	    	if (present_cut_off < 0.000000001) {
+				std::cerr << "Could not find appropriate cut off (" << present_cut_off<< ") for " << *table << ". Will only define alignment groups and not cluster." << endl;
+				continue;
+	    	}
+	    	if (!quiet) cerr << "Using the cut off: " << present_cut_off << "." << endl;
 		}
-		else gene+=cut_off[i];
-	    }
-	    if (i > 0 && i >= length && !gene.empty() && (gene[0] == '0' || gene[0] == '1' || gene[0] == '2' || gene[0] == '3' ||
-		    gene[0] == '4' || gene[0] == '5' || gene[0] == '6' || gene[0] == '7' || gene[0] == '8' || gene[0] == '9' ||
-		    gene[0] == '.') ) present_cut_off = atof(gene.c_str());
-	    if (present_cut_off < 0.000000001) {
-		std::cerr << "Could not find appropriate cut off (" << present_cut_off<< ") for " << *table << ". Will only define alignment groups and not cluster." << endl;
-		continue;
-	    }
-	    if (!quiet) cerr << "Using the cut off: " << present_cut_off << "." << endl;
-	}
-	if (!quiet) std::cerr << "Checking " << *table << endl;
-	cluster(database, *table, present_cut_off, min_length, only_lead, aligned, output, output_names, matrix, quiet);
-	if ((output == 'B' || output == 'C') && (!strcmp(databasetype,"fasta") || !strcmp(databasetype,"pairfa"))) {
-	    cout << "### Clusters " << *table << ", cut-off: " << present_cut_off << " ###" << endl;
-	    database.print_clusters(cout);
-	}
+		if (!quiet) std::cerr << "Checking " << *table << endl;
+		cluster(database, *table, present_cut_off, min_length, only_lead, aligned, output, output_names, matrix, quiet);
+		if ((output == 'B' || output == 'C') && (!strcmp(databasetype,"fasta") || !strcmp(databasetype,"pairfa"))) {
+	    	cout << "### Clusters " << *table << ", cut-off: " << present_cut_off << " ###" << endl;
+	    	database.print_clusters(cout);
+		}
     }
 }
 
@@ -510,7 +509,8 @@ void cluster( seqdatabase& db, const string table, const float cut_off, const in
     print_queue output_queue;
     #endif /* PTHREAD */
     vector<sequence_package> two_sequences;
-    for (unsigned int i=0;i < n_threads; ++i) two_sequences.push_back(sequence_package());
+    for (unsigned int i=0; i < n_threads; ++i)
+		two_sequences.push_back(sequence_package());
     align_group deviations;
     stringstream converter;
     converter << min_length;
@@ -522,105 +522,112 @@ void cluster( seqdatabase& db, const string table, const float cut_off, const in
     //Maybe make an object that does the different steps and keep track
     unsigned int n_seq(0);
     if (db.initiate_sequence_retrieval(table, char_min_length)) {
-	if (matrix && output == 'd') std::cout << "Proportion different/Similarity/Jukes-Cantor distance/Difference between JC and similarity" << endl; // from pairalign
+		if (matrix && output == 'd')
+			std::cout << "Proportion different/Similarity/Jukes-Cantor distance/Difference between JC and similarity" << endl; // from pairalign
     	while(!db.all_pairs()) {
-	    bool new_row(false);
-    	    db.move_to_next_pair(only_lead);
-	    if (db.at_new_first())
-		new_row = true;
-    	    #ifdef PTHREAD
-	    if (n_threads > 1) {
-		if (matrix && new_row) {
-		    pthread_mutex_lock(&databasemutex); // move out of if statement if implementing printing progressively
-		    ++n_seq;
-		    stringstream* outputstream = output_queue.new_position();
-		    if (n_seq > 1)  *outputstream << endl;
-		    if (output_names) *outputstream << db.get_accno1() << ' ';
-		    for (unsigned int i=1; i<n_seq; ++i) *outputstream << ' ';
-		    pthread_mutex_unlock(&databasemutex); // move out of if statement if implementing printing progressively
-		}
-		/*while (output_queue.something_in_first_position()) {
-		    cout << output_queue.print_next();
-		    #ifdef DEBUG
-		    cerr << "Printing" << endl;
-		    #endif //DEBUG
-		}*/
-		if (next_thread >= n_threads) next_thread = 0;
-		int thread_code=0;
-		if (activated[next_thread]) thread_code = pthread_join(thread[next_thread], &status);
-		if (thread_code) {
-		    std::cerr << "ERROR!!! Return code from pthread_join() is: " << thread_code << endl;
-		    exit (-1);
-		}
-		else {
-		    #ifdef DEBUG
-		    cerr << "Preparing pthread alignment: ";
-		    #endif //DEBUG
-		    two_sequences[next_thread].accno1 = db.get_accno1();
-		    two_sequences[next_thread].sequence1 = db.get_sequence1();
-		    two_sequences[next_thread].accno2 = db.get_accno2();
-		    two_sequences[next_thread].sequence2 = db.get_sequence2();
-		    two_sequences[next_thread].table = &table;
-		    two_sequences[next_thread].db = &db;
-		    two_sequences[next_thread].cut_off = &cut_off;
-		    two_sequences[next_thread].deviations = &deviations;
-		    two_sequences[next_thread].aligned = aligned;
-		    two_sequences[next_thread].output = output;
-		    two_sequences[next_thread].output_names = output_names;
-		    two_sequences[next_thread].matrix = matrix;
-		    if (output != 'A' && output != 'B' && output != 'C') {
-			pthread_mutex_lock(&databasemutex);
-			two_sequences[next_thread].outputstream = output_queue.new_position();
-			pthread_mutex_unlock(&databasemutex);
-		    }
-		    else two_sequences[next_thread].outputstream = 0;
-		    #ifdef DEBUG
-		    cerr << two_sequences[next_thread].accno1 << " " << two_sequences[next_thread].accno2 << endl;
-		    #endif //DEBUG
-		    thread_code = pthread_create(&thread[next_thread], &attr, pthread_align_pair, (void *) &two_sequences[next_thread]);
-		    activated[next_thread] = true;
-		    ++next_thread;
-		    if (thread_code) {
-			std::cerr << "ERROR!!! Return code from pthread_create() is: " << thread_code << endl;
-			exit(-1);
-		    }
-		}
-	    }
-	    else {
-		#endif /* PTHREAD */
-		//#else /* PTHREAD */
-		if (matrix && new_row) {
-		    ++n_seq;
-		    if (n_seq > 1) std::cout << endl;
-		    if (output_names) std::cout << db.get_accno1() << ' ';
-		    for (unsigned int i=1; i<n_seq; ++i) std::cout << ' ';
-		}
-		#ifdef DEBUG
-		cerr << "Prepairing alignment: ";
-		#endif //DEBUG
-		two_sequences[0].accno1 = db.get_accno1();
-		two_sequences[0].sequence1 = db.get_sequence1();
-		two_sequences[0].accno2 = db.get_accno2();
-		two_sequences[0].sequence2 = db.get_sequence2();
-		two_sequences[0].table = &table;
-		two_sequences[0].db = &db;
-		two_sequences[0].cut_off = &cut_off;
-		two_sequences[0].deviations = &deviations;
-		two_sequences[0].aligned = aligned;
-		two_sequences[0].output = output;
-		two_sequences[0].output_names = output_names;
-		two_sequences[0].matrix = matrix;
-		two_sequences[0].outputstream = &cout;
-		#ifdef DEBUG
-		cerr << two_sequences[0].accno1 << " " << two_sequences[0].accno2 << endl;
-		#endif //DEBUG
-		align_pair ( &two_sequences[0] ); // this is where the action is?
-		//#endif /* PTHREAD */
-		#ifdef PTHREAD
-	    }
+	    	bool new_row(false);
+    		db.move_to_next_pair(only_lead);
+	    	if (db.at_new_first())
+				new_row = true;
+    		#ifdef PTHREAD
+	    	if (n_threads > 1) {
+				if (matrix && new_row) {
+		   			pthread_mutex_lock(&databasemutex); // move out of if statement if implementing printing progressively
+		   			++n_seq;
+		   			stringstream* outputstream = output_queue.new_position();
+		   			if (n_seq > 1)  *outputstream << endl;
+		   			if (output_names) *outputstream << db.get_accno1() << ' ';
+		   			for (unsigned int i=1; i<n_seq; ++i) *outputstream << ' ';
+		   			pthread_mutex_unlock(&databasemutex); // move out of if statement if implementing printing progressively
+				}
+				/*while (output_queue.something_in_first_position()) {
+		   			cout << output_queue.print_next();
+		   			#ifdef DEBUG
+		   			cerr << "Printing" << endl;
+		   			#endif //DEBUG
+				}*/
+				if (next_thread >= n_threads) next_thread = 0;
+				int thread_code=0;
+				if (activated[next_thread]) thread_code = pthread_join(thread[next_thread], &status);
+				if (thread_code) {
+		   			std::cerr << "ERROR!!! Return code from pthread_join() is: " << thread_code << endl;
+		   			exit (-1);
+				}
+				else {
+		   			#ifdef DEBUG
+		   			cerr << "Preparing pthread alignment: ";
+		   			#endif //DEBUG
+		   			two_sequences[next_thread].accno1 = db.get_accno1();
+		   			two_sequences[next_thread].sequence1 = db.get_sequence1();
+		   			two_sequences[next_thread].accno2 = db.get_accno2();
+		   			two_sequences[next_thread].sequence2 = db.get_sequence2();
+		   			two_sequences[next_thread].table = &table;
+		   			two_sequences[next_thread].db = &db;
+		   			two_sequences[next_thread].cut_off = &cut_off;
+		   			two_sequences[next_thread].deviations = &deviations;
+		   			two_sequences[next_thread].aligned = aligned;
+		   			two_sequences[next_thread].output = output;
+		   			two_sequences[next_thread].output_names = output_names;
+		   			two_sequences[next_thread].matrix = matrix;
+		   			if (output != 'A' && output != 'B' && output != 'C') {
+						pthread_mutex_lock(&databasemutex);
+						two_sequences[next_thread].outputstream = output_queue.new_position();
+						pthread_mutex_unlock(&databasemutex);
+		   			}
+		   			else
+						two_sequences[next_thread].outputstream = 0;
+		   			#ifdef DEBUG
+		   			cerr << two_sequences[next_thread].accno1 << " " << two_sequences[next_thread].accno2 << endl;
+		   			#endif //DEBUG
+		   			thread_code = pthread_create(&thread[next_thread], &attr, pthread_align_pair, (void *) &two_sequences[next_thread]);
+		   			activated[next_thread] = true;
+		   			++next_thread;
+		   			if (thread_code) {
+						std::cerr << "ERROR!!! Return code from pthread_create() is: " << thread_code << endl;
+						exit(-1);
+		   			}
+				}
+			}
+			else {
+				#endif /* PTHREAD */
+				//#else /* PTHREAD */
+				if (matrix && new_row) {
+		    		++n_seq;
+		    		if (n_seq > 1)
+						std::cout << endl;
+		    		if (output_names)
+						std::cout << db.get_accno1() << ' ';
+		    		for (unsigned int i=1; i<n_seq; ++i)
+						std::cout << ' ';
+				}
+				#ifdef DEBUG
+				cerr << "Preparing alignment: ";
+				#endif //DEBUG
+				two_sequences[0].accno1 = db.get_accno1();
+				two_sequences[0].sequence1 = db.get_sequence1();
+				two_sequences[0].accno2 = db.get_accno2();
+				two_sequences[0].sequence2 = db.get_sequence2();
+				two_sequences[0].table = &table;
+				two_sequences[0].db = &db;
+				two_sequences[0].cut_off = &cut_off;
+				two_sequences[0].deviations = &deviations;
+				two_sequences[0].aligned = aligned;
+				two_sequences[0].output = output;
+				two_sequences[0].output_names = output_names;
+				two_sequences[0].matrix = matrix;
+				two_sequences[0].outputstream = &cout;
+				#ifdef DEBUG
+				cerr << two_sequences[0].accno1 << " " << two_sequences[0].accno2 << endl;
+				#endif //DEBUG
+				align_pair ( &two_sequences[0] ); // this is where the action is?
+				//#endif /* PTHREAD */
+			#ifdef PTHREAD
+	    	}
     	    #endif /* PTHREAD */
-	    if (!quiet) cerr << '.';
-	}
+	    	if (!quiet) cerr << '.';
+		}
+		if (matrix && !db.get_accno2().empty())
+			std::cout << endl << db.get_accno2() << endl;
     }
     else cerr << "Could not initiate sequence retrieval. No aligning done for " << table << "." << endl;
     #ifdef PTHREAD
@@ -672,184 +679,184 @@ void align_pair ( sequence_package *two_sequences ) {
     #endif //DEBUG
     //int score(0);
     if (!two_sequences->aligned) {
-	sequences.set_cost_matrix( 7, -5 );
-	sequences.align();
-	//score = sequences.align();
+		sequences.set_cost_matrix( 7, -5 );
+		sequences.align();
+		//score = sequences.align();
     }
     #ifdef PTHREAD
     if (n_threads >1)
 	pthread_mutex_lock (&databasemutex);
     #endif /* PTHREAD */
     if (two_sequences->output == 'A' || two_sequences->output == 'B') {
-	string taxon_string1 = two_sequences->db->get_taxon_string(two_sequences->accno1);
-	string taxon_string2 = two_sequences->db->get_taxon_string(two_sequences->accno2);
-	#ifdef DEBUG
-	cerr << "Taxon string1: " << taxon_string1 << endl << "Taxon string2: " << taxon_string2 << endl;
-	#endif //DEBUG
-	if (*two_sequences->cut_off > 0.000000001) {
-	    #ifdef DEBUG
-	    cerr << "Staring to compare seq for clustering." << endl;
-	    #endif //DEBUG
-	    string cluster1 = two_sequences->db->get_cluster( two_sequences->accno1, *two_sequences->table );
-	    string cluster2 = two_sequences->db->get_cluster( two_sequences->accno2, *two_sequences->table );
-	    #ifdef DEBUG
-	    cerr << "Seq1 belong to cluster: " << cluster1 << ". Seq2 belong to cluster: " << cluster2 << ". Similarity: " << sequences.similarity() << endl;
-	    #endif //DEBUG
-	    if (sequences.similarity() > *two_sequences->cut_off) { // if (sequences.similarity(true) > *two_sequences->cut_off) {
+		string taxon_string1 = two_sequences->db->get_taxon_string(two_sequences->accno1);
+		string taxon_string2 = two_sequences->db->get_taxon_string(two_sequences->accno2);
 		#ifdef DEBUG
-		cerr << "Clustering seq together." << endl;
+		cerr << "Taxon string1: " << taxon_string1 << endl << "Taxon string2: " << taxon_string2 << endl;
 		#endif //DEBUG
-		float comp1;
-		float comp2;
-		if (!cluster1.compare( "empty" ) || !cluster1.compare( "lead" )) comp1 = two_sequences->db->get_comp_value( two_sequences->accno1, *two_sequences->table );
-		else comp1 = two_sequences->db->get_comp_value( cluster1, *two_sequences->table );
-		if (!cluster2.compare( "empty" ) || !cluster2.compare( "lead" )) comp2 = two_sequences->db->get_comp_value( two_sequences->accno2, *two_sequences->table );
-		else comp2 = two_sequences->db->get_comp_value( cluster2, *two_sequences->table );
-		// If sequence 1 better
-		if (comp1 >= comp2) {
-		    #ifdef DEBUG
-		    cerr << "Seq1 longer than seq2." << endl;
-		    #endif //DEBUG
-		    if ( !cluster1.compare( "empty" ) ) {
-			two_sequences->db->clust_update( two_sequences->accno1, "lead", *two_sequences->table, 1 );
-			two_sequences->db->clust_update( two_sequences->accno2, two_sequences->accno1, *two_sequences->table, 1 );
-			if (!cluster2.compare( "lead" ) || !cluster2.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno2, two_sequences->accno1, *two_sequences->table, 0 );
-			else {
-			    two_sequences->db->clust_update( cluster2, two_sequences->accno1, *two_sequences->table, 1 );
-			    two_sequences->db->clust_update( cluster2, two_sequences->accno1, *two_sequences->table, 0 );
-			}
-		    }
-		    else if ( !cluster1.compare( "lead" ) ) {
-			two_sequences->db->clust_update( two_sequences->accno2, two_sequences->accno1, *two_sequences->table, 1 );
-			if (!cluster2.compare( "lead" ) || !cluster2.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno2, two_sequences->accno1, *two_sequences->table, 0 );
-			else {
-			    two_sequences->db->clust_update( cluster2, two_sequences->accno1, *two_sequences->table, 1 );
-			    two_sequences->db->clust_update( cluster2, two_sequences->accno1, *two_sequences->table, 0 );
-			}
-		    }
-		    else if (cluster1.compare(cluster2)) { // No need to proceed if they are already the same
-			two_sequences->db->clust_update( two_sequences->accno2, cluster1, *two_sequences->table, 1 );
-			if (!cluster2.compare( "lead" ) || !cluster2.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno2, cluster1, *two_sequences->table, 0 );
-			else {
-			    two_sequences->db->clust_update( cluster2, cluster1, *two_sequences->table, 1 );
-			    two_sequences->db->clust_update( cluster2, cluster1, *two_sequences->table, 0 );
-			}
-		    }
+		if (*two_sequences->cut_off > 0.000000001) {
+	    	#ifdef DEBUG
+	    	cerr << "Staring to compare seq for clustering." << endl;
+	    	#endif //DEBUG
+	    	string cluster1 = two_sequences->db->get_cluster( two_sequences->accno1, *two_sequences->table );
+	    	string cluster2 = two_sequences->db->get_cluster( two_sequences->accno2, *two_sequences->table );
+	    	#ifdef DEBUG
+	    	cerr << "Seq1 belong to cluster: " << cluster1 << ". Seq2 belong to cluster: " << cluster2 << ". Similarity: " << sequences.similarity() << endl;
+	    	#endif //DEBUG
+	    	if (sequences.similarity() > *two_sequences->cut_off) { // if (sequences.similarity(true) > *two_sequences->cut_off) {
+				#ifdef DEBUG
+				cerr << "Clustering seq together." << endl;
+				#endif //DEBUG
+				float comp1;
+				float comp2;
+				if (!cluster1.compare( "empty" ) || !cluster1.compare( "lead" )) comp1 = two_sequences->db->get_comp_value( two_sequences->accno1, *two_sequences->table );
+				else comp1 = two_sequences->db->get_comp_value( cluster1, *two_sequences->table );
+				if (!cluster2.compare( "empty" ) || !cluster2.compare( "lead" )) comp2 = two_sequences->db->get_comp_value( two_sequences->accno2, *two_sequences->table );
+				else comp2 = two_sequences->db->get_comp_value( cluster2, *two_sequences->table );
+				// If sequence 1 better
+				if (comp1 >= comp2) {
+		    		#ifdef DEBUG
+		    		cerr << "Seq1 longer than seq2." << endl;
+		    		#endif //DEBUG
+		    		if ( !cluster1.compare( "empty" ) ) {
+						two_sequences->db->clust_update( two_sequences->accno1, "lead", *two_sequences->table, 1 );
+						two_sequences->db->clust_update( two_sequences->accno2, two_sequences->accno1, *two_sequences->table, 1 );
+						if (!cluster2.compare( "lead" ) || !cluster2.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno2, two_sequences->accno1, *two_sequences->table, 0 );
+						else {
+			    			two_sequences->db->clust_update( cluster2, two_sequences->accno1, *two_sequences->table, 1 );
+			    			two_sequences->db->clust_update( cluster2, two_sequences->accno1, *two_sequences->table, 0 );
+						}
+		    		}
+		    		else if ( !cluster1.compare( "lead" ) ) {
+						two_sequences->db->clust_update( two_sequences->accno2, two_sequences->accno1, *two_sequences->table, 1 );
+						if (!cluster2.compare( "lead" ) || !cluster2.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno2, two_sequences->accno1, *two_sequences->table, 0 );
+						else {
+			    			two_sequences->db->clust_update( cluster2, two_sequences->accno1, *two_sequences->table, 1 );
+			    			two_sequences->db->clust_update( cluster2, two_sequences->accno1, *two_sequences->table, 0 );
+						}
+		    		}
+		    		else if (cluster1.compare(cluster2)) { // No need to proceed if they are already the same
+						two_sequences->db->clust_update( two_sequences->accno2, cluster1, *two_sequences->table, 1 );
+						if (!cluster2.compare( "lead" ) || !cluster2.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno2, cluster1, *two_sequences->table, 0 );
+						else {
+			    			two_sequences->db->clust_update( cluster2, cluster1, *two_sequences->table, 1 );
+			    			two_sequences->db->clust_update( cluster2, cluster1, *two_sequences->table, 0 );
+						}
+		    		}
+				}
+				// If sequence 2 better
+				else {
+		    		#ifdef DEBUG
+		    		cerr << "Seq2 longer than seq1." << endl;
+		    		#endif //DEBUG
+		    		if ( !cluster2.compare( "empty" ) ) { // if no previous annotation
+						two_sequences->db->clust_update( two_sequences->accno2, "lead", *two_sequences->table, 1 ); // set best sequence to lead
+						two_sequences->db->clust_update( two_sequences->accno1, two_sequences->accno2, *two_sequences->table, 1 ); // set worse sequence to the same cluster
+						if (!cluster1.compare( "lead" ) || !cluster1.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno1, two_sequences->accno2, *two_sequences->table, 0 ); // if worse sequence lead or empty uppdate sequences in that cluster
+						else { // if not lead
+			    			two_sequences->db->clust_update( cluster1, two_sequences->accno2, *two_sequences->table, 1 ); // change lead of cluster to point to new best sequence
+			    			two_sequences->db->clust_update( cluster1, two_sequences->accno2, *two_sequences->table, 0 ); // change all sequences previusly pointing to that sequence to point to new best sequence
+						}
+		    		}
+		    		else if ( !cluster2.compare( "lead" ) ) {
+						two_sequences->db->clust_update( two_sequences->accno1, two_sequences->accno2, *two_sequences->table, 1 ); // set worse sequence to the same cluster
+						if (!cluster1.compare( "lead" ) || !cluster1.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno1, two_sequences->accno2, *two_sequences->table, 0 ); // if worse sequence lead or empty uppdate sequences in that cluster
+						else {
+			    			two_sequences->db->clust_update( cluster1, two_sequences->accno2, *two_sequences->table, 1 ); // change lead of cluster to point to new best sequence
+			    			two_sequences->db->clust_update( cluster1, two_sequences->accno2, *two_sequences->table, 0 ); // change all sequences previusly pointing to that sequence to point to new best sequence
+						}
+		    		}
+		    		else if (cluster2.compare(cluster1)) { // No need to proceed if they are already the same
+						two_sequences->db->clust_update( two_sequences->accno1, cluster2, *two_sequences->table, 1 ); // set worse sequence to point to the same sequence as better sequence
+						if (!cluster1.compare( "lead" ) || !cluster1.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno1, cluster2, *two_sequences->table, 0 ); // set worse sequence to point to same sequence as better sequence
+						else {
+			    			two_sequences->db->clust_update( cluster1, cluster2, *two_sequences->table, 1 ); // change lead of worse cluster to point to the same sequence as new best sequence
+			    			two_sequences->db->clust_update( cluster1, cluster2, *two_sequences->table, 0 ); // change rest of cluster to point to the same sequence as new best sequence
+						}
+		    		}
+				}
+				#ifdef DEBUG
+				cerr << "Clustered seq together." << endl;
+				#endif //DEBUG
+	    	}
+	    	else {
+				#ifdef DEBUG
+				cerr << "Sequences are not clustered together." << endl;
+				#endif //DEBUG
+				if ( !cluster1.compare( "empty" ) ) two_sequences->db->clust_update( two_sequences->accno1, "lead", *two_sequences->table, 1 );
+				if ( !cluster2.compare( "empty" ) ) two_sequences->db->clust_update( two_sequences->accno2, "lead", *two_sequences->table, 1 );
+				if (!taxon_string1.empty() && taxon_string1.compare("empty") && !taxon_string2.empty() && taxon_string2.compare("empty") && (!cluster1.compare( "empty" ) || !cluster1.compare( "lead" )) && (!cluster2.compare( "empty" ) || !cluster2.compare( "lead" ))) {
+		    		#ifdef DEBUG
+		    		cerr << "Cluster 1 previous: " << cluster1 << ".  Now: " << two_sequences->db->get_cluster(two_sequences->accno1, *two_sequences->table) << endl;
+		    		cerr << "Cluster 2 previous: " << cluster2 << ".  Now: " << two_sequences->db->get_cluster(two_sequences->accno2, *two_sequences->table) << endl;
+		    		cerr << "Since sequences may get included in alignment they are counted towards the MAD: " << endl << "\t" << taxon_string1 << endl <<
+					"\t" << taxon_string2 << endl << "\t" << sequences.jc_distance()-(1-sequences.similarity()) << endl;
+		    		#endif
+		    		two_sequences->deviations->insert_value( taxon_string1, taxon_string2, sequences.jc_distance()-(1-sequences.similarity()) );
+				}
+	    	}
 		}
-		// If sequence 2 better
 		else {
-		    #ifdef DEBUG
-		    cerr << "Seq2 longer than seq1." << endl;
-		    #endif //DEBUG
-		    if ( !cluster2.compare( "empty" ) ) { // if no previous annotation
-			two_sequences->db->clust_update( two_sequences->accno2, "lead", *two_sequences->table, 1 ); // set best sequence to lead
-			two_sequences->db->clust_update( two_sequences->accno1, two_sequences->accno2, *two_sequences->table, 1 ); // set worse sequence to the same cluster
-			if (!cluster1.compare( "lead" ) || !cluster1.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno1, two_sequences->accno2, *two_sequences->table, 0 ); // if worse sequence lead or empty uppdate sequences in that cluster
-			else { // if not lead
-			    two_sequences->db->clust_update( cluster1, two_sequences->accno2, *two_sequences->table, 1 ); // change lead of cluster to point to new best sequence
-			    two_sequences->db->clust_update( cluster1, two_sequences->accno2, *two_sequences->table, 0 ); // change all sequences previusly pointing to that sequence to point to new best sequence
-			}
-		    }
-		    else if ( !cluster2.compare( "lead" ) ) {
-			two_sequences->db->clust_update( two_sequences->accno1, two_sequences->accno2, *two_sequences->table, 1 ); // set worse sequence to the same cluster
-			if (!cluster1.compare( "lead" ) || !cluster1.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno1, two_sequences->accno2, *two_sequences->table, 0 ); // if worse sequence lead or empty uppdate sequences in that cluster
-			else {
-			    two_sequences->db->clust_update( cluster1, two_sequences->accno2, *two_sequences->table, 1 ); // change lead of cluster to point to new best sequence
-			    two_sequences->db->clust_update( cluster1, two_sequences->accno2, *two_sequences->table, 0 ); // change all sequences previusly pointing to that sequence to point to new best sequence
-			}
-		    }
-		    else if (cluster2.compare(cluster1)) { // No need to proceed if they are already the same
-			two_sequences->db->clust_update( two_sequences->accno1, cluster2, *two_sequences->table, 1 ); // set worse sequence to point to the same sequence as better sequence
-			if (!cluster1.compare( "lead" ) || !cluster1.compare( "empty" )) two_sequences->db->clust_update( two_sequences->accno1, cluster2, *two_sequences->table, 0 ); // set worse sequence to point to same sequence as better sequence
-			else {
-			    two_sequences->db->clust_update( cluster1, cluster2, *two_sequences->table, 1 ); // change lead of worse cluster to point to the same sequence as new best sequence
-			    two_sequences->db->clust_update( cluster1, cluster2, *two_sequences->table, 0 ); // change rest of cluster to point to the same sequence as new best sequence
-			}
-		    }
-		}
-		#ifdef DEBUG
-		cerr << "Clustered seq together." << endl;
-		#endif //DEBUG
-	    }
-	    else {
-		#ifdef DEBUG
-		cerr << "Sequences are not clustered together." << endl;
-		#endif //DEBUG
-		if ( !cluster1.compare( "empty" ) ) two_sequences->db->clust_update( two_sequences->accno1, "lead", *two_sequences->table, 1 );
-		if ( !cluster2.compare( "empty" ) ) two_sequences->db->clust_update( two_sequences->accno2, "lead", *two_sequences->table, 1 );
-		if (!taxon_string1.empty() && taxon_string1.compare("empty") && !taxon_string2.empty() && taxon_string2.compare("empty") && (!cluster1.compare( "empty" ) || !cluster1.compare( "lead" )) && (!cluster2.compare( "empty" ) || !cluster2.compare( "lead" ))) {
-		    #ifdef DEBUG
-		    cerr << "Cluster 1 previous: " << cluster1 << ".  Now: " << two_sequences->db->get_cluster(two_sequences->accno1, *two_sequences->table) << endl;
-		    cerr << "Cluster 2 previous: " << cluster2 << ".  Now: " << two_sequences->db->get_cluster(two_sequences->accno2, *two_sequences->table) << endl;
-		    cerr << "Since sequences may get included in alignment they are counted towards the MAD: " << endl << "\t" << taxon_string1 << endl <<
+	    	#ifdef DEBUG
+	    	cerr << "Since sequences may get included in alignment they are counted towards the MAD: " << endl << "\t" << taxon_string1 << endl <<
 			"\t" << taxon_string2 << endl << "\t" << sequences.jc_distance()-(1-sequences.similarity()) << endl;
-		    #endif
-		    two_sequences->deviations->insert_value( taxon_string1, taxon_string2, sequences.jc_distance()-(1-sequences.similarity()) );
+	    	#endif
+	    	two_sequences->deviations->insert_value( taxon_string1, taxon_string2, sequences.jc_distance()-(1-sequences.similarity()) );
 		}
-	    }
-	}
-	else {
-	    #ifdef DEBUG
-	    cerr << "Since sequences may get included in alignment they are counted towards the MAD: " << endl << "\t" << taxon_string1 << endl <<
-		"\t" << taxon_string2 << endl << "\t" << sequences.jc_distance()-(1-sequences.similarity()) << endl;
-	    #endif
-	    two_sequences->deviations->insert_value( taxon_string1, taxon_string2, sequences.jc_distance()-(1-sequences.similarity()) );
-	}
     }
     else if (two_sequences->outputstream != 0) {
-	if ( two_sequences->output == 'a' ) {
-	    if (two_sequences->output_names)
-		*two_sequences->outputstream << '>' << two_sequences->accno1 << endl;
-	    *two_sequences->outputstream << sequences.get_x() << endl;
-	    if (two_sequences->output_names) 
-		*two_sequences->outputstream << '>' << two_sequences->accno2 << endl;
-	    *two_sequences->outputstream << sequences.get_y() << endl;
-	}
-	else if ( two_sequences->output == 'd' ) {
-	    if (!two_sequences->matrix) {
-		if (two_sequences->output_names) *two_sequences->outputstream << two_sequences->accno1 << " - " << two_sequences->accno2 << " | ";
-		*two_sequences->outputstream << "Proportion sites that are different (and similarity): " << 1-sequences.similarity() << " (" << sequences.similarity() << "), Jukes-Cantor distance: " << sequences.jc_distance() << ", difference between the two: " << sequences.jc_distance()-(1.0-sequences.similarity()) << '.' << endl;
-	    }
-	    else {
-		*two_sequences->outputstream << 1-sequences.similarity() << "/" << sequences.similarity() << "/" << sequences.jc_distance() << "/" << sequences.jc_distance()-(1.0-sequences.similarity()) << '.';
-	    }
-	}
-	else if ( two_sequences->output == 'c' ) {
-	    if (!two_sequences->matrix) {
-		if (two_sequences->output_names) *two_sequences->outputstream << two_sequences->accno1 << " - " << two_sequences->accno2 << " | ";
-		    *two_sequences->outputstream << sequences.jc_distance()-(1.0-sequences.similarity()) << endl;
-	    }
-	    else *two_sequences->outputstream << sequences.jc_distance()-(1.0-sequences.similarity()) << ' ';
-	}
-	else if ( two_sequences->output == 'j' ) {
-	    if (!two_sequences->matrix) {
-		if (two_sequences->output_names) *two_sequences->outputstream << two_sequences->accno1 << " - " << two_sequences->accno2 << " | ";
-		*two_sequences->outputstream << sequences.jc_distance() << endl;
-	    }
-	    else *two_sequences->outputstream << sequences.jc_distance() << ' ';
-	}
-	else if ( two_sequences->output == 'p' ) {
-	    if (!two_sequences->matrix) {
-		if (two_sequences->output_names) *two_sequences->outputstream << two_sequences->accno1 << " - " << two_sequences->accno2 << " | ";
-		*two_sequences->outputstream << 1-sequences.similarity() << endl;
-	    }
-	    else *two_sequences->outputstream << 1-sequences.similarity() << ' ';
-	}
-	else if ( two_sequences->output == 's' ) {
-	    if (!two_sequences->matrix) {
-		if (two_sequences->output_names) *two_sequences->outputstream << two_sequences->accno1 << " - " << two_sequences->accno2 << " | ";
-		*two_sequences->outputstream << sequences.similarity() << endl;
-	    }
-	    else *two_sequences->outputstream << sequences.similarity() << ' ';
-	}
-	#ifdef DEBUG
-	if (n_threads > 1) cerr << "Thread have processed: " << two_sequences->accno1 << ' ' << two_sequences->accno2 << endl;
-	#endif // DEBUG
+		if ( two_sequences->output == 'a' ) {
+	    	if (two_sequences->output_names)
+				*two_sequences->outputstream << '>' << two_sequences->accno1 << endl;
+	    	*two_sequences->outputstream << sequences.get_x() << endl;
+	    	if (two_sequences->output_names) 
+				*two_sequences->outputstream << '>' << two_sequences->accno2 << endl;
+	    	*two_sequences->outputstream << sequences.get_y() << endl;
+		}
+		else if ( two_sequences->output == 'd' ) {
+	    	if (!two_sequences->matrix) {
+				if (two_sequences->output_names) *two_sequences->outputstream << two_sequences->accno1 << " - " << two_sequences->accno2 << " | ";
+				*two_sequences->outputstream << "Proportion sites that are different (and similarity): " << 1-sequences.similarity() << " (" << sequences.similarity() << "), Jukes-Cantor distance: " << sequences.jc_distance() << ", difference between the two: " << sequences.jc_distance()-(1.0-sequences.similarity()) << '.' << endl;
+	    	}
+	    	else {
+				*two_sequences->outputstream << 1-sequences.similarity() << "/" << sequences.similarity() << "/" << sequences.jc_distance() << "/" << sequences.jc_distance()-(1.0-sequences.similarity()) << '.';
+	    	}
+		}
+		else if ( two_sequences->output == 'c' ) {
+	    	if (!two_sequences->matrix) {
+			if (two_sequences->output_names) *two_sequences->outputstream << two_sequences->accno1 << " - " << two_sequences->accno2 << " | ";
+		    	*two_sequences->outputstream << sequences.jc_distance()-(1.0-sequences.similarity()) << endl;
+	    	}
+	    	else *two_sequences->outputstream << sequences.jc_distance()-(1.0-sequences.similarity()) << ' ';
+		}
+		else if ( two_sequences->output == 'j' ) {
+	    	if (!two_sequences->matrix) {
+				if (two_sequences->output_names) *two_sequences->outputstream << two_sequences->accno1 << " - " << two_sequences->accno2 << " | ";
+				*two_sequences->outputstream << sequences.jc_distance() << endl;
+	    	}
+	    	else *two_sequences->outputstream << sequences.jc_distance() << ' ';
+		}
+		else if ( two_sequences->output == 'p' ) {
+	    	if (!two_sequences->matrix) {
+				if (two_sequences->output_names) *two_sequences->outputstream << two_sequences->accno1 << " - " << two_sequences->accno2 << " | ";
+				*two_sequences->outputstream << 1-sequences.similarity() << endl;
+	    	}
+	    	else *two_sequences->outputstream << 1-sequences.similarity() << ' ';
+		}
+		else if ( two_sequences->output == 's' ) {
+	    	if (!two_sequences->matrix) {
+				if (two_sequences->output_names) *two_sequences->outputstream << two_sequences->accno1 << " - " << two_sequences->accno2 << " | ";
+				*two_sequences->outputstream << sequences.similarity() << endl;
+	    	}
+	    	else *two_sequences->outputstream << sequences.similarity() << ' ';
+		}
+		#ifdef DEBUG
+		if (n_threads > 1) cerr << "Thread have processed: " << two_sequences->accno1 << ' ' << two_sequences->accno2 << endl;
+		#endif // DEBUG
     }
     else { cerr << "No output stream!!!" << endl; }
     #ifdef PTHREAD
     if (n_threads > 1)
-	pthread_mutex_unlock(&databasemutex);
+		pthread_mutex_unlock(&databasemutex);
     #endif /* PTHREAD */
 }
 #ifdef PTHREAD
